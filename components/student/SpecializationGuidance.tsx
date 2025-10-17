@@ -64,13 +64,12 @@ export default function SpecializationGuidance({
   selectedPathway = 'software-engineering',
   onSpecializationSelect 
 }: SpecializationGuidanceProps) {
-  const [preferences, setPreferences] = useState<SpecializationPreference>({
+  const [preferences, setPreferences] = useState<Partial<SpecializationPreference>>({
     technicalInterests: [],
     careerFocus: [],
     projectTypes: [],
     workEnvironment: 'startup',
     learningGoals: [],
-    industryFocus: [],
     skillDevelopment: [],
     additionalNotes: '',
   });
@@ -316,8 +315,8 @@ export default function SpecializationGuidance({
     setPreferences(prev => ({
       ...prev,
       technicalInterests: checked 
-        ? [...prev.technicalInterests, interestId]
-        : prev.technicalInterests.filter(id => id !== interestId)
+        ? [...(prev.technicalInterests || []), interestId]
+        : (prev.technicalInterests || []).filter(id => id !== interestId)
     }));
   };
 
@@ -325,8 +324,8 @@ export default function SpecializationGuidance({
     setPreferences(prev => ({
       ...prev,
       careerFocus: checked 
-        ? [...prev.careerFocus, focusId]
-        : prev.careerFocus.filter(id => id !== focusId)
+        ? [...(prev.careerFocus || []), focusId]
+        : (prev.careerFocus || []).filter(id => id !== focusId)
     }));
   };
 
@@ -334,8 +333,8 @@ export default function SpecializationGuidance({
     setPreferences(prev => ({
       ...prev,
       projectTypes: checked 
-        ? [...prev.projectTypes, typeId]
-        : prev.projectTypes.filter(id => id !== typeId)
+        ? [...(prev.projectTypes || []), typeId]
+        : (prev.projectTypes || []).filter(id => id !== typeId)
     }));
   };
 
@@ -343,8 +342,8 @@ export default function SpecializationGuidance({
     setPreferences(prev => ({
       ...prev,
       learningGoals: checked 
-        ? [...prev.learningGoals, goalId]
-        : prev.learningGoals.filter(id => id !== goalId)
+        ? [...(prev.learningGoals || []), goalId]
+        : (prev.learningGoals || []).filter(id => id !== goalId)
     }));
   };
 
@@ -352,8 +351,8 @@ export default function SpecializationGuidance({
     setPreferences(prev => ({
       ...prev,
       skillDevelopment: checked 
-        ? [...prev.skillDevelopment, skillId]
-        : prev.skillDevelopment.filter(id => id !== skillId)
+        ? [...(prev.skillDevelopment || []), skillId]
+        : (prev.skillDevelopment || []).filter(id => id !== skillId)
     }));
   };
 
@@ -428,7 +427,7 @@ export default function SpecializationGuidance({
                     <div key={interest.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={interest.id}
-                        checked={preferences.technicalInterests.includes(interest.id)}
+                        checked={(preferences.technicalInterests || []).includes(interest.id)}
                         onCheckedChange={(checked) => handleTechnicalInterestChange(interest.id, checked as boolean)}
                       />
                       <Label htmlFor={interest.id} className="flex items-center gap-2 cursor-pointer">
@@ -457,7 +456,7 @@ export default function SpecializationGuidance({
                     <div key={focus.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={focus.id}
-                        checked={preferences.careerFocus.includes(focus.id)}
+                        checked={(preferences.careerFocus || []).includes(focus.id)}
                         onCheckedChange={(checked) => handleCareerFocusChange(focus.id, checked as boolean)}
                       />
                       <Label htmlFor={focus.id} className="flex items-center gap-2 cursor-pointer">
@@ -484,7 +483,7 @@ export default function SpecializationGuidance({
                   <div key={type.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={type.id}
-                      checked={preferences.projectTypes.includes(type.id)}
+                      checked={(preferences.projectTypes || []).includes(type.id)}
                       onCheckedChange={(checked) => handleProjectTypeChange(type.id, checked as boolean)}
                     />
                     <Label htmlFor={type.id} className="cursor-pointer">
@@ -509,7 +508,7 @@ export default function SpecializationGuidance({
                   <div key={goal.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={goal.id}
-                      checked={preferences.learningGoals.includes(goal.id)}
+                      checked={(preferences.learningGoals || []).includes(goal.id)}
                       onCheckedChange={(checked) => handleLearningGoalChange(goal.id, checked as boolean)}
                     />
                     <Label htmlFor={goal.id} className="cursor-pointer">
@@ -534,7 +533,7 @@ export default function SpecializationGuidance({
                   <div key={skill.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={skill.id}
-                      checked={preferences.skillDevelopment.includes(skill.id)}
+                      checked={(preferences.skillDevelopment || []).includes(skill.id)}
                       onCheckedChange={(checked) => handleSkillDevelopmentChange(skill.id, checked as boolean)}
                     />
                     <Label htmlFor={skill.id} className="cursor-pointer">

@@ -97,9 +97,10 @@ export default function RankingsPage() {
       return {
         id: student.id,
         studentId: student.id,
-        name: student.name,
+        studentName: student.name,
         academicYear: student.academicYear,
-        pathway: student.pathway,
+        pathway: student.degreeProgram || 'MIT',
+        specialization: student.specialization,
         gpa: gpa,
         totalCredits: totalCreditsEarned,
         passRate: passRate,
@@ -107,13 +108,14 @@ export default function RankingsPage() {
         rank: 0, // Will be set after sorting
         previousRank: 0, // Mock previous rank
         change: 0, // Mock rank change
-        achievements: [], // Mock achievements
-        lastUpdated: new Date().toISOString(),
+        academicClass: student.academicClass,
+        semester: 'S1', // Mock semester
+        tiebreakApplied: false,
       };
     });
 
     // Sort by weighted score and assign ranks
-    studentRankings.sort((a, b) => b.weightedScore - a.weightedScore);
+    studentRankings.sort((a, b) => (b.weightedScore || 0) - (a.weightedScore || 0));
     studentRankings.forEach((ranking, index) => {
       ranking.rank = index + 1;
       ranking.previousRank = Math.max(1, ranking.rank + Math.floor(Math.random() * 5) - 2);
@@ -124,11 +126,13 @@ export default function RankingsPage() {
   };
 
   const rankings = calculateRankings();
-  const filteredRankings = rankings.filter(ranking => 
-    ranking.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ranking.academicYear.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ranking.pathway.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRankings = rankings.filter(ranking => {
+    const term = (searchTerm || '').toLowerCase();
+    const name = (ranking.studentName || '').toLowerCase();
+    const year = (ranking.academicYear || '').toLowerCase();
+    const pathway = (ranking.pathway || '').toLowerCase();
+    return name.includes(term) || year.includes(term) || pathway.includes(term);
+  });
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -163,8 +167,8 @@ export default function RankingsPage() {
   const getCategoryStats = () => {
     const totalStudents = rankings.length;
     const avgGPA = rankings.reduce((sum, r) => sum + r.gpa, 0) / totalStudents;
-    const avgCredits = rankings.reduce((sum, r) => sum + r.totalCredits, 0) / totalStudents;
-    const avgPassRate = rankings.reduce((sum, r) => sum + r.passRate, 0) / totalStudents;
+    const avgCredits = rankings.reduce((sum, r) => sum + (r.totalCredits || 0), 0) / totalStudents;
+    const avgPassRate = rankings.reduce((sum, r) => sum + (r.passRate || 0), 0) / totalStudents;
     
     return { totalStudents, avgGPA, avgCredits, avgPassRate };
   };
@@ -336,7 +340,7 @@ export default function RankingsPage() {
                 <TableBody>
                   {filteredRankings.map((ranking) => {
                     const RankIcon = getRankIcon(ranking.rank);
-                    const ChangeIcon = getChangeIcon(ranking.change);
+                    const ChangeIcon = getChangeIcon(ranking.change || 0);
                     
                     return (
                       <TableRow key={ranking.id}>
@@ -350,7 +354,7 @@ export default function RankingsPage() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{ranking.name}</div>
+                            <div className="font-medium">{ranking.studentName}</div>
                             <div className="text-sm text-muted-foreground">{ranking.studentId}</div>
                           </div>
                         </TableCell>
@@ -368,15 +372,15 @@ export default function RankingsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="font-medium">{ranking.passRate.toFixed(1)}%</div>
-                            <Progress value={ranking.passRate} className="w-16 h-2" />
+                            <div className="font-medium">{(ranking.passRate || 0).toFixed(1)}%</div>
+                            <Progress value={ranking.passRate || 0} className="w-16 h-2" />
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className={`flex items-center gap-1 ${getChangeColor(ranking.change)}`}>
+                          <div className={`flex items-center gap-1 ${getChangeColor(ranking.change || 0)}`}>
                             <ChangeIcon className="h-4 w-4" />
                             <span className="text-sm">
-                              {ranking.change > 0 ? `+${ranking.change}` : ranking.change}
+                              {ranking.change && ranking.change > 0 ? `+${ranking.change}` : ranking.change || 0}
                             </span>
                           </div>
                         </TableCell>
@@ -414,12 +418,12 @@ export default function RankingsPage() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold">{ranking.name}</h4>
+                          <h4 className="font-semibold">{ranking.studentName}</h4>
                           <Badge variant="outline">{ranking.academicYear}</Badge>
                           <Badge variant="secondary">{ranking.pathway}</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          GPA: {ranking.gpa.toFixed(2)} • Credits: {ranking.totalCredits} • Pass Rate: {ranking.passRate.toFixed(1)}%
+                          GPA: {ranking.gpa.toFixed(2)} • Credits: {ranking.totalCredits || 0} • Pass Rate: {(ranking.passRate || 0).toFixed(1)}%
                         </p>
                       </div>
                       <div className="text-right">
@@ -460,7 +464,7 @@ export default function RankingsPage() {
                                 <RankIcon className="h-4 w-4" />
                               </div>
                               <div className="flex-1">
-                                <div className="font-medium">{ranking.name}</div>
+                                <div className="font-medium">{ranking.studentName}</div>
                                 <div className="text-sm text-muted-foreground">
                                   GPA: {ranking.gpa.toFixed(2)} • Credits: {ranking.totalCredits}
                                 </div>
@@ -496,7 +500,7 @@ export default function RankingsPage() {
                     <div key={ranking.id} className="flex items-center gap-3 p-3 rounded-lg border bg-green-50">
                       <Star className="h-5 w-5 text-green-600" />
                       <div>
-                        <div className="font-medium">{ranking.name}</div>
+                        <div className="font-medium">{ranking.studentName}</div>
                         <div className="text-sm text-muted-foreground">
                           {ranking.academicYear} • {ranking.pathway}
                         </div>
@@ -507,11 +511,11 @@ export default function RankingsPage() {
                 
                 <div className="space-y-3">
                   <h4 className="font-semibold">High Credit Earners</h4>
-                  {filteredRankings.filter(r => r.totalCredits >= 100).map((ranking) => (
+                  {filteredRankings.filter(r => (r.totalCredits || 0) >= 100).map((ranking) => (
                     <div key={ranking.id} className="flex items-center gap-3 p-3 rounded-lg border bg-blue-50">
                       <BookOpen className="h-5 w-5 text-blue-600" />
                       <div>
-                        <div className="font-medium">{ranking.name}</div>
+                        <div className="font-medium">{ranking.studentName}</div>
                         <div className="text-sm text-muted-foreground">
                           {ranking.totalCredits} credits • {ranking.academicYear}
                         </div>
@@ -522,13 +526,13 @@ export default function RankingsPage() {
                 
                 <div className="space-y-3">
                   <h4 className="font-semibold">Perfect Pass Rate</h4>
-                  {filteredRankings.filter(r => r.passRate >= 100).map((ranking) => (
+                  {filteredRankings.filter(r => (r.passRate || 0) >= 100).map((ranking) => (
                     <div key={ranking.id} className="flex items-center gap-3 p-3 rounded-lg border bg-purple-50">
                       <Target className="h-5 w-5 text-purple-600" />
                       <div>
-                        <div className="font-medium">{ranking.name}</div>
+                        <div className="font-medium">{ranking.studentName}</div>
                         <div className="text-sm text-muted-foreground">
-                          {ranking.passRate.toFixed(1)}% pass rate • {ranking.academicYear}
+                          {(ranking.passRate || 0).toFixed(1)}% pass rate • {ranking.academicYear}
                         </div>
                       </div>
                     </div>
@@ -537,13 +541,13 @@ export default function RankingsPage() {
                 
                 <div className="space-y-3">
                   <h4 className="font-semibold">Rising Stars</h4>
-                  {filteredRankings.filter(r => r.change > 0).slice(0, 5).map((ranking) => (
+                  {filteredRankings.filter(r => (r.change || 0) > 0).slice(0, 5).map((ranking) => (
                     <div key={ranking.id} className="flex items-center gap-3 p-3 rounded-lg border bg-yellow-50">
                       <TrendingUp className="h-5 w-5 text-yellow-600" />
                       <div>
-                        <div className="font-medium">{ranking.name}</div>
+                        <div className="font-medium">{ranking.studentName}</div>
                         <div className="text-sm text-muted-foreground">
-                          Moved up {ranking.change} positions • {ranking.academicYear}
+                          Moved up {ranking.change || 0} positions • {ranking.academicYear}
                         </div>
                       </div>
                     </div>

@@ -119,7 +119,7 @@ export default function EligiblePage() {
   // Filter students based on current filters
   const filterStudents = (studentList: Student[]) => {
     return studentList.filter(student => {
-      const matchesPathway = filterPathway === 'all' || student.pathway === filterPathway;
+      const matchesPathway = filterPathway === 'all' || student.specialization === filterPathway;
       const matchesYear = filterYear === 'all' || student.academicYear === filterYear;
       const matchesSpecialization = filterSpecialization === 'all' || true; // Mock specialization filter
       return matchesPathway && matchesYear && matchesSpecialization;
@@ -425,7 +425,7 @@ export default function EligiblePage() {
                           <Badge variant="outline">{student.academicYear}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{student.pathway}</Badge>
+                          <Badge variant="secondary">{student.specialization}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">{eligibility.gpa.toFixed(2)}</div>
@@ -514,7 +514,7 @@ export default function EligiblePage() {
                           <Badge variant="outline">{student.academicYear}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{student.pathway}</Badge>
+                          <Badge variant="secondary">{student.specialization}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">{eligibility.gpa.toFixed(2)}</div>
@@ -603,7 +603,7 @@ export default function EligiblePage() {
                           <Badge variant="outline">{student.academicYear}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{student.pathway}</Badge>
+                          <Badge variant="secondary">{student.specialization}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">{eligibility.gpa.toFixed(2)}</div>
@@ -692,7 +692,7 @@ export default function EligiblePage() {
                           <Badge variant="outline">{student.academicYear}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{student.pathway}</Badge>
+                          <Badge variant="secondary">{student.specialization}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">{eligibility.gpa.toFixed(2)}</div>

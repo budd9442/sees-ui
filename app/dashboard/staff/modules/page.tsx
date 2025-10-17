@@ -63,7 +63,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Module } from '@/types';
+import type { Module, AcademicYear, Semester } from '@/types';
 
 export default function ModulesPage() {
   const { user } = useAuthStore();
@@ -86,7 +86,7 @@ export default function ModulesPage() {
   });
 
   // Get modules taught by current staff member (mock: all modules)
-  const staffModules = modules.filter(m => m.academicYear === '2024');
+  const staffModules = modules.filter(m => m.academicYear === 'L1');
   const currentModule = modules.find(m => m.id === selectedModule);
 
   // Get students enrolled in selected module
@@ -97,14 +97,14 @@ export default function ModulesPage() {
   const handleEditModule = (module: Module) => {
     setSelectedModule(module.id);
     setModuleData({
-      name: module.name,
+      name: module.title,
       code: module.code,
       description: module.description,
-      learningOutcomes: module.learningOutcomes || '',
+      learningOutcomes: Array.isArray(module.learningOutcomes) ? module.learningOutcomes.join('\n') : (module.learningOutcomes || ''),
       prerequisites: module.prerequisites || [],
       credits: module.credits,
       capacity: module.capacity || 50,
-      academicYear: module.academicYear,
+      academicYear: module.academicYear as AcademicYear,
       semester: module.semester,
       status: module.status || 'active',
     });
@@ -116,7 +116,11 @@ export default function ModulesPage() {
 
     updateModule(selectedModule, {
       ...moduleData,
-      learningOutcomes: moduleData.learningOutcomes.split('\n').filter(outcome => outcome.trim()),
+      academicYear: moduleData.academicYear as AcademicYear,
+      semester: moduleData.semester as Semester,
+      learningOutcomes: Array.isArray(moduleData.learningOutcomes) 
+        ? moduleData.learningOutcomes 
+        : moduleData.learningOutcomes.split('\n').filter(outcome => outcome.trim()),
     });
 
     setIsEditing(false);
@@ -142,7 +146,7 @@ export default function ModulesPage() {
   };
 
   const filteredModules = staffModules.filter(module =>
-    module.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    module.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     module.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -209,7 +213,7 @@ export default function ModulesPage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <CardTitle className="text-lg">{module.name}</CardTitle>
+                          <CardTitle className="text-lg">{module.title}</CardTitle>
                           <CardDescription>{module.code}</CardDescription>
                         </div>
                         <Badge variant={module.status === 'active' ? 'default' : 'secondary'}>
@@ -286,7 +290,7 @@ export default function ModulesPage() {
                       <Label htmlFor="name">Module Name</Label>
                       <Input
                         id="name"
-                        value={isEditing ? moduleData.name : currentModule.name}
+                        value={isEditing ? moduleData.name : currentModule.title}
                         onChange={(e) => isEditing && setModuleData({ ...moduleData, name: e.target.value })}
                         disabled={!isEditing}
                       />
@@ -412,7 +416,7 @@ export default function ModulesPage() {
               <CardHeader>
                 <CardTitle>Enrolled Students</CardTitle>
                 <CardDescription>
-                  Students currently enrolled in {currentModule.name}
+                  Students currently enrolled in {currentModule.title}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -439,12 +443,12 @@ export default function ModulesPage() {
                             <Badge variant="outline">{student.academicYear}</Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">{student.pathway}</Badge>
+                            <Badge variant="secondary">{student.specialization}</Badge>
                           </TableCell>
                           <TableCell>
                             {grade ? (
-                              <Badge variant={grade.grade === 'F' ? 'destructive' : 'default'}>
-                                {grade.grade}
+                              <Badge variant={grade.letterGrade === 'F' ? 'destructive' : 'default'}>
+                                {grade.letterGrade}
                               </Badge>
                             ) : (
                               <span className="text-muted-foreground">-</span>
@@ -527,13 +531,13 @@ export default function ModulesPage() {
               <CardHeader>
                 <CardTitle>Grade Distribution</CardTitle>
                 <CardDescription>
-                  Performance breakdown for {currentModule.name}
+                  Performance breakdown for {currentModule.title}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {['A', 'B', 'C', 'D', 'F'].map((grade) => {
-                    const count = grades.filter(g => g.moduleId === selectedModule && g.grade === grade).length;
+                    const count = grades.filter(g => g.moduleId === selectedModule && g.letterGrade === grade).length;
                     const percentage = enrolledStudents.length > 0 ? (count / enrolledStudents.length) * 100 : 0;
                     
                     return (

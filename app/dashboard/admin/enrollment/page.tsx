@@ -145,6 +145,7 @@ export default function EnrollmentPage() {
       if (!row.studentId) {
         errors.push({
           row: rowNumber,
+          studentId: row.studentId || '',
           field: 'studentId',
           error: 'Student ID is required',
           value: row.studentId || '',
@@ -154,6 +155,7 @@ export default function EnrollmentPage() {
       if (!row.firstName) {
         errors.push({
           row: rowNumber,
+          studentId: row.studentId || '',
           field: 'firstName',
           error: 'First name is required',
           value: row.firstName || '',
@@ -163,6 +165,7 @@ export default function EnrollmentPage() {
       if (!row.lastName) {
         errors.push({
           row: rowNumber,
+          studentId: row.studentId || '',
           field: 'lastName',
           error: 'Last name is required',
           value: row.lastName || '',
@@ -172,6 +175,7 @@ export default function EnrollmentPage() {
       if (!row.email) {
         errors.push({
           row: rowNumber,
+          studentId: row.studentId || '',
           field: 'email',
           error: 'Email is required',
           value: row.email || '',
@@ -182,6 +186,7 @@ export default function EnrollmentPage() {
       if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
         errors.push({
           row: rowNumber,
+          studentId: row.studentId || '',
           field: 'email',
           error: 'Invalid email format',
           value: row.email,
@@ -192,6 +197,7 @@ export default function EnrollmentPage() {
       if (row.studentId && existingStudentIds.includes(row.studentId)) {
         errors.push({
           row: rowNumber,
+          studentId: row.studentId || '',
           field: 'studentId',
           error: 'Student ID already exists',
           value: row.studentId,
@@ -201,6 +207,7 @@ export default function EnrollmentPage() {
       if (row.email && existingEmails.includes(row.email)) {
         errors.push({
           row: rowNumber,
+          studentId: row.studentId || '',
           field: 'email',
           error: 'Email already exists',
           value: row.email,
@@ -211,6 +218,7 @@ export default function EnrollmentPage() {
       if (row.academicYear && !['L1', 'L2', 'L3'].includes(row.academicYear)) {
         errors.push({
           row: rowNumber,
+          studentId: row.studentId || '',
           field: 'academicYear',
           error: 'Academic year must be L1, L2, or L3',
           value: row.academicYear,
@@ -221,6 +229,7 @@ export default function EnrollmentPage() {
       if (row.degreeProgram && !['MIT', 'IT'].includes(row.degreeProgram)) {
         errors.push({
           row: rowNumber,
+          studentId: row.studentId || '',
           field: 'degreeProgram',
           error: 'Degree program must be MIT or IT',
           value: row.degreeProgram,
@@ -564,7 +573,7 @@ export default function EnrollmentPage() {
                               <TableRow key={index}>
                                 <TableCell className="font-medium">{error.row}</TableCell>
                                 <TableCell className="capitalize">{error.field}</TableCell>
-                                <TableCell className="text-red-600">{error.message}</TableCell>
+                                <TableCell className="text-red-600">{error.error}</TableCell>
                                 <TableCell className="text-muted-foreground">{error.value}</TableCell>
                               </TableRow>
                             ))}

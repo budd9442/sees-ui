@@ -59,7 +59,7 @@ export default function AnalyticsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('current');
 
   // Get modules taught by current staff member (mock: all modules)
-  const staffModules = modules.filter(m => m.academicYear === '2024');
+  const staffModules = modules.filter(m => m.academicYear === 'L1');
   const currentModule = modules.find(m => m.id === selectedModule);
 
   // Get grades for selected module
@@ -84,9 +84,9 @@ export default function AnalyticsPage() {
 
     const gradeDistribution = ['A', 'B', 'C', 'D', 'F'].map(grade => ({
       grade,
-      count: gradedStudents.filter(g => g.grade === grade).length,
+      count: gradedStudents.filter(g => g.letterGrade === grade).length,
       percentage: gradedStudents.length > 0 
-        ? (gradedStudents.filter(g => g.grade === grade).length / gradedStudents.length) * 100 
+        ? (gradedStudents.filter(g => g.letterGrade === grade).length / gradedStudents.length) * 100 
         : 0,
     }));
 
@@ -94,12 +94,13 @@ export default function AnalyticsPage() {
       const grade = moduleGrades.find(g => g.studentId === student.id);
       if (!grade) return acc;
       
-      if (!acc[student.pathway]) {
-        acc[student.pathway] = { total: 0, sum: 0, count: 0 };
+      const specialization = student.specialization || 'Unknown';
+      if (!acc[specialization]) {
+        acc[specialization] = { total: 0, sum: 0, count: 0 };
       }
-      acc[student.pathway].total += grade.points;
-      acc[student.pathway].sum += grade.points;
-      acc[student.pathway].count += 1;
+      acc[specialization].total += grade.points;
+      acc[specialization].sum += grade.points;
+      acc[specialization].count += 1;
       return acc;
     }, {} as Record<string, { total: number; sum: number; count: number }>);
 
@@ -184,7 +185,7 @@ export default function AnalyticsPage() {
                 <SelectContent>
                   {staffModules.map((module) => (
                     <SelectItem key={module.id} value={module.id}>
-                      {module.name} - {module.academicYear} {module.semester}
+                      {module.title} - {module.academicYear} {module.semester}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -297,7 +298,7 @@ export default function AnalyticsPage() {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ grade, percentage }) => `${grade}: ${percentage.toFixed(1)}%`}
+                          label={({ grade, percentage }) => `${grade}: ${(percentage as number).toFixed(1)}%`}
                           outerRadius={80}
                           fill="#8884d8"
                           dataKey="count"

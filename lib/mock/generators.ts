@@ -414,6 +414,7 @@ export function generateTestStudent(): Student {
     email: 'alice@university.edu',
     firstName: 'Alice',
     lastName: 'Johnson',
+    name: 'Alice Johnson',
     role: 'student',
     avatar: '/avatars/alice.jpg',
     isActive: true,
@@ -537,8 +538,8 @@ export function generateInternships(students: Student[]): Internship[] {
 export function generateAnonymousReports(count: number = 15): AnonymousReport[] {
   const reports: AnonymousReport[] = [];
   
-  const categories: Array<'academic' | 'harassment' | 'facilities' | 'staff' | 'other'> = 
-    ['academic', 'harassment', 'facilities', 'staff', 'other'];
+  const categories: Array<'academic_misconduct' | 'harassment' | 'discrimination' | 'safety_concern' | 'facility_issue' | 'other'> = 
+    ['academic_misconduct', 'harassment', 'discrimination', 'safety_concern', 'facility_issue', 'other'];
   
   const titles = [
     'Concern about grading fairness',
@@ -570,16 +571,17 @@ export function generateAnonymousReports(count: number = 15): AnonymousReport[] 
     const category = randomFromArray(categories);
     const title = randomFromArray(titles);
     const description = randomFromArray(descriptions);
-    const status = randomFromArray(['submitted', 'under_review', 'resolved', 'closed'] as const);
+    const status = randomFromArray(['submitted', 'in_review', 'resolved', 'escalated'] as const);
     const priority = randomFromArray(['low', 'medium', 'high', 'urgent'] as const);
     
     const attachments: ReportAttachment[] = Math.random() > 0.7 ? [
       {
         id: `att-${i}-1`,
-        name: 'evidence.pdf',
-        type: 'application/pdf',
-        size: randomInt(100000, 2000000),
+        fileName: 'evidence.pdf',
+        fileType: 'application/pdf',
+        fileSize: randomInt(100000, 2000000),
         url: '/mock-files/evidence.pdf',
+        uploadedAt: new Date().toISOString(),
       },
     ] : [];
 
@@ -592,8 +594,8 @@ export function generateAnonymousReports(count: number = 15): AnonymousReport[] 
       status,
       submittedAt: new Date(Date.now() - randomInt(0, 30) * 24 * 60 * 60 * 1000).toISOString(),
       reviewedAt: status !== 'submitted' ? new Date(Date.now() - randomInt(0, 20) * 24 * 60 * 60 * 1000).toISOString() : undefined,
-      resolvedAt: status === 'resolved' || status === 'closed' ? new Date(Date.now() - randomInt(0, 10) * 24 * 60 * 60 * 1000).toISOString() : undefined,
-      reviewerNotes: status !== 'submitted' ? 'Report has been reviewed and appropriate action has been taken.' : undefined,
+      resolvedAt: status === 'resolved' || status === 'escalated' ? new Date(Date.now() - randomInt(0, 10) * 24 * 60 * 60 * 1000).toISOString() : undefined,
+      adminNotes: status !== 'submitted' ? 'Report has been reviewed and appropriate action has been taken.' : undefined,
       priority,
     });
   }
@@ -659,7 +661,10 @@ export function generateInterventions(students: Student[]): Intervention[] {
         studentId: student.studentId,
         advisorId: advisor.id,
         type,
+        title: `Academic Intervention - ${type.replace('_', ' ').toUpperCase()}`,
+        description: `Intervention triggered due to ${type.replace('_', ' ')}`,
         triggerReason: `GPA dropped to ${student.currentGPA.toFixed(2)} (below 2.8 threshold)`,
+        severity: randomFromArray(['low', 'medium', 'high'] as const),
         suggestions: suggestions.slice(0, randomInt(3, 6)),
         resources: resources.slice(0, randomInt(2, 4)),
         status,

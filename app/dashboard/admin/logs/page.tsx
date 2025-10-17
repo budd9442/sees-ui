@@ -79,181 +79,122 @@ export default function LogsPage() {
     {
       id: 'LOG001',
       userId: 'ADMIN001',
-      userName: 'Admin User',
+      userEmail: 'admin@university.edu',
       action: 'config_update',
       resource: 'gpa_formula',
       details: 'Updated GPA calculation method to weighted average',
-      level: 'info',
       ipAddress: '192.168.1.100',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       timestamp: '2024-01-15T14:30:00Z',
-      sessionId: 'SESS001',
-      metadata: {
-        oldValue: 'cumulative',
-        newValue: 'weighted_average',
-        changes: ['calculation_method'],
-      },
+      status: 'success',
     },
     {
       id: 'LOG002',
       userId: 'STU001',
-      userName: 'John Doe',
+      userEmail: 'john.doe@student.edu',
       action: 'grade_view',
       resource: 'grades',
       details: 'Viewed grades for CS101 module',
-      level: 'info',
       ipAddress: '192.168.1.101',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       timestamp: '2024-01-15T14:25:00Z',
-      sessionId: 'SESS002',
-      metadata: {
-        moduleId: 'CS101',
-        gradeCount: 5,
-      },
+      status: 'success',
     },
     {
       id: 'LOG003',
       userId: 'STAFF001',
-      userName: 'Dr. Smith',
+      userEmail: 'dr.smith@staff.edu',
       action: 'grade_release',
       resource: 'grades',
       details: 'Released grades for CS101 module to students',
-      level: 'info',
       ipAddress: '192.168.1.102',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       timestamp: '2024-01-15T14:20:00Z',
-      sessionId: 'SESS003',
-      metadata: {
-        moduleId: 'CS101',
-        studentCount: 45,
-        averageGrade: 78.5,
-      },
+      status: 'success',
     },
     {
       id: 'LOG004',
       userId: 'ADMIN001',
-      userName: 'Admin User',
+      userEmail: 'admin@university.edu',
       action: 'user_create',
       resource: 'users',
       details: 'Created new user account for student',
-      level: 'info',
       ipAddress: '192.168.1.100',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       timestamp: '2024-01-15T14:15:00Z',
-      sessionId: 'SESS001',
-      metadata: {
-        newUserId: 'STU002',
-        role: 'student',
-        email: 'jane.doe@university.edu',
-      },
+      status: 'success',
     },
     {
       id: 'LOG005',
       userId: 'STU001',
-      userName: 'John Doe',
+      userEmail: 'john.doe@student.edu',
       action: 'login',
       resource: 'auth',
       details: 'User logged in successfully',
-      level: 'info',
       ipAddress: '192.168.1.101',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       timestamp: '2024-01-15T14:10:00Z',
-      sessionId: 'SESS002',
-      metadata: {
-        loginMethod: 'password',
-        twoFactorEnabled: false,
-      },
+      status: 'success',
     },
     {
       id: 'LOG006',
       userId: 'ADMIN001',
-      userName: 'Admin User',
+      userEmail: 'admin@university.edu',
       action: 'backup_create',
       resource: 'backup',
       details: 'Created full system backup',
-      level: 'info',
       ipAddress: '192.168.1.100',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       timestamp: '2024-01-15T02:00:00Z',
-      sessionId: 'SESS001',
-      metadata: {
-        backupType: 'full',
-        backupSize: '2.4GB',
-        backupId: 'BK001',
-      },
+      status: 'success',
     },
     {
       id: 'LOG007',
       userId: 'STU001',
-      userName: 'John Doe',
+      userEmail: 'john.doe@student.edu',
       action: 'module_register',
       resource: 'modules',
       details: 'Registered for CS102 module',
-      level: 'info',
       ipAddress: '192.168.1.101',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       timestamp: '2024-01-14T16:30:00Z',
-      sessionId: 'SESS002',
-      metadata: {
-        moduleId: 'CS102',
-        credits: 3,
-        semester: 'S1_2024',
-      },
+      status: 'success',
     },
     {
       id: 'LOG008',
       userId: 'ADMIN001',
-      userName: 'Admin User',
+      userEmail: 'admin@university.edu',
       action: 'config_error',
       resource: 'gpa_formula',
       details: 'Failed to update GPA formula due to validation error',
-      level: 'error',
       ipAddress: '192.168.1.100',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       timestamp: '2024-01-14T15:45:00Z',
-      sessionId: 'SESS001',
-      metadata: {
-        errorCode: 'VALIDATION_ERROR',
-        errorMessage: 'Invalid grade point scale values',
-        attemptedValue: 'invalid_scale',
-      },
+      status: 'failed',
     },
     {
       id: 'LOG009',
       userId: 'STAFF001',
-      userName: 'Dr. Smith',
+      userEmail: 'dr.smith@staff.edu',
       action: 'schedule_update',
       resource: 'schedule',
       details: 'Updated lecture schedule for CS101',
-      level: 'info',
       ipAddress: '192.168.1.102',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       timestamp: '2024-01-14T15:30:00Z',
-      sessionId: 'SESS003',
-      metadata: {
-        moduleId: 'CS101',
-        oldTime: '09:00-10:30',
-        newTime: '10:00-11:30',
-        room: 'A101',
-      },
+      status: 'success',
     },
     {
       id: 'LOG010',
       userId: 'STU001',
-      userName: 'John Doe',
+      userEmail: 'john.doe@student.edu',
       action: 'pathway_select',
       resource: 'pathway',
       details: 'Selected Software Engineering pathway',
-      level: 'info',
       ipAddress: '192.168.1.101',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       timestamp: '2024-01-14T14:20:00Z',
-      sessionId: 'SESS002',
-      metadata: {
-        pathway: 'Software Engineering',
-        preferences: ['frontend', 'web_development'],
-        gpa: 3.2,
-      },
+      status: 'success',
     },
   ];
 
@@ -310,12 +251,12 @@ export default function LogsPage() {
   // Filter logs
   const filteredLogs = mockLogs.filter(log => {
     const matchesSearch = log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         log.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          log.resource.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesUser = filterUser === 'all' || log.userId === filterUser;
     const matchesAction = filterAction === 'all' || log.action === filterAction;
-    const matchesLevel = filterLevel === 'all' || log.level === filterLevel;
+    const matchesLevel = filterLevel === 'all' || log.status === filterLevel;
     
     const logDate = new Date(log.timestamp);
     const now = new Date();
@@ -336,8 +277,8 @@ export default function LogsPage() {
 
   const getLogStats = () => {
     const total = mockLogs.length;
-    const errors = mockLogs.filter(l => l.level === 'error').length;
-    const warnings = mockLogs.filter(l => l.level === 'warning').length;
+    const errors = mockLogs.filter(l => l.status === 'failed').length;
+    const warnings = mockLogs.filter(l => l.status === 'warning').length;
     const today = mockLogs.filter(l => {
       const logDate = new Date(l.timestamp);
       const now = new Date();
@@ -526,7 +467,7 @@ export default function LogsPage() {
                           </TableCell>
                           <TableCell>
                             <div>
-                              <div className="font-medium">{log.userName}</div>
+                              <div className="font-medium">{log.userEmail}</div>
                               <div className="text-xs text-muted-foreground">{log.userId}</div>
                             </div>
                           </TableCell>
@@ -542,8 +483,8 @@ export default function LogsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge className={getLevelColor(log.level)}>
-                              {log.level}
+                            <Badge className={getLevelColor(log.status)}>
+                              {log.status}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -580,7 +521,7 @@ export default function LogsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockLogs.filter(log => log.level === 'error').map((log) => {
+                {mockLogs.filter(log => log.status === 'failed').map((log) => {
                   const ActionIcon = getActionIcon(log.action);
                   return (
                     <div key={log.id} className="p-4 rounded-lg border border-red-200 bg-red-50">
@@ -590,7 +531,7 @@ export default function LogsPage() {
                           <div>
                             <div className="font-medium text-red-900">{log.details}</div>
                             <div className="text-sm text-red-700">
-                              {log.userName} • {new Date(log.timestamp).toLocaleString()}
+                              {log.userEmail} • {new Date(log.timestamp).toLocaleString()}
                             </div>
                           </div>
                         </div>
@@ -598,14 +539,6 @@ export default function LogsPage() {
                           Error
                         </Badge>
                       </div>
-                      {log.metadata && (
-                        <div className="mt-3 p-2 rounded bg-red-100 text-sm">
-                          <strong>Error Details:</strong>
-                          <pre className="mt-1 text-xs">
-                            {JSON.stringify(log.metadata, null, 2)}
-                          </pre>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -632,7 +565,7 @@ export default function LogsPage() {
                         <div className="flex items-center gap-3">
                           <ActionIcon className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <div className="font-medium">{log.userName}</div>
+                            <div className="font-medium">{log.userEmail}</div>
                             <div className="text-sm text-muted-foreground">{log.details}</div>
                           </div>
                         </div>
@@ -668,7 +601,7 @@ export default function LogsPage() {
                           <div>
                             <div className="font-medium">{log.details}</div>
                             <div className="text-sm text-muted-foreground">
-                              {log.userName} • {log.resource}
+                              {log.userEmail} • {log.resource}
                             </div>
                           </div>
                         </div>
@@ -704,14 +637,14 @@ export default function LogsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Level</Label>
-                  <Badge className={getLevelColor(selectedLog.level)}>
-                    {selectedLog.level}
+                  <Badge className={getLevelColor(selectedLog.status)}>
+                    {selectedLog.status}
                   </Badge>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">User</Label>
                   <div className="text-sm">
-                    <div>{selectedLog.userName}</div>
+                    <div>{selectedLog.userEmail}</div>
                     <div className="text-muted-foreground">{selectedLog.userId}</div>
                   </div>
                 </div>
@@ -724,10 +657,6 @@ export default function LogsPage() {
                   <Badge className={getResourceColor(selectedLog.resource)}>
                     {selectedLog.resource}
                   </Badge>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Session ID</Label>
-                  <div className="text-sm font-mono">{selectedLog.sessionId}</div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">IP Address</Label>
@@ -745,17 +674,6 @@ export default function LogsPage() {
                   {selectedLog.details}
                 </div>
               </div>
-
-              {selectedLog.metadata && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Metadata</Label>
-                  <div className="p-3 rounded-lg bg-muted">
-                    <pre className="text-xs overflow-auto">
-                      {JSON.stringify(selectedLog.metadata, null, 2)}
-                    </pre>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

@@ -216,7 +216,7 @@ export default function StaffDashboard() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold">{module.name}</p>
+                        <p className="font-semibold">{module.fullName}</p>
                         <Badge variant="outline">{module.students} students</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">

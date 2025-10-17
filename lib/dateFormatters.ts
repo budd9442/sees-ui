@@ -1,17 +1,31 @@
-import { format, formatDistanceToNow, isToday, isYesterday, parseISO } from 'date-fns';
+import { format, formatDistanceToNow, isToday, isYesterday, parseISO, isValid } from 'date-fns';
 
 export function formatDate(date: string | Date): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  
+  if (!isValid(dateObj)) {
+    return 'Invalid Date';
+  }
+  
   return format(dateObj, 'MMM d, yyyy');
 }
 
 export function formatDateTime(date: string | Date): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  
+  if (!isValid(dateObj)) {
+    return 'Invalid Date';
+  }
+  
   return format(dateObj, 'MMM d, yyyy h:mm a');
 }
 
 export function formatRelativeTime(date: string | Date): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
+
+  if (!isValid(dateObj)) {
+    return 'Unknown time';
+  }
 
   if (isToday(dateObj)) {
     return `Today at ${format(dateObj, 'h:mm a')}`;
@@ -26,10 +40,20 @@ export function formatRelativeTime(date: string | Date): string {
 
 export function formatShortDate(date: string | Date): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  
+  if (!isValid(dateObj)) {
+    return 'Invalid Date';
+  }
+  
   return format(dateObj, 'MMM d');
 }
 
 export function formatTime(date: string | Date): string {
   const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  
+  if (!isValid(dateObj)) {
+    return 'Invalid Date';
+  }
+  
   return format(dateObj, 'h:mm a');
 }

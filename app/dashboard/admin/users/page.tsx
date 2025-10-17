@@ -57,17 +57,20 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  User,
+  User as UserIcon,
   Key,
   Lock,
   Unlock,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { User } from '@/types';
+import type { User, Student } from '@/types';
 
 export default function UsersPage() {
   const { user } = useAuthStore();
-  const { allUsers, addStudent, updateStudent } = useAppStore();
+  const { students, staff, addStudent, updateStudent } = useAppStore();
+  
+  // Combine students and staff into allUsers
+  const allUsers = [...students, ...staff];
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -105,20 +108,38 @@ export default function UsersPage() {
 
     const user: User = {
       id: `USER${Date.now()}`,
+      firstName: newUser.name.split(' ')[0],
+      lastName: newUser.name.split(' ').slice(1).join(' '),
       name: newUser.name,
       email: newUser.email,
       role: newUser.role,
-      academicYear: newUser.role === 'student' ? newUser.academicYear : undefined,
-      pathway: newUser.role === 'student' ? newUser.pathway : undefined,
-      specialization: newUser.role === 'student' ? newUser.specialization : undefined,
-      createdAt: new Date().toISOString(),
+      isActive: true,
     };
 
     if (newUser.role === 'student') {
-      addStudent(user as any);
+      const student: Student = {
+        id: `STU${Date.now()}`,
+        studentId: `STU${Date.now()}`,
+        firstName: newUser.name.split(' ')[0],
+        lastName: newUser.name.split(' ').slice(1).join(' '),
+        name: newUser.name,
+        email: newUser.email,
+        role: 'student',
+        academicYear: (newUser.academicYear as any) || 'L1',
+        degreeProgram: 'MIT',
+        specialization: (newUser.specialization as any) || 'BSE',
+        currentGPA: 0,
+        totalCredits: 0,
+        academicClass: 'Pass',
+        pathwayLocked: false,
+        enrollmentDate: new Date().toISOString(),
+        enrollmentStatus: 'enrolled',
+        isActive: true,
+      };
+      addStudent(student);
     } else {
       // For non-student users, we'd add to a different store
-      toast.success('User created successfully!');
+      console.log('Creating staff user:', user);
     }
 
     setShowCreateDialog(false);
@@ -140,11 +161,16 @@ export default function UsersPage() {
   const handleUpdateUser = () => {
     if (!selectedUser) return;
 
-    updateStudent(selectedUser.id, {
-      name: selectedUser.name,
-      email: selectedUser.email,
-      role: selectedUser.role,
-    });
+    if (selectedUser.role === 'student') {
+      updateStudent(selectedUser.id, {
+        name: selectedUser.name,
+        email: selectedUser.email,
+        role: selectedUser.role,
+      });
+    } else {
+      // For non-student users, we'd need a different update function
+      console.log('Updating staff user:', selectedUser);
+    }
 
     setShowEditDialog(false);
     setSelectedUser(null);
@@ -422,15 +448,15 @@ export default function UsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {user.academicYear ? (
-                        <Badge variant="outline">{user.academicYear}</Badge>
+                      {(user as any).academicYear ? (
+                        <Badge variant="outline">{(user as any).academicYear}</Badge>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {user.pathway ? (
-                        <Badge variant="secondary">{user.pathway}</Badge>
+                      {(user as any).pathway ? (
+                        <Badge variant="secondary">{(user as any).pathway}</Badge>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}

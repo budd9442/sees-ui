@@ -70,6 +70,7 @@ import {
   GraduationCap,
   BookOpen,
   Zap,
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Student, Grade, RankingEntry } from '@/types';
@@ -114,24 +115,17 @@ export default function RankingsPage() {
       return {
         id: student.id,
         studentId: student.id,
-        name: student.name,
-        academicYear: student.academicYear,
-        pathway: student.pathway,
+        studentName: student.name,
         gpa: gpa,
-        totalCredits: creditsEarned,
-        passRate: 100, // Mock
-        weightedScore: weightedScore,
+        weightedAverage: weightedScore,
         rank: 0, // Will be set after sorting
-        previousRank: 0, // Mock previous rank
-        change: 0, // Mock rank change
-        achievements: [], // Mock achievements
-        lastUpdated: new Date().toISOString(),
-        tiebreakFactors: {
-          gpa: gpa,
-          credits: creditsEarned,
-          attendance: attendance,
-          participation: participation,
-        },
+        academicClass: student.academicClass,
+        pathway: student.degreeProgram || 'MIT',
+        specialization: student.specialization,
+        semester: 'S1_2024', // Mock semester
+        academicYear: student.academicYear,
+        tiebreakApplied: false,
+        tiebreakReason: undefined,
       };
     });
 
@@ -139,7 +133,7 @@ export default function RankingsPage() {
     rankings.sort((a, b) => {
       if (Math.abs(a.gpa - b.gpa) < 0.01) {
         // GPAs are tied, use weighted score
-        return b.weightedScore - a.weightedScore;
+        return b.weightedAverage! - a.weightedAverage!;
       }
       return b.gpa - a.gpa;
     });
@@ -147,8 +141,8 @@ export default function RankingsPage() {
     // Assign ranks and detect ties
     rankings.forEach((ranking, index) => {
       ranking.rank = index + 1;
-      ranking.previousRank = Math.max(1, ranking.rank + Math.floor(Math.random() * 5) - 2);
-      ranking.change = ranking.previousRank - ranking.rank;
+      // ranking.previousRank = Math.max(1, ranking.rank + Math.floor(Math.random() * 5) - 2); // Not available in interface
+      // ranking.change = ranking.previousRank - ranking.rank; // Not available in interface
     });
 
     return rankings;
@@ -444,7 +438,7 @@ export default function RankingsPage() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{ranking.name}</div>
+                            <div className="font-medium">{ranking.studentName}</div>
                             <div className="text-sm text-muted-foreground">{ranking.studentId}</div>
                           </div>
                         </TableCell>
@@ -459,16 +453,14 @@ export default function RankingsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm text-muted-foreground">
-                            {ranking.weightedScore.toFixed(3)}
+                            {ranking.weightedAverage?.toFixed(3)}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium">{ranking.totalCredits}</div>
+                          <div className="font-medium">-</div>
                         </TableCell>
                         <TableCell>
-                          <div className={`text-sm ${ranking.change > 0 ? 'text-green-600' : ranking.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                            {ranking.change > 0 ? `+${ranking.change}` : ranking.change}
-                          </div>
+                          <div className="text-sm text-gray-600">-</div>
                         </TableCell>
                         <TableCell>
                           <Button variant="outline" size="sm">
@@ -512,11 +504,11 @@ export default function RankingsPage() {
                           <div key={student.id} className="flex items-center justify-between p-2 rounded bg-muted">
                             <div className="flex items-center gap-3">
                               <span className="font-medium">#{student.rank}</span>
-                              <span>{student.name}</span>
-                              <Badge variant="secondary">{student.pathway}</Badge>
+                              <span>{student.studentName}</span>
+                              <Badge variant="secondary">{student.specialization}</Badge>
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              Tiebreak: {student.weightedScore.toFixed(3)}
+                              Tiebreak: {student.weightedAverage?.toFixed(3)}
                             </div>
                           </div>
                         ))}
@@ -550,7 +542,7 @@ export default function RankingsPage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ academicClass, percentage }) => `${academicClass}: ${percentage.toFixed(1)}%`}
+                      label={(props: any) => `${props.academicClass}: ${props.percentage?.toFixed(1)}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="students"

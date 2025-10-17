@@ -180,6 +180,12 @@ const navigationItems: NavItem[] = [
     icon: FileText,
     roles: ['advisor'],
   },
+  {
+    title: 'Messages',
+    href: '/dashboard/advisor/messages',
+    icon: MessageSquare,
+    roles: ['advisor'],
+  },
 
   // HOD Navigation
   {

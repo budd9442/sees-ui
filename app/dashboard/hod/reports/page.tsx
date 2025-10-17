@@ -168,7 +168,8 @@ export default function ReportsPage() {
 
   const getPathwayDemandData = () => {
     const pathwayCounts = students.reduce((acc, student) => {
-      acc[student.pathway] = (acc[student.pathway] || 0) + 1;
+      const specialization = student.specialization || 'Unassigned';
+      acc[specialization] = (acc[specialization] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -213,7 +214,7 @@ export default function ReportsPage() {
         : 0;
       
       return {
-        module: module.name,
+        module: module.title,
         code: module.code,
         avgGrade,
         passRate,
@@ -240,7 +241,7 @@ export default function ReportsPage() {
         id: student.id,
         name: student.name,
         academicYear: student.academicYear,
-        pathway: student.pathway,
+        pathway: student.specialization,
         gpa: studentGPA,
         interventionsCount,
       };
@@ -506,7 +507,7 @@ export default function ReportsPage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ academicClass, percentage }) => `${academicClass}: ${percentage.toFixed(1)}%`}
+                      label={({ academicClass, percentage }) => `${academicClass}: ${(percentage as number).toFixed(1)}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="students"
@@ -703,7 +704,7 @@ export default function ReportsPage() {
                             <Badge variant="outline">{student.academicYear}</Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">{student.pathway}</Badge>
+                            <Badge variant="secondary">{student.specialization}</Badge>
                           </TableCell>
                           <TableCell className={student.gpa < 2.5 ? 'text-red-600 font-bold' : ''}>
                             {student.gpa.toFixed(2)}

@@ -45,6 +45,8 @@ import {
   Globe,
   Shield,
   BarChart3,
+  Building,
+  GraduationCap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PathwayPreference } from '@/types';
@@ -60,7 +62,7 @@ export default function PathwayGuidance({
   academicYear = 'L1',
   onPathwaySelect 
 }: PathwayGuidanceProps) {
-  const [preferences, setPreferences] = useState<PathwayPreference>({
+  const [preferences, setPreferences] = useState<Partial<PathwayPreference>>({
     interests: [],
     strengths: [],
     careerGoals: [],
@@ -212,7 +214,7 @@ export default function PathwayGuidance({
     
     // Interest matching
     const matchingInterests = pathway.skills.filter((skill: string) => 
-      preferences.interests.some(interest => 
+      (preferences.interests || []).some(interest => 
         interest.toLowerCase().includes(skill.toLowerCase()) || 
         skill.toLowerCase().includes(interest.toLowerCase())
       )
@@ -221,7 +223,7 @@ export default function PathwayGuidance({
     
     // Strength alignment
     const matchingStrengths = pathway.skills.filter((skill: string) => 
-      preferences.strengths.some(strength => 
+      (preferences.strengths || []).some(strength => 
         strength.toLowerCase().includes(skill.toLowerCase()) || 
         skill.toLowerCase().includes(strength.toLowerCase())
       )
@@ -229,7 +231,7 @@ export default function PathwayGuidance({
     score += matchingStrengths * 10;
     
     // Career goal alignment
-    if (preferences.careerGoals.length > 0) {
+    if ((preferences.careerGoals || []).length > 0) {
       score += 20;
     }
     
@@ -282,8 +284,8 @@ export default function PathwayGuidance({
     setPreferences(prev => ({
       ...prev,
       industryInterest: checked 
-        ? [...prev.industryInterest, industryId]
-        : prev.industryInterest.filter(id => id !== industryId)
+        ? [...(prev.industryInterest || []), industryId]
+        : (prev.industryInterest || []).filter(id => id !== industryId)
     }));
   };
 
@@ -472,7 +474,7 @@ export default function PathwayGuidance({
                       <div key={industry.id} className="flex items-center space-x-2">
                         <Checkbox
                           id={industry.id}
-                          checked={preferences.industryInterest.includes(industry.id)}
+                          checked={(preferences.industryInterest || []).includes(industry.id)}
                           onCheckedChange={(checked) => handleIndustryChange(industry.id, checked as boolean)}
                         />
                         <Label htmlFor={industry.id} className="text-sm cursor-pointer">

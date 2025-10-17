@@ -71,12 +71,37 @@ import { toast } from 'sonner';
 import type { GradeUpload, GradeUploadError, Module } from '@/types';
 
 export default function GradesPage() {
+  const getLetterGrade = (grade: number): string => {
+    if (grade >= 90) return 'A+';
+    if (grade >= 85) return 'A';
+    if (grade >= 80) return 'A-';
+    if (grade >= 75) return 'B+';
+    if (grade >= 70) return 'B';
+    if (grade >= 65) return 'B-';
+    if (grade >= 60) return 'C+';
+    if (grade >= 55) return 'C';
+    if (grade >= 50) return 'C-';
+    if (grade >= 45) return 'D+';
+    if (grade >= 40) return 'D';
+    return 'F';
+  };
   const { user } = useAuthStore();
   const { modules, grades, students, addGrade, updateGrade } = useAppStore();
   const [selectedModule, setSelectedModule] = useState<string>('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadErrors, setUploadErrors] = useState<GradeUploadError[]>([]);
-  const [uploadData, setUploadData] = useState<GradeUpload[]>([]);
+  const [uploadData, setUploadData] = useState<Array<{
+    id: string;
+    studentId: string;
+    studentName: string;
+    grade: number;
+    points: number;
+    credits: number;
+    moduleId: string;
+    uploadedAt: string;
+    uploadedBy: string;
+    status: 'draft' | 'validated' | 'released';
+  }>>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showReleaseDialog, setShowReleaseDialog] = useState(false);
@@ -111,7 +136,18 @@ export default function GradesPage() {
       const headers = lines[0].split(',').map(h => h.trim());
       
       const errors: GradeUploadError[] = [];
-      const data: GradeUpload[] = [];
+      const data: Array<{
+        id: string;
+        studentId: string;
+        studentName: string;
+        grade: number;
+        points: number;
+        credits: number;
+        moduleId: string;
+        uploadedAt: string;
+        uploadedBy: string;
+        status: 'draft' | 'validated' | 'released';
+      }> = [];
       
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -149,7 +185,8 @@ export default function GradesPage() {
           errors.push({
             row: i + 1,
             studentId: rowData.studentid || '',
-            errors: rowErrors,
+            field: 'general',
+            error: rowErrors.join(', '),
           });
         } else {
           data.push({
@@ -159,11 +196,10 @@ export default function GradesPage() {
             grade: rowData.grade,
             points: parseFloat(rowData.points),
             credits: parseInt(rowData.credits),
-            comments: rowData.comments || '',
             moduleId: selectedModule,
             uploadedAt: new Date().toISOString(),
             uploadedBy: user?.id || '',
-            status: 'pending',
+            status: 'draft',
           });
         }
       }
@@ -191,15 +227,14 @@ export default function GradesPage() {
           studentId: gradeData.studentId,
           moduleId: gradeData.moduleId,
           grade: gradeData.grade,
+          letterGrade: getLetterGrade(gradeData.grade),
           points: gradeData.points,
           credits: gradeData.credits,
           semester: currentModule?.semester || 'S1',
           academicYear: currentModule?.academicYear || '2024',
           isReleased: false,
-          releasedAt: undefined,
-          comments: gradeData.comments,
-          uploadedAt: new Date().toISOString(),
-          uploadedBy: user?.id || '',
+          moduleCode: currentModule?.code || '',
+          moduleTitle: currentModule?.title || '',
         });
       });
       
@@ -218,7 +253,6 @@ export default function GradesPage() {
     gradesToRelease.forEach(grade => {
       updateGrade(grade.id, {
         isReleased: true,
-        releasedAt: new Date().toISOString(),
       });
     });
     
@@ -256,8 +290,10 @@ export default function GradesPage() {
 
   const filteredGrades = moduleGrades.filter(grade => {
     const student = students.find(s => s.id === grade.studentId);
-    return student?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           grade.studentId.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = (searchTerm || '').toLowerCase();
+    const studentName = (student?.name || '').toLowerCase();
+    const studentId = (grade.studentId || '').toLowerCase();
+    return studentName.includes(term) || studentId.includes(term);
   });
 
   const releasedGrades = moduleGrades.filter(g => g.isReleased);
@@ -304,7 +340,7 @@ export default function GradesPage() {
                 <SelectContent>
                   {modules.map((module) => (
                     <SelectItem key={module.id} value={module.id}>
-                      {module.name} - {module.academicYear} {module.semester}
+                      {module.title} - {module.academicYear} {module.semester}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -314,7 +350,7 @@ export default function GradesPage() {
               <div className="space-y-2">
                 <Label>Module Information</Label>
                 <div className="p-3 rounded-lg bg-muted">
-                  <div className="font-medium">{currentModule.name}</div>
+                  <div className="font-medium">{currentModule.title}</div>
                   <div className="text-sm text-muted-foreground">
                     {currentModule.academicYear} {currentModule.semester} • {currentModule.credits} credits
                   </div>
@@ -383,7 +419,7 @@ export default function GradesPage() {
                 <CardHeader>
                   <CardTitle>All Grades</CardTitle>
                   <CardDescription>
-                    Manage all grades for {currentModule?.name}
+                    Manage all grades for {currentModule?.title}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -450,8 +486,8 @@ export default function GradesPage() {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Badge variant={grade.grade === 'F' ? 'destructive' : 'default'}>
-                                  {grade.grade}
+                                <Badge variant={grade.letterGrade === 'F' ? 'destructive' : 'default'}>
+                                  {grade.letterGrade}
                                 </Badge>
                               </TableCell>
                               <TableCell>{grade.points}</TableCell>
@@ -463,7 +499,7 @@ export default function GradesPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="max-w-xs truncate">
-                                  {grade.comments || '-'}
+                                  -
                                 </div>
                               </TableCell>
                               <TableCell>
@@ -554,14 +590,14 @@ export default function GradesPage() {
                                     </div>
                                   </TableCell>
                                   <TableCell>
-                                    <Badge variant={grade.grade === 'F' ? 'destructive' : 'default'}>
-                                      {grade.grade}
+                                    <Badge variant={grade.letterGrade === 'F' ? 'destructive' : 'default'}>
+                                      {grade.letterGrade}
                                     </Badge>
                                   </TableCell>
                                   <TableCell>{grade.points}</TableCell>
                                   <TableCell>
                                     <div className="max-w-xs truncate">
-                                      {grade.comments || '-'}
+                                      -
                                     </div>
                                   </TableCell>
                                   <TableCell>
@@ -625,17 +661,17 @@ export default function GradesPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={grade.grade === 'F' ? 'destructive' : 'default'}>
-                                {grade.grade}
+                              <Badge variant={grade.letterGrade === 'F' ? 'destructive' : 'default'}>
+                                {grade.letterGrade}
                               </Badge>
                             </TableCell>
                             <TableCell>{grade.points}</TableCell>
                             <TableCell>
-                              {grade.releasedAt ? new Date(grade.releasedAt).toLocaleDateString() : '-'}
+                              {grade.isReleased ? 'Released' : 'Draft'}
                             </TableCell>
                             <TableCell>
                               <div className="max-w-xs truncate">
-                                {grade.comments || '-'}
+                                -
                               </div>
                             </TableCell>
                             <TableCell>
@@ -661,7 +697,7 @@ export default function GradesPage() {
           <DialogHeader>
             <DialogTitle>Upload Grades</DialogTitle>
             <DialogDescription>
-              Upload grades from a CSV file for {currentModule?.name}
+              Upload grades from a CSV file for {currentModule?.title}
             </DialogDescription>
           </DialogHeader>
 
@@ -691,7 +727,7 @@ export default function GradesPage() {
                   <div className="space-y-1">
                     {uploadErrors.map((error, index) => (
                       <div key={index} className="text-sm">
-                        Row {error.row}: {error.errors.join(', ')}
+                        Row {error.row}: {error.error}
                       </div>
                     ))}
                   </div>

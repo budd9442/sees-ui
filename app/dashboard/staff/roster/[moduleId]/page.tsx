@@ -190,7 +190,7 @@ export default function RosterPage({ params }: RosterPageProps) {
         <div>
           <h1 className="text-3xl font-bold">Student Roster</h1>
           <p className="text-muted-foreground mt-1">
-            {currentModule.name} - {enrolledStudents.length} students enrolled
+            {currentModule.title} - {enrolledStudents.length} students enrolled
           </p>
         </div>
         <div className="flex gap-2">
@@ -364,12 +364,12 @@ export default function RosterPage({ params }: RosterPageProps) {
                         <Badge variant="outline">{student.academicYear}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{student.pathway}</Badge>
+                        <Badge variant="secondary">{student.specialization}</Badge>
                       </TableCell>
                       <TableCell>
                         {stats.grade ? (
                           <div className={`font-medium ${getGradeColor(stats.grade.points)}`}>
-                            {stats.grade.grade} ({stats.grade.points.toFixed(1)})
+                            {stats.grade.letterGrade} ({stats.grade.points.toFixed(1)})
                           </div>
                         ) : (
                           <span className="text-muted-foreground">No grade</span>
@@ -447,7 +447,7 @@ export default function RosterPage({ params }: RosterPageProps) {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Pathway</Label>
-                    <div className="font-medium">{student.pathway}</div>
+                    <div className="font-medium">{student.specialization}</div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Email</Label>
@@ -455,13 +455,13 @@ export default function RosterPage({ params }: RosterPageProps) {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Phone</Label>
-                    <div className="font-medium">{student.phone || 'Not provided'}</div>
+                    <div className="font-medium">{student.email}</div>
                   </div>
                 </div>
 
                 {/* Performance Metrics */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold">Performance in {currentModule.name}</h4>
+                  <h4 className="font-semibold">Performance in {currentModule.title}</h4>
                   <div className="grid gap-4 md:grid-cols-3">
                     <Card>
                       <CardHeader className="pb-3">
@@ -469,7 +469,7 @@ export default function RosterPage({ params }: RosterPageProps) {
                       </CardHeader>
                       <CardContent>
                         <div className={`text-2xl font-bold ${getGradeColor(stats.grade?.points)}`}>
-                          {stats.grade ? `${stats.grade.grade} (${stats.grade.points.toFixed(1)})` : 'No Grade'}
+                          {stats.grade ? `${stats.grade.letterGrade} (${stats.grade.points.toFixed(1)})` : 'No Grade'}
                         </div>
                       </CardContent>
                     </Card>

@@ -53,7 +53,7 @@ export default function ReportsPage() {
   const { anonymousReports, addAnonymousReport } = useAppStore();
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [newReport, setNewReport] = useState({
-    category: 'academic' as 'academic' | 'harassment' | 'facilities' | 'staff' | 'other',
+    category: 'academic_misconduct' as 'academic_misconduct' | 'harassment' | 'discrimination' | 'safety_concern' | 'facility_issue' | 'other',
     title: '',
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
@@ -69,10 +69,11 @@ export default function ReportsPage() {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'academic': return MessageSquare;
+      case 'academic_misconduct': return MessageSquare;
       case 'harassment': return AlertCircle;
-      case 'facilities': return Building;
-      case 'staff': return Users;
+      case 'discrimination': return AlertCircle;
+      case 'facility_issue': return Building;
+      case 'safety_concern': return Shield;
       case 'other': return HelpCircle;
       default: return FileText;
     }
@@ -80,10 +81,11 @@ export default function ReportsPage() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'academic': return 'text-blue-600 bg-blue-50';
+      case 'academic_misconduct': return 'text-blue-600 bg-blue-50';
       case 'harassment': return 'text-red-600 bg-red-50';
-      case 'facilities': return 'text-green-600 bg-green-50';
-      case 'staff': return 'text-purple-600 bg-purple-50';
+      case 'discrimination': return 'text-red-600 bg-red-50';
+      case 'facility_issue': return 'text-green-600 bg-green-50';
+      case 'safety_concern': return 'text-orange-600 bg-orange-50';
       case 'other': return 'text-gray-600 bg-gray-50';
       default: return 'text-gray-600 bg-gray-50';
     }
@@ -92,9 +94,9 @@ export default function ReportsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'submitted': return 'secondary';
-      case 'under_review': return 'default';
+      case 'in_review': return 'default';
       case 'resolved': return 'success';
-      case 'closed': return 'outline';
+      case 'escalated': return 'destructive';
       default: return 'secondary';
     }
   };
@@ -102,9 +104,9 @@ export default function ReportsPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'submitted': return Clock;
-      case 'under_review': return Eye;
+      case 'in_review': return Eye;
       case 'resolved': return CheckCircle2;
-      case 'closed': return CheckCircle2;
+      case 'escalated': return AlertCircle;
       default: return Clock;
     }
   };
@@ -136,10 +138,11 @@ export default function ReportsPage() {
 
     const reportAttachments: ReportAttachment[] = attachments.map((file, index) => ({
       id: `att-${Date.now()}-${index}`,
-      name: file.name,
-      type: file.type,
-      size: file.size,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
       url: `/mock-files/${file.name}`,
+      uploadedAt: new Date().toISOString(),
     }));
 
     const report: AnonymousReport = {
@@ -158,7 +161,7 @@ export default function ReportsPage() {
     
     // Reset form
     setNewReport({
-      category: 'academic',
+      category: 'academic_misconduct',
       title: '',
       description: '',
       priority: 'medium',
@@ -210,10 +213,11 @@ export default function ReportsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="academic">Academic Issues</SelectItem>
-                    <SelectItem value="harassment">Harassment/Discrimination</SelectItem>
-                    <SelectItem value="facilities">Facilities/Infrastructure</SelectItem>
-                    <SelectItem value="staff">Staff Conduct</SelectItem>
+                    <SelectItem value="academic_misconduct">Academic Misconduct</SelectItem>
+                    <SelectItem value="harassment">Harassment</SelectItem>
+                    <SelectItem value="discrimination">Discrimination</SelectItem>
+                    <SelectItem value="facility_issue">Facility Issue</SelectItem>
+                    <SelectItem value="safety_concern">Safety Concern</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -407,7 +411,7 @@ export default function ReportsPage() {
         <TabsList>
           <TabsTrigger value="all">All Reports</TabsTrigger>
           <TabsTrigger value="submitted">Submitted</TabsTrigger>
-          <TabsTrigger value="under_review">Under Review</TabsTrigger>
+          <TabsTrigger value="in_review">Under Review</TabsTrigger>
           <TabsTrigger value="resolved">Resolved</TabsTrigger>
         </TabsList>
 
@@ -477,7 +481,7 @@ export default function ReportsPage() {
                               {report.attachments.map((attachment) => (
                                 <div key={attachment.id} className="flex items-center gap-2 p-2 rounded-lg border">
                                   <FileText className="h-4 w-4 text-muted-foreground" />
-                                  <span className="text-sm">{attachment.name}</span>
+                                  <span className="text-sm">{attachment.fileName}</span>
                                   <Button size="sm" variant="outline">
                                     <Download className="h-3 w-3" />
                                   </Button>
@@ -487,10 +491,10 @@ export default function ReportsPage() {
                           </div>
                         )}
                         
-                        {report.reviewerNotes && (
+                        {report.adminNotes && (
                           <div className="p-3 rounded-lg bg-blue-50">
                             <p className="text-sm font-medium text-blue-900 mb-1">Reviewer Notes:</p>
-                            <p className="text-sm text-blue-800">{report.reviewerNotes}</p>
+                            <p className="text-sm text-blue-800">{report.adminNotes}</p>
                           </div>
                         )}
                       </div>
@@ -534,7 +538,7 @@ export default function ReportsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="under_review" className="space-y-4">
+        <TabsContent value="in_review" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Under Review</CardTitle>
@@ -542,7 +546,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {studentReports.filter(r => r.status === 'under_review').map((report) => {
+                {studentReports.filter(r => r.status === 'in_review').map((report) => {
                   const CategoryIcon = getCategoryIcon(report.category);
                   return (
                     <div key={report.id} className="p-4 rounded-lg border">
@@ -574,7 +578,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {studentReports.filter(r => r.status === 'resolved' || r.status === 'closed').map((report) => {
+                {studentReports.filter(r => r.status === 'resolved' || r.status === 'escalated').map((report) => {
                   const CategoryIcon = getCategoryIcon(report.category);
                   return (
                     <div key={report.id} className="p-4 rounded-lg border bg-green-50">
@@ -590,9 +594,9 @@ export default function ReportsPage() {
                       <p className="text-sm text-muted-foreground">
                         Resolved {report.resolvedAt && new Date(report.resolvedAt).toLocaleDateString()}
                       </p>
-                      {report.reviewerNotes && (
+                      {report.adminNotes && (
                         <p className="text-sm text-green-700 mt-2">
-                          {report.reviewerNotes}
+                          {report.adminNotes}
                         </p>
                       )}
                     </div>

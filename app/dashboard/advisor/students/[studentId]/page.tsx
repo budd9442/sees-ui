@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppStore } from '@/stores/appStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -83,15 +83,16 @@ import { toast } from 'sonner';
 import type { Student, Grade, AcademicGoal, Intervention } from '@/types';
 
 interface StudentDetailPageProps {
-  params: {
+  params: Promise<{
     studentId: string;
-  };
+  }>;
 }
 
 export default function StudentDetailPage({ params }: StudentDetailPageProps) {
   const { user } = useAuthStore();
   const { students, modules, grades, academicGoals, interventions, addIntervention } = useAppStore();
-  const [selectedStudent, setSelectedStudent] = useState<string>(params.studentId);
+  const resolvedParams = use(params);
+  const [selectedStudent, setSelectedStudent] = useState<string>(resolvedParams.studentId);
   const [showInterventionDialog, setShowInterventionDialog] = useState(false);
   const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [interventionData, setInterventionData] = useState({
@@ -293,7 +294,7 @@ export default function StudentDetailPage({ params }: StudentDetailPageProps) {
             </div>
             <div className="space-y-2">
               <Label className="text-muted-foreground">Pathway</Label>
-              <div className="font-medium">{student.pathway}</div>
+              <div className="font-medium">{student.specialization}</div>
             </div>
             <div className="space-y-2">
               <Label className="text-muted-foreground">Email</Label>
@@ -301,7 +302,7 @@ export default function StudentDetailPage({ params }: StudentDetailPageProps) {
             </div>
             <div className="space-y-2">
               <Label className="text-muted-foreground">Phone</Label>
-              <div className="font-medium">{student.phone || 'Not provided'}</div>
+              <div className="font-medium">Not provided</div>
             </div>
             <div className="space-y-2">
               <Label className="text-muted-foreground">Advisor</Label>
@@ -356,7 +357,7 @@ export default function StudentDetailPage({ params }: StudentDetailPageProps) {
                     return (
                       <div key={grade.id} className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
-                          <div className="font-medium">{module?.name}</div>
+                          <div className="font-medium">{module?.title}</div>
                           <div className="text-sm text-muted-foreground">{module?.code}</div>
                         </div>
                         <div className="text-right">
@@ -409,12 +410,12 @@ export default function StudentDetailPage({ params }: StudentDetailPageProps) {
                     const module = modules.find(m => m.id === grade.moduleId);
                     return (
                       <TableRow key={grade.id}>
-                        <TableCell className="font-medium">{module?.name}</TableCell>
+                        <TableCell className="font-medium">{module?.title}</TableCell>
                         <TableCell>{module?.code}</TableCell>
                         <TableCell>{grade.credits}</TableCell>
                         <TableCell>
-                          <Badge variant={grade.grade === 'F' ? 'destructive' : 'default'}>
-                            {grade.grade}
+                          <Badge variant={grade.letterGrade === 'F' ? 'destructive' : 'default'}>
+                            {grade.letterGrade}
                           </Badge>
                         </TableCell>
                         <TableCell>{grade.points.toFixed(1)}</TableCell>

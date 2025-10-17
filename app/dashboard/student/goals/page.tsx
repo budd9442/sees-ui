@@ -58,7 +58,7 @@ import {
   Heart,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { AcademicGoal } from '@/types';
+import type { AcademicGoal, AcademicClass } from '@/types';
 
 export default function GoalsPage() {
   const { user } = useAuthStore();
@@ -232,8 +232,8 @@ export default function GoalsPage() {
       description: newGoal.description,
       category: newGoal.category,
       priority: newGoal.priority,
-      targetGPA: newGoal.targetGPA ? parseFloat(newGoal.targetGPA) : undefined,
-      targetClass: newGoal.targetClass || undefined,
+      targetGPA: newGoal.targetGPA ? parseFloat(newGoal.targetGPA) : 3.0,
+      targetClass: (newGoal.targetClass as AcademicClass) || 'Second Class Upper',
       targetValue: newGoal.targetValue || `${newGoal.targetGPA} GPA`,
       currentValue: '0%',
       targetDate: newGoal.deadline,
@@ -255,14 +255,14 @@ export default function GoalsPage() {
     setEditingGoal(goal);
     setNewGoal({
       title: goal.title,
-      description: goal.description,
+      description: goal.description || '',
       category: goal.category,
-      targetValue: goal.targetValue,
+      targetValue: goal.targetValue || '',
       targetGPA: goal.targetGPA?.toString() || '',
       targetClass: goal.targetClass || '',
       deadline: goal.deadline || '',
       priority: goal.priority,
-      milestones: goal.milestones,
+      milestones: goal.milestones || [],
     });
     setShowAddDialog(true);
   };
@@ -278,8 +278,8 @@ export default function GoalsPage() {
       description: newGoal.description,
       category: newGoal.category,
       priority: newGoal.priority,
-      targetGPA: newGoal.targetGPA ? parseFloat(newGoal.targetGPA) : undefined,
-      targetClass: newGoal.targetClass || undefined,
+      targetGPA: newGoal.targetGPA ? parseFloat(newGoal.targetGPA) : 3.0,
+      targetClass: (newGoal.targetClass as AcademicClass) || 'Second Class Upper',
       targetValue: newGoal.targetValue || `${newGoal.targetGPA} GPA`,
       targetDate: newGoal.deadline,
       deadline: newGoal.deadline,
@@ -623,42 +623,6 @@ export default function GoalsPage() {
         </Card>
       </div>
 
-      {/* Milestones */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Key Milestones</CardTitle>
-          <CardDescription>
-            Major achievements you're working towards
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            {milestones.map((milestone) => {
-              const Icon = milestone.icon;
-              return (
-                <div key={milestone.id} className="flex gap-4 p-4 rounded-lg border">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${milestone.color}`}>
-                    <Icon className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div>
-                      <h4 className="font-semibold">{milestone.title}</h4>
-                      <p className="text-sm text-muted-foreground">{milestone.description}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span>Progress</span>
-                        <span className="font-medium">{milestone.progress}%</span>
-                      </div>
-                      <Progress value={milestone.progress} className="h-2" />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Goals List */}
       <Tabs defaultValue="all" className="space-y-4">

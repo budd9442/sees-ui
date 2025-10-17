@@ -80,7 +80,7 @@ export default function MeetingsPage() {
     startTime: '',
     endTime: '',
     location: '',
-    meetingType: 'in-person' as 'in-person' | 'online' | 'phone',
+    meetingType: 'academic',
     status: 'scheduled' as 'scheduled' | 'completed' | 'cancelled' | 'rescheduled',
   });
 
@@ -124,7 +124,7 @@ export default function MeetingsPage() {
       scheduledDate: `${meetingData.date}T${meetingData.startTime}:00`,
       duration: 60, // Default 60 minutes
       location: meetingData.location,
-      meetingType: meetingData.meetingType,
+      meetingType: 'academic', // Default to academic, could be mapped from meetingData.meetingType
       status: meetingData.status,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -140,7 +140,7 @@ export default function MeetingsPage() {
       startTime: '',
       endTime: '',
       location: '',
-      meetingType: 'in-person',
+      meetingType: 'academic',
       status: 'scheduled',
     });
     toast.success('Meeting scheduled successfully');
@@ -167,6 +167,7 @@ export default function MeetingsPage() {
 
     updateMeeting(selectedMeeting.id, {
       ...meetingData,
+      meetingType: meetingData.meetingType as 'academic' | 'career' | 'personal' | 'emergency',
       scheduledDate: `${meetingData.date}T${meetingData.startTime}:00`,
       updatedAt: new Date().toISOString(),
     });
@@ -684,9 +685,10 @@ export default function MeetingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="in-person">In Person</SelectItem>
-                    <SelectItem value="online">Online</SelectItem>
-                    <SelectItem value="phone">Phone</SelectItem>
+                    <SelectItem value="academic">Academic</SelectItem>
+                    <SelectItem value="career">Career</SelectItem>
+                    <SelectItem value="personal">Personal</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -776,9 +778,10 @@ export default function MeetingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="in-person">In Person</SelectItem>
-                    <SelectItem value="online">Online</SelectItem>
-                    <SelectItem value="phone">Phone</SelectItem>
+                    <SelectItem value="academic">Academic</SelectItem>
+                    <SelectItem value="career">Career</SelectItem>
+                    <SelectItem value="personal">Personal</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

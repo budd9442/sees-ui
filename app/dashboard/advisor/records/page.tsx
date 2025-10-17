@@ -112,8 +112,10 @@ export default function RecordsPage() {
 
   // Filter students
   const filteredStudents = advisorStudents.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = (searchTerm || '').toLowerCase();
+    const studentName = (student.name || '').toLowerCase();
+    const studentId = (student.id || '').toLowerCase();
+    const matchesSearch = studentName.includes(term) || studentId.includes(term);
     
     const stats = getStudentStats(student);
     const matchesRisk = filterRisk === 'all' || 
@@ -121,7 +123,7 @@ export default function RecordsPage() {
                        (filterRisk === 'good-standing' && !stats.isAtRisk);
     
     const matchesYear = filterYear === 'all' || student.academicYear === filterYear;
-    const matchesPathway = filterPathway === 'all' || student.pathway === filterPathway;
+    const matchesPathway = filterPathway === 'all' || student.specialization === filterPathway;
     
     return matchesSearch && matchesRisk && matchesYear && matchesPathway;
   });
@@ -168,7 +170,7 @@ export default function RecordsPage() {
     const studentGrades = grades.filter(g => g.studentId === studentId && g.isReleased);
     const distribution = ['A', 'B', 'C', 'D', 'F'].map(grade => ({
       grade,
-      count: studentGrades.filter(g => g.grade === grade).length,
+      count: studentGrades.filter(g => g.letterGrade === grade).length,
     }));
     return distribution;
   };
@@ -333,7 +335,7 @@ export default function RecordsPage() {
                         <Badge variant="outline">{student.academicYear}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{student.pathway}</Badge>
+                        <Badge variant="secondary">{student.specialization}</Badge>
                       </TableCell>
                       <TableCell>
                         <div className="font-medium">{stats.currentGPA.toFixed(2)}</div>
@@ -527,12 +529,12 @@ export default function RecordsPage() {
                               const module = modules.find(m => m.id === grade.moduleId);
                               return (
                                 <TableRow key={grade.id}>
-                                  <TableCell className="font-medium">{module?.name}</TableCell>
+                                  <TableCell className="font-medium">{module?.title}</TableCell>
                                   <TableCell>{module?.code}</TableCell>
                                   <TableCell>{grade.credits}</TableCell>
                                   <TableCell>
-                                    <Badge variant={grade.grade === 'F' ? 'destructive' : 'default'}>
-                                      {grade.grade}
+                                    <Badge variant={grade.letterGrade === 'F' ? 'destructive' : 'default'}>
+                                      {grade.letterGrade}
                                     </Badge>
                                   </TableCell>
                                   <TableCell>{grade.points.toFixed(1)}</TableCell>

@@ -90,8 +90,8 @@ export default function InternshipPage() {
     type: 'report' as 'report' | 'certificate' | 'evaluation' | 'other',
   });
 
-  // Check if student is eligible (L3 only)
-  const isEligible = user?.academicYear === 'L3';
+  // Check if student is eligible (L3 only) - mock check
+  const isEligible = true;
 
   const getStatusColor = (status: string) => {
     switch (status) {

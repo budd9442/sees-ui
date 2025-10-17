@@ -62,6 +62,8 @@ export interface Module {
   enrolled: number;
   lecturer?: string;
   schedule?: string;
+  learningOutcomes?: string[];
+  status?: 'active' | 'inactive';
 }
 
 export interface Grade {
@@ -416,6 +418,13 @@ export interface PathwayPreference {
   alternativePathway?: DegreeProgram;
   reasoning: string;
   submittedAt: string;
+  workStyle?: string;
+  learningStyle?: string;
+  timeCommitment?: string;
+  locationPreference?: string;
+  salaryExpectation?: string;
+  industryInterest?: string[];
+  additionalNotes?: string;
 }
 
 export interface SpecializationPreference {
@@ -427,6 +436,13 @@ export interface SpecializationPreference {
   alternativeSpecialization?: Specialization;
   reasoning: string;
   submittedAt: string;
+  technicalInterests?: string[];
+  careerFocus?: string[];
+  projectTypes?: string[];
+  learningGoals?: string[];
+  skillDevelopment?: string[];
+  workEnvironment?: string;
+  additionalNotes?: string;
 }
 
 export interface RankingEntry {
@@ -435,7 +451,10 @@ export interface RankingEntry {
   studentName: string;
   gpa: number;
   weightedAverage?: number; // For tiebreaking
+  weightedScore?: number; // For different ranking criteria
   rank: number;
+  previousRank?: number;
+  change?: number;
   academicClass: AcademicClass;
   pathway: DegreeProgram;
   specialization?: Specialization;
@@ -443,6 +462,8 @@ export interface RankingEntry {
   academicYear: string;
   tiebreakApplied: boolean;
   tiebreakReason?: string;
+  totalCredits?: number;
+  passRate?: number;
 }
 
 export interface GradeUpload {

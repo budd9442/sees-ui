@@ -72,7 +72,7 @@ export default function SchedulePage() {
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [scheduleData, setScheduleData] = useState({
-    day: 'Monday',
+    day: 'Monday' as 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday',
     startTime: '09:00',
     endTime: '10:30',
     room: 'A101',
@@ -91,7 +91,7 @@ export default function SchedulePage() {
       room: 'A101',
       type: 'lecture',
       capacity: 50,
-      instructorId: user?.id || '',
+      isActive: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -104,7 +104,7 @@ export default function SchedulePage() {
       room: 'A102',
       type: 'tutorial',
       capacity: 25,
-      instructorId: user?.id || '',
+      isActive: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -117,7 +117,7 @@ export default function SchedulePage() {
       room: 'LAB001',
       type: 'lab',
       capacity: 20,
-      instructorId: user?.id || '',
+      isActive: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -198,10 +198,12 @@ export default function SchedulePage() {
     };
   };
 
-  const filteredModules = modules.filter(module =>
-    module.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    module.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredModules = modules.filter(module => {
+    const term = (searchTerm || '').toLowerCase();
+    const moduleName = (module.title || '').toLowerCase();
+    const moduleCode = (module.code || '').toLowerCase();
+    return moduleName.includes(term) || moduleCode.includes(term);
+  });
 
   const getDayColor = (day: string) => {
     const colors = {
@@ -281,7 +283,7 @@ export default function SchedulePage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <CardTitle className="text-lg">{module.name}</CardTitle>
+                          <CardTitle className="text-lg">{module.title}</CardTitle>
                           <CardDescription>{module.code}</CardDescription>
                         </div>
                         <Badge variant="outline">
@@ -330,7 +332,7 @@ export default function SchedulePage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Schedule for {currentModule.name}</CardTitle>
+                    <CardTitle>Schedule for {currentModule.title}</CardTitle>
                     <CardDescription>
                       Manage lecture, tutorial, and lab schedules
                     </CardDescription>
@@ -549,7 +551,7 @@ export default function SchedulePage() {
           <DialogHeader>
             <DialogTitle>Add Schedule</DialogTitle>
             <DialogDescription>
-              Add a new schedule for {currentModule?.name}
+              Add a new schedule for {currentModule?.title}
             </DialogDescription>
           </DialogHeader>
 
@@ -559,7 +561,7 @@ export default function SchedulePage() {
                 <Label htmlFor="day">Day</Label>
                 <Select
                   value={scheduleData.day}
-                  onValueChange={(value) => setScheduleData({ ...scheduleData, day: value })}
+                  onValueChange={(value) => setScheduleData({ ...scheduleData, day: value as 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' })}
                 >
                   <SelectTrigger>
                     <SelectValue />
