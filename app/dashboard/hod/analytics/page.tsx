@@ -142,14 +142,14 @@ export default function HODAnalyticsPage() {
     { year: '2021', students: 135 },
     { year: '2022', students: 142 },
     { year: '2023', students: 158 },
-    { year: '2024', students: totalStudents },
+    { year: '2025', students: totalStudents },
   ];
 
   const gpaTrend = [
     { semester: 'S1 2023', averageGPA: 3.1 },
     { semester: 'S2 2023', averageGPA: 3.2 },
-    { semester: 'S1 2024', averageGPA: 3.15 },
-    { semester: 'S2 2024', averageGPA: averageGPA },
+    { semester: 'S1 2025', averageGPA: 3.15 },
+    { semester: 'S2 2025', averageGPA: averageGPA },
   ];
 
   // Performance by pathway

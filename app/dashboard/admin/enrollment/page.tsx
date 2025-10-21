@@ -78,7 +78,6 @@ export default function EnrollmentPage() {
       lastName: 'Doe',
       email: 'john.doe@university.edu',
       academicYear: 'L1',
-      degreeProgram: 'MIT',
       pathway: 'Software Engineering',
       specialization: 'Frontend Development',
       phone: '+1234567890',
@@ -91,7 +90,6 @@ export default function EnrollmentPage() {
       lastName: 'Smith',
       email: 'jane.smith@university.edu',
       academicYear: 'L1',
-      degreeProgram: 'MIT',
       pathway: 'Data Science',
       specialization: 'Machine Learning',
       phone: '+1234567891',
@@ -225,16 +223,7 @@ export default function EnrollmentPage() {
         });
       }
 
-      // Degree program validation
-      if (row.degreeProgram && !['MIT', 'IT'].includes(row.degreeProgram)) {
-        errors.push({
-          row: rowNumber,
-          studentId: row.studentId || '',
-          field: 'degreeProgram',
-          error: 'Degree program must be MIT or IT',
-          value: row.degreeProgram,
-        });
-      }
+      // Degree program is selected in second year; ignore if present in bulk enrollment
     });
 
     setValidationErrors(errors);
@@ -476,9 +465,6 @@ export default function EnrollmentPage() {
                     </div>
                     <div className="text-sm text-muted-foreground">
                       • academicYear (L1, L2, L3)
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      • degreeProgram (MIT, IT)
                     </div>
                   </div>
                 </div>

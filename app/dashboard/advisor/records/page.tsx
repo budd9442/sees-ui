@@ -161,8 +161,8 @@ export default function RecordsPage() {
     return [
       { semester: 'S1 2023', gpa: Math.max(0, currentGPA - 0.3) },
       { semester: 'S2 2023', gpa: Math.max(0, currentGPA - 0.1) },
-      { semester: 'S1 2024', gpa: Math.max(0, currentGPA + 0.1) },
-      { semester: 'S2 2024', gpa: currentGPA },
+      { semester: 'S1 2025', gpa: Math.max(0, currentGPA + 0.1) },
+      { semester: 'S2 2025', gpa: currentGPA },
     ];
   };
 

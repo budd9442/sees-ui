@@ -220,8 +220,15 @@ export default function GoalsPage() {
   };
 
   const handleAddGoal = () => {
-    if (!newGoal.title || (!newGoal.targetValue && !newGoal.targetGPA)) {
+    if (!newGoal.title || (newGoal.category === 'academic' ? !newGoal.targetGPA : !newGoal.targetValue)) {
       toast.error('Please fill in required fields');
+      return;
+    }
+
+    // Check if student already has an active goal (only allow one goal per student)
+    const existingActiveGoal = studentGoals.find(g => g.isActive && g.currentProgress < 100);
+    if (existingActiveGoal && !editingGoal) {
+      toast.error('You can only have one active goal at a time. Please complete or edit your existing goal first.');
       return;
     }
 
@@ -232,10 +239,10 @@ export default function GoalsPage() {
       description: newGoal.description,
       category: newGoal.category,
       priority: newGoal.priority,
-      targetGPA: newGoal.targetGPA ? parseFloat(newGoal.targetGPA) : 3.0,
-      targetClass: (newGoal.targetClass as AcademicClass) || 'Second Class Upper',
-      targetValue: newGoal.targetValue || `${newGoal.targetGPA} GPA`,
-      currentValue: '0%',
+      targetGPA: newGoal.category === 'academic' && newGoal.targetGPA ? parseFloat(newGoal.targetGPA) : 0,
+      targetClass: newGoal.category === 'academic' ? (newGoal.targetClass as AcademicClass) || 'Second Class Upper' : 'Pass',
+      targetValue: newGoal.category === 'academic' ? `${newGoal.targetGPA || '3.0'} GPA` : newGoal.targetValue || 'Target not set',
+      currentValue: newGoal.category === 'academic' ? '0.0 GPA' : '0%',
       targetDate: newGoal.deadline,
       deadline: newGoal.deadline,
       currentProgress: 0,
@@ -296,6 +303,46 @@ export default function GoalsPage() {
   const handleDeleteGoal = (goalId: string) => {
     updateAcademicGoal(goalId, { isActive: false });
     toast.success('Goal deleted successfully!');
+  };
+
+  const handleUpdateProgress = (goalId: string, newProgress: number) => {
+    const goal = studentGoals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    // Update current value based on goal type
+    let newCurrentValue = goal.currentValue;
+    if (goal.category === 'academic') {
+      // For academic goals, progress is typically updated by GPA changes
+      newCurrentValue = `${goal.targetGPA} GPA`;
+    } else {
+      // For non-academic goals, update the current value based on progress
+      const progressRatio = newProgress / 100;
+      const targetValue = goal.targetValue || '';
+      if (targetValue.includes('languages')) {
+        const targetNum = parseInt(targetValue.match(/\d+/)?.[0] || '1');
+        newCurrentValue = `${Math.round(targetNum * progressRatio)} languages`;
+      } else if (targetValue.includes('connections')) {
+        const targetNum = parseInt(targetValue.match(/\d+/)?.[0] || '1');
+        newCurrentValue = `${Math.round(targetNum * progressRatio)} connections`;
+      } else if (targetValue.includes('hours')) {
+        const targetNum = parseInt(targetValue.match(/\d+/)?.[0] || '1');
+        newCurrentValue = `${Math.round(targetNum * progressRatio)} hours`;
+      } else {
+        newCurrentValue = `${newProgress}%`;
+      }
+    }
+
+    updateAcademicGoal(goalId, { 
+      currentProgress: newProgress,
+      currentValue: newCurrentValue,
+      progress: newProgress
+    });
+    
+    if (newProgress >= 100) {
+      toast.success('Goal completed! 🎉');
+    } else {
+      toast.success(`Progress updated to ${newProgress}%`);
+    }
   };
 
   const handleToggleGoalStatus = (goalId: string) => {
@@ -360,13 +407,14 @@ export default function GoalsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Lightbulb className="mr-2 h-4 w-4" />
-                Templates
-              </Button>
-            </DialogTrigger>
+          {studentGoals.filter(g => g.isActive && g.currentProgress < 100).length === 0 && (
+            <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Lightbulb className="mr-2 h-4 w-4" />
+                  Templates
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>Goal Templates</DialogTitle>
@@ -403,19 +451,21 @@ export default function GoalsPage() {
               </div>
             </DialogContent>
           </Dialog>
-          <Dialog open={showAddDialog} onOpenChange={(open) => {
-            setShowAddDialog(open);
-            if (!open) {
-              setEditingGoal(null);
-              resetForm();
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Goal
-              </Button>
-            </DialogTrigger>
+          )}
+          {studentGoals.filter(g => g.isActive && g.currentProgress < 100).length === 0 && (
+            <Dialog open={showAddDialog} onOpenChange={(open) => {
+              setShowAddDialog(open);
+              if (!open) {
+                setEditingGoal(null);
+                resetForm();
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Goal
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>{editingGoal ? 'Edit Goal' : 'Create New Goal'}</DialogTitle>
@@ -477,57 +527,65 @@ export default function GoalsPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="targetGPA">Target GPA</Label>
-                    <Input
-                      id="targetGPA"
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="4"
-                      value={newGoal.targetGPA}
-                      onChange={(e) => setNewGoal({ ...newGoal, targetGPA: e.target.value })}
-                      placeholder="e.g., 3.7"
-                    />
+                {/* Conditional fields based on category */}
+                {newGoal.category === 'academic' ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="targetGPA">Target GPA</Label>
+                      <Input
+                        id="targetGPA"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="4"
+                        value={newGoal.targetGPA}
+                        onChange={(e) => setNewGoal({ ...newGoal, targetGPA: e.target.value })}
+                        placeholder="e.g., 3.7"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="targetClass">Target Class</Label>
+                      <Select
+                        value={newGoal.targetClass}
+                        onValueChange={(value) => setNewGoal({ ...newGoal, targetClass: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="First Class">First Class</SelectItem>
+                          <SelectItem value="Second Class Upper">Second Class Upper</SelectItem>
+                          <SelectItem value="Second Class Lower">Second Class Lower</SelectItem>
+                          <SelectItem value="Third Class">Third Class</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="targetClass">Target Class</Label>
-                    <Select
-                      value={newGoal.targetClass}
-                      onValueChange={(value) => setNewGoal({ ...newGoal, targetClass: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select class" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="First Class">First Class</SelectItem>
-                        <SelectItem value="Second Class Upper">Second Class Upper</SelectItem>
-                        <SelectItem value="Second Class Lower">Second Class Lower</SelectItem>
-                        <SelectItem value="Third Class">Third Class</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+                ) : (
                   <div className="grid gap-2">
                     <Label htmlFor="target">Target Value</Label>
                     <Input
                       id="target"
                       value={newGoal.targetValue}
                       onChange={(e) => setNewGoal({ ...newGoal, targetValue: e.target.value })}
-                      placeholder="e.g., 3 languages, 50 connections"
+                      placeholder={
+                        newGoal.category === 'skill' ? 'e.g., 3 languages, 5 certifications' :
+                        newGoal.category === 'career' ? 'e.g., 50 connections, 10 interviews' :
+                        newGoal.category === 'personal' ? 'e.g., 8 hours sleep, 30 min exercise' :
+                        'e.g., specific target'
+                      }
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="deadline">Deadline</Label>
-                    <Input
-                      id="deadline"
-                      type="date"
-                      value={newGoal.deadline}
-                      onChange={(e) => setNewGoal({ ...newGoal, deadline: e.target.value })}
-                    />
-                  </div>
+                )}
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="deadline">Deadline</Label>
+                  <Input
+                    id="deadline"
+                    type="date"
+                    value={newGoal.deadline}
+                    onChange={(e) => setNewGoal({ ...newGoal, deadline: e.target.value })}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
@@ -567,6 +625,7 @@ export default function GoalsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          )}
         </div>
       </div>
 
@@ -646,13 +705,13 @@ export default function GoalsPage() {
                 {studentGoals.length === 0 ? (
                   <div className="text-center py-8">
                     <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-semibold mb-2">No goals yet</h3>
+                    <h3 className="font-semibold mb-2">No active goal</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Start by creating your first academic goal
+                      Set your goal to track your progress. You can have one active goal at a time.
                     </p>
                     <Button onClick={() => setShowAddDialog(true)}>
                       <Plus className="mr-2 h-4 w-4" />
-                      Create Your First Goal
+                      Set Goal
                     </Button>
                   </div>
                 ) : (
@@ -727,6 +786,33 @@ export default function GoalsPage() {
                               <span className="font-medium">{goal.currentProgress}%</span>
                             </div>
                             <Progress value={goal.currentProgress} className="h-2" />
+                            
+                            {/* Progress update for non-academic goals */}
+                            {goal.category !== 'academic' && goal.currentProgress < 100 && (
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => handleUpdateProgress(goal.id, Math.min(100, goal.currentProgress + 10))}
+                                >
+                                  +10%
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => handleUpdateProgress(goal.id, Math.min(100, goal.currentProgress + 25))}
+                                >
+                                  +25%
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => handleUpdateProgress(goal.id, 100)}
+                                >
+                                  Complete
+                                </Button>
+                              </div>
+                            )}
                           </div>
                           {goal.milestones && goal.milestones.length > 0 && (
                             <div className="space-y-1">

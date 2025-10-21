@@ -54,13 +54,13 @@ export default function ProfilePage() {
   });
 
   const academicInfo = {
-    studentId: student?.studentId || 'ST2024001',
+    studentId: student?.studentId || 'ST2025001',
     level: student?.academicYear || 'L2',
     pathway: student?.specialization || 'Software Engineering',
     specialization: student?.specialization || 'Business Software Engineering',
     advisor: 'Dr. Michael Smith',
     enrollmentDate: '2022-09-01',
-    expectedGraduation: '2026-06-01',
+    expectedGraduation: '2025-06-01',
     currentGPA: student?.currentGPA || 3.45,
     cumulativeCredits: 120,
     completedCredits: 60,

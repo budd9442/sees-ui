@@ -85,7 +85,7 @@ export default function LogsPage() {
       details: 'Updated GPA calculation method to weighted average',
       ipAddress: '192.168.1.100',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      timestamp: '2024-01-15T14:30:00Z',
+      timestamp: '2025-01-15T14:30:00Z',
       status: 'success',
     },
     {
@@ -97,7 +97,7 @@ export default function LogsPage() {
       details: 'Viewed grades for CS101 module',
       ipAddress: '192.168.1.101',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      timestamp: '2024-01-15T14:25:00Z',
+      timestamp: '2025-01-15T14:25:00Z',
       status: 'success',
     },
     {
@@ -109,7 +109,7 @@ export default function LogsPage() {
       details: 'Released grades for CS101 module to students',
       ipAddress: '192.168.1.102',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      timestamp: '2024-01-15T14:20:00Z',
+      timestamp: '2025-01-15T14:20:00Z',
       status: 'success',
     },
     {
@@ -121,7 +121,7 @@ export default function LogsPage() {
       details: 'Created new user account for student',
       ipAddress: '192.168.1.100',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      timestamp: '2024-01-15T14:15:00Z',
+      timestamp: '2025-01-15T14:15:00Z',
       status: 'success',
     },
     {
@@ -133,7 +133,7 @@ export default function LogsPage() {
       details: 'User logged in successfully',
       ipAddress: '192.168.1.101',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      timestamp: '2024-01-15T14:10:00Z',
+      timestamp: '2025-01-15T14:10:00Z',
       status: 'success',
     },
     {
@@ -145,7 +145,7 @@ export default function LogsPage() {
       details: 'Created full system backup',
       ipAddress: '192.168.1.100',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      timestamp: '2024-01-15T02:00:00Z',
+      timestamp: '2025-01-15T02:00:00Z',
       status: 'success',
     },
     {
@@ -157,7 +157,7 @@ export default function LogsPage() {
       details: 'Registered for CS102 module',
       ipAddress: '192.168.1.101',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      timestamp: '2024-01-14T16:30:00Z',
+      timestamp: '2025-01-14T16:30:00Z',
       status: 'success',
     },
     {
@@ -169,7 +169,7 @@ export default function LogsPage() {
       details: 'Failed to update GPA formula due to validation error',
       ipAddress: '192.168.1.100',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      timestamp: '2024-01-14T15:45:00Z',
+      timestamp: '2025-01-14T15:45:00Z',
       status: 'failed',
     },
     {
@@ -181,7 +181,7 @@ export default function LogsPage() {
       details: 'Updated lecture schedule for CS101',
       ipAddress: '192.168.1.102',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      timestamp: '2024-01-14T15:30:00Z',
+      timestamp: '2025-01-14T15:30:00Z',
       status: 'success',
     },
     {
@@ -193,7 +193,7 @@ export default function LogsPage() {
       details: 'Selected Software Engineering pathway',
       ipAddress: '192.168.1.101',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      timestamp: '2024-01-14T14:20:00Z',
+      timestamp: '2025-01-14T14:20:00Z',
       status: 'success',
     },
   ];

@@ -140,8 +140,8 @@ export default function StudentDetailPage({ params }: StudentDetailPageProps) {
   const gpaTrendData = [
     { semester: 'S1 2023', gpa: 3.2 },
     { semester: 'S2 2023', gpa: 3.4 },
-    { semester: 'S1 2024', gpa: 3.1 },
-    { semester: 'S2 2024', gpa: currentGPA },
+    { semester: 'S1 2025', gpa: 3.1 },
+    { semester: 'S2 2025', gpa: currentGPA },
   ];
 
   // Mock attendance data

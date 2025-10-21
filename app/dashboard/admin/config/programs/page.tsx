@@ -85,51 +85,49 @@ export default function ProgramsPage() {
   const degreePrograms = [
     {
       id: 'MIT',
-      name: 'Master of Information Technology',
+      name: 'B.Sc. Honours in Management and Information Technology',
       code: 'MIT',
-      description: 'Comprehensive IT degree program covering software development, data science, and cybersecurity',
-      totalCredits: 120,
-      duration: 3,
-      pathways: ['Software Engineering', 'Data Science', 'Cybersecurity', 'Mobile Development'],
+      description: 'Level 6, 4-year Honours Degree combining management principles with information technology. Students can specialize in Business Systems Engineering (BSE), Operations and Supply Chain Management (OSCM), or Information Systems (IS).',
+      totalCredits: 132,
+      duration: 4,
+      pathways: [], // MIT has no pathways, only specializations
       specializations: {
-        'Software Engineering': ['Frontend Development', 'Backend Development', 'Full-Stack Development'],
-        'Data Science': ['Machine Learning', 'Data Analytics', 'Big Data'],
-        'Cybersecurity': ['Network Security', 'Information Security', 'Ethical Hacking'],
-        'Mobile Development': ['iOS Development', 'Android Development', 'Cross-Platform'],
+        'BSE': ['Business Systems Engineering'],
+        'OSCM': ['Operations and Supply Chain Management'],
+        'IS': ['Information Systems']
       },
       capacityLimits: {
-        'Software Engineering': 50,
-        'Data Science': 30,
-        'Cybersecurity': 25,
-        'Mobile Development': 20,
+        'BSE': 50,
+        'OSCM': 50,
+        'IS': 50
       },
-      moduleMappings: ['CS101', 'CS102', 'CS201', 'CS202', 'CS301', 'CS302'],
+      moduleMappings: [
+        'INTE 11213', 'INTE 11223', 'MGTE 11233', 'MGTE 11243', 'INTE 12213', 'INTE 12223',
+        'INTE 21213', 'INTE 21313', 'INTE 21323', 'INTE 21333', 'INTE 21343', 'INTE 22343',
+        'INTE 31356', 'GNCT 32216', 'INTE 43216b', 'MGTE 43216b', 'MGTE 41323', 'MGTE 41313'
+      ],
       status: 'active',
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-15',
+      createdAt: '2025-01-01',
+      updatedAt: '2025-01-15',
     },
     {
       id: 'IT',
-      name: 'Bachelor of Information Technology',
+      name: 'B.Sc. Honours in Information Technology',
       code: 'IT',
-      description: 'Undergraduate IT program focusing on practical skills and industry applications',
-      totalCredits: 120,
-      duration: 3,
-      pathways: ['Software Engineering', 'Data Science', 'Cybersecurity'],
-      specializations: {
-        'Software Engineering': ['Frontend Development', 'Backend Development'],
-        'Data Science': ['Data Analytics', 'Machine Learning'],
-        'Cybersecurity': ['Network Security', 'Information Security'],
-      },
-      capacityLimits: {
-        'Software Engineering': 40,
-        'Data Science': 25,
-        'Cybersecurity': 20,
-      },
-      moduleMappings: ['IT101', 'IT102', 'IT201', 'IT202', 'IT301', 'IT302'],
+      description: 'Level 6, 4-year Honours Degree focusing on technical computing, software development, and technology innovation. No specialization streams - students follow a unified technical curriculum.',
+      totalCredits: 132,
+      duration: 4,
+      pathways: [], // IT has no pathways
+      specializations: {}, // IT has NO specializations
+      capacityLimits: {},
+      moduleMappings: [
+        'INTE 11213', 'INTE 11223', 'MGTE 11233', 'MGTE 11243', 'INTE 12213', 'INTE 12223',
+        'INTE 21213', 'INTE 21313', 'INTE 21323', 'INTE 21333', 'INTE 21343', 'INTE 22343',
+        'INTE 31356', 'GNCT 32216', 'INTE 43216b', 'MGTE 43216b'
+      ],
       status: 'active',
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-10',
+      createdAt: '2025-01-01',
+      updatedAt: '2025-01-10',
     },
   ];
 

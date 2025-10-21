@@ -52,7 +52,7 @@ export default function CreditsPage() {
     .filter(g => g.isReleased)
     .reduce((sum, g) => sum + g.credits, 0);
 
-  const totalCreditsRequired = 120; // Standard graduation requirement
+  const totalCreditsRequired = 132; // Honours graduation requirement per guide
   const creditsRemaining = totalCreditsRequired - totalCreditsEarned;
   const progressPercentage = Math.round((totalCreditsEarned / totalCreditsRequired) * 100);
 
@@ -108,8 +108,9 @@ export default function CreditsPage() {
   const yearRequirements = {
     L1: { min: 24, max: 30, description: 'Foundation year modules' },
     L2: { min: 24, max: 30, description: 'Core degree modules' },
-    L3: { min: 24, max: 30, description: 'Specialization modules' },
-  };
+    L3: { min: 24, max: 30, description: 'Advanced modules and project' },
+    L4: { min: 24, max: 30, description: 'Final year and research project' },
+  } as const;
 
   const getGradeColor = (grade: number) => {
     if (grade >= 80) return 'text-green-600';
@@ -214,15 +215,12 @@ export default function CreditsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
-              Core Modules
+              Credits by Department (info)
             </CardTitle>
-            <CardDescription>Foundation and core degree modules</CardDescription>
+            <CardDescription>Guide-aligned totals are shown above</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{creditsByCategory.core}</div>
-            <p className="text-sm text-muted-foreground">credits earned</p>
-            <Progress value={(creditsByCategory.core / 60) * 100} className="mt-2 h-2" />
-            <p className="text-xs text-muted-foreground mt-1">Target: 60 credits</p>
+            <div className="text-sm text-muted-foreground">Categorical breakdown hidden to avoid misclassification</div>
           </CardContent>
         </Card>
 
@@ -230,15 +228,12 @@ export default function CreditsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5" />
-              Elective Modules
+              Category Breakdown Hidden
             </CardTitle>
-            <CardDescription>Optional and elective modules</CardDescription>
+            <CardDescription>Pending precise tagging from guide</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{creditsByCategory.elective}</div>
-            <p className="text-sm text-muted-foreground">credits earned</p>
-            <Progress value={(creditsByCategory.elective / 30) * 100} className="mt-2 h-2" />
-            <p className="text-xs text-muted-foreground mt-1">Target: 30 credits</p>
+            <div className="text-sm text-muted-foreground">Use transcript and semester/year views for accurate tracking</div>
           </CardContent>
         </Card>
 
@@ -246,15 +241,12 @@ export default function CreditsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Award className="h-5 w-5" />
-              Specialization
+              Specialization (info)
             </CardTitle>
-            <CardDescription>Pathway-specific modules</CardDescription>
+            <CardDescription>Shown in specialization page</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{creditsByCategory.specialization}</div>
-            <p className="text-sm text-muted-foreground">credits earned</p>
-            <Progress value={(creditsByCategory.specialization / 30) * 100} className="mt-2 h-2" />
-            <p className="text-xs text-muted-foreground mt-1">Target: 30 credits</p>
+            <div className="text-sm text-muted-foreground">Tracking via semester/year and transcript</div>
           </CardContent>
         </Card>
       </div>

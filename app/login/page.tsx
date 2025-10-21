@@ -20,11 +20,16 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   const testAccounts = [
-    { email: 'alice@university.edu', role: 'Student (L2, MIT, BSE)' },
-    { email: 'sarah.wilson@university.edu', role: 'Academic Staff' },
-    { email: 'michael.smith@university.edu', role: 'Advisor' },
-    { email: 'john.anderson@university.edu', role: 'Head of Department' },
-    { email: 'admin@university.edu', role: 'System Administrator' },
+    { email: 'buddhika.bandara@kln.ac.lk', role: 'Student (L2, MIT)' },
+    { email: 'uditha.sandeepa@kln.ac.lk', role: 'Student (L1)' },
+    { email: 'akalanka.senanayake@kln.ac.lk', role: 'Student (L3)' },
+    { email: 'chanith.adikari@kln.ac.lk', role: 'Student (L4, MIT, IS)' },
+    { email: 'tharuka.subhashi@kln.ac.lk', role: 'Academic Staff' },
+    { email: 'akila.pallepitiya@kln.ac.lk', role: 'Academic Staff' },
+    { email: 'thasuni.induma@kln.ac.lk', role: 'Academic Staff' },
+    { email: 'ama.v2@kln.ac.lk', role: 'Academic Advisor (MIT)' },
+    { email: 'yonali.kavindya@kln.ac.lk', role: 'Head of Department' },
+    { email: 'admin@kln.ac.lk', role: 'System Administrator' },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {

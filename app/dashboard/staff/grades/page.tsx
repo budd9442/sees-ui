@@ -231,7 +231,7 @@ export default function GradesPage() {
           points: gradeData.points,
           credits: gradeData.credits,
           semester: currentModule?.semester || 'S1',
-          academicYear: currentModule?.academicYear || '2024',
+          academicYear: currentModule?.academicYear || '2025',
           isReleased: false,
           moduleCode: currentModule?.code || '',
           moduleTitle: currentModule?.title || '',

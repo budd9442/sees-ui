@@ -257,8 +257,8 @@ export default function PathwayGuidance({
     setPreferences(prev => ({
       ...prev,
       interests: checked 
-        ? [...prev.interests, interestId]
-        : prev.interests.filter(id => id !== interestId)
+        ? [...(prev.interests || []), interestId]
+        : (prev.interests || []).filter(id => id !== interestId)
     }));
   };
 
@@ -266,8 +266,8 @@ export default function PathwayGuidance({
     setPreferences(prev => ({
       ...prev,
       strengths: checked 
-        ? [...prev.strengths, strengthId]
-        : prev.strengths.filter(id => id !== strengthId)
+        ? [...(prev.strengths || []), strengthId]
+        : (prev.strengths || []).filter(id => id !== strengthId)
     }));
   };
 
@@ -275,8 +275,8 @@ export default function PathwayGuidance({
     setPreferences(prev => ({
       ...prev,
       careerGoals: checked 
-        ? [...prev.careerGoals, goalId]
-        : prev.careerGoals.filter(id => id !== goalId)
+        ? [...(prev.careerGoals || []), goalId]
+        : (prev.careerGoals || []).filter(id => id !== goalId)
     }));
   };
 
@@ -355,7 +355,7 @@ export default function PathwayGuidance({
                     <div key={interest.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={interest.id}
-                        checked={preferences.interests.includes(interest.id)}
+                        checked={(preferences.interests || []).includes(interest.id)}
                         onCheckedChange={(checked) => handleInterestChange(interest.id, checked as boolean)}
                       />
                       <Label htmlFor={interest.id} className="flex items-center gap-2 cursor-pointer">
@@ -384,7 +384,7 @@ export default function PathwayGuidance({
                     <div key={strength.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={strength.id}
-                        checked={preferences.strengths.includes(strength.id)}
+                        checked={(preferences.strengths || []).includes(strength.id)}
                         onCheckedChange={(checked) => handleStrengthChange(strength.id, checked as boolean)}
                       />
                       <Label htmlFor={strength.id} className="flex items-center gap-2 cursor-pointer">
@@ -413,7 +413,7 @@ export default function PathwayGuidance({
                     <div key={goal.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={goal.id}
-                        checked={preferences.careerGoals.includes(goal.id)}
+                        checked={(preferences.careerGoals || []).includes(goal.id)}
                         onCheckedChange={(checked) => handleCareerGoalChange(goal.id, checked as boolean)}
                       />
                       <Label htmlFor={goal.id} className="flex items-center gap-2 cursor-pointer">

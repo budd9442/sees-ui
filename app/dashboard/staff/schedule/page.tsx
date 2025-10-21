@@ -514,7 +514,7 @@ export default function SchedulePage() {
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell>2024-01-15 10:30</TableCell>
+                      <TableCell>2025-01-15 10:30</TableCell>
                       <TableCell>
                         <Badge variant="outline">Updated</Badge>
                       </TableCell>
@@ -522,7 +522,7 @@ export default function SchedulePage() {
                       <TableCell>Dr. Smith</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>2024-01-10 14:20</TableCell>
+                      <TableCell>2025-01-10 14:20</TableCell>
                       <TableCell>
                         <Badge variant="outline">Added</Badge>
                       </TableCell>
@@ -530,7 +530,7 @@ export default function SchedulePage() {
                       <TableCell>Dr. Smith</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>2024-01-05 09:15</TableCell>
+                      <TableCell>2025-01-05 09:15</TableCell>
                       <TableCell>
                         <Badge variant="outline">Created</Badge>
                       </TableCell>

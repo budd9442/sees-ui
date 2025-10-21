@@ -70,9 +70,9 @@ export default function AdvisorDashboard() {
 
   // Upcoming meetings
   const upcomingMeetings = [
-    { id: 1, student: 'Alice Johnson', date: '2024-03-15', time: '10:00 AM', topic: 'Career guidance' },
-    { id: 2, student: 'Bob Martinez', date: '2024-03-15', time: '2:00 PM', topic: 'Academic recovery plan' },
-    { id: 3, student: 'Carol White', date: '2024-03-16', time: '11:00 AM', topic: 'Module selection' },
+    { id: 1, student: 'Alice Johnson', date: '2025-03-15', time: '10:00 AM', topic: 'Career guidance' },
+    { id: 2, student: 'Bob Martinez', date: '2025-03-15', time: '2:00 PM', topic: 'Academic recovery plan' },
+    { id: 3, student: 'Carol White', date: '2025-03-16', time: '11:00 AM', topic: 'Module selection' },
   ];
 
   const averageGPA = myStudents.reduce((sum, s) => sum + s.currentGPA, 0) / myStudents.length;

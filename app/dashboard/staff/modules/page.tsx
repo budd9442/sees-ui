@@ -80,7 +80,7 @@ export default function ModulesPage() {
     prerequisites: [] as string[],
     credits: 3,
     capacity: 50,
-    academicYear: '2024',
+    academicYear: '2025',
     semester: 'S1',
     status: 'active' as 'active' | 'inactive',
   });
@@ -139,7 +139,7 @@ export default function ModulesPage() {
       prerequisites: [],
       credits: 3,
       capacity: 50,
-      academicYear: '2024',
+      academicYear: '2025',
       semester: 'S1',
       status: 'active',
     });
@@ -335,7 +335,7 @@ export default function ModulesPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="2024">2024</SelectItem>
+                          <SelectItem value="2025">2025</SelectItem>
                           <SelectItem value="2023">2023</SelectItem>
                           <SelectItem value="2025">2025</SelectItem>
                         </SelectContent>

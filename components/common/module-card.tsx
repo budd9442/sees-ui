@@ -3,7 +3,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Clock, Users, CheckCircle2, XCircle, Plus, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Module } from '@/types';
@@ -23,9 +22,7 @@ export function ModuleCard({
   onToggleSelect,
   className,
 }: ModuleCardProps) {
-  const capacityPercentage = (module.enrolled / module.capacity) * 100;
-  const isNearCapacity = capacityPercentage >= 80;
-  const isFull = capacityPercentage >= 100;
+  // Capacity logic removed per requirement: module registration should not enforce/display capacity
 
   return (
     <Card
@@ -56,7 +53,7 @@ export function ModuleCard({
                 size="sm"
                 variant={isSelected ? 'default' : 'outline'}
                 onClick={onToggleSelect}
-                disabled={!prerequisitesMet || isFull}
+                disabled={!prerequisitesMet}
                 className="ml-2"
               >
                 {isSelected ? (
@@ -128,32 +125,7 @@ export function ModuleCard({
             </div>
           )}
 
-          {/* Capacity */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Capacity</span>
-              <span
-                className={cn(
-                  'font-medium',
-                  isNearCapacity && 'text-orange-600',
-                  isFull && 'text-red-600'
-                )}
-              >
-                {module.enrolled} / {module.capacity}
-              </span>
-            </div>
-            <Progress
-              value={capacityPercentage}
-              className={cn(
-                'h-1',
-                isNearCapacity && '[&>div]:bg-orange-500',
-                isFull && '[&>div]:bg-red-500'
-              )}
-            />
-            {isFull && (
-              <p className="text-xs text-red-600 font-medium">Module is full</p>
-            )}
-          </div>
+          {/* Capacity removed */}
 
           {/* Badges */}
           <div className="flex flex-wrap gap-1">

@@ -896,8 +896,8 @@ export function generateNotificationTemplates(): NotificationTemplate[] {
       body: 'Dear {{studentName}},\n\nYour grades for {{moduleName}} have been released. You can view them in your student portal.\n\nGrade: {{grade}}\nPoints: {{points}}\n\nBest regards,\nAcademic Team',
       placeholders: ['{{studentName}}', '{{moduleName}}', '{{grade}}', '{{points}}'],
       isActive: true,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
     },
     {
       id: 'TMPL002',
@@ -907,8 +907,8 @@ export function generateNotificationTemplates(): NotificationTemplate[] {
       body: 'Dear {{studentName}},\n\nYour GPA has changed from {{oldGPA}} to {{newGPA}}. This change may affect your academic standing.\n\nPlease review your academic progress and consider meeting with your advisor if needed.\n\nBest regards,\nAcademic Team',
       placeholders: ['{{studentName}}', '{{oldGPA}}', '{{newGPA}}'],
       isActive: true,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
     },
     {
       id: 'TMPL003',
@@ -918,8 +918,8 @@ export function generateNotificationTemplates(): NotificationTemplate[] {
       body: 'Dear {{studentName}},\n\nYour application for the {{pathwayName}} pathway has been approved. You are now officially allocated to this pathway.\n\nCongratulations!\nAcademic Team',
       placeholders: ['{{studentName}}', '{{pathwayName}}'],
       isActive: true,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
     },
     {
       id: 'TMPL004',
@@ -929,8 +929,8 @@ export function generateNotificationTemplates(): NotificationTemplate[] {
       body: 'Dear {{studentName}},\n\nThis is a reminder that the deadline for {{deadlineName}} is on {{deadlineDate}}. Please ensure you submit all required documents/tasks on time.\n\nBest regards,\nAcademic Team',
       placeholders: ['{{studentName}}', '{{deadlineName}}', '{{deadlineDate}}'],
       isActive: false,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
     },
   ];
 
@@ -965,8 +965,8 @@ export function generateReportTemplates(): ReportTemplate[] {
       ],
       layout: 'portrait',
       isActive: true,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
     },
     {
       id: 'RPT002',
@@ -992,8 +992,8 @@ export function generateReportTemplates(): ReportTemplate[] {
       ],
       layout: 'landscape',
       isActive: true,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
     },
     {
       id: 'RPT003',
@@ -1019,8 +1019,8 @@ export function generateReportTemplates(): ReportTemplate[] {
       ],
       layout: 'portrait',
       isActive: true,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
     },
   ];
 

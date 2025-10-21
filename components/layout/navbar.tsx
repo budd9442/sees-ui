@@ -41,13 +41,11 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-white font-bold text-lg">
-                S
-              </div>
+            
               <div>
-                <h1 className="text-lg font-bold">SEES</h1>
+                <h1 className="text-lg font-bold">Department of Industrial Management</h1>
                 <p className="text-xs text-muted-foreground">
-                  Student Enrollment System
+                  Student Enrollment & Evaluation System 
                 </p>
               </div>
             </div>

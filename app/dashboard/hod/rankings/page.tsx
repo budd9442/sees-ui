@@ -78,7 +78,7 @@ import type { Student, Grade, RankingEntry } from '@/types';
 export default function RankingsPage() {
   const { user } = useAuthStore();
   const { students, modules, grades } = useAppStore();
-  const [selectedBatch, setSelectedBatch] = useState('2024');
+  const [selectedBatch, setSelectedBatch] = useState('2025');
   const [selectedSemester, setSelectedSemester] = useState('S2');
   const [filterPathway, setFilterPathway] = useState('all');
   const [filterSpecialization, setFilterSpecialization] = useState('all');
@@ -122,7 +122,7 @@ export default function RankingsPage() {
         academicClass: student.academicClass,
         pathway: student.degreeProgram || 'MIT',
         specialization: student.specialization,
-        semester: 'S1_2024', // Mock semester
+        semester: 'S1_2025', // Mock semester
         academicYear: student.academicYear,
         tiebreakApplied: false,
         tiebreakReason: undefined,
@@ -233,10 +233,6 @@ export default function RankingsPage() {
     toast.success(`Rankings exported as ${format.toUpperCase()} successfully!`);
   };
 
-  const generateCertificates = () => {
-    toast.success('Recognition certificates generated successfully!');
-  };
-
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   return (
@@ -258,10 +254,6 @@ export default function RankingsPage() {
             <Download className="mr-2 h-4 w-4" />
             Export Rankings
           </Button>
-          <Button onClick={generateCertificates}>
-            <Award className="mr-2 h-4 w-4" />
-            Generate Certificates
-          </Button>
         </div>
       </div>
 
@@ -282,7 +274,7 @@ export default function RankingsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="2024">2024</SelectItem>
+                  <SelectItem value="2025">2025</SelectItem>
                   <SelectItem value="2023">2023</SelectItem>
                   <SelectItem value="2025">2025</SelectItem>
                 </SelectContent>
@@ -449,7 +441,8 @@ export default function RankingsPage() {
                           <Badge variant="secondary">{ranking.pathway}</Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium">{ranking.gpa.toFixed(2)}</div>
+                          <div className="font-bold text-lg text-primary">{ranking.gpa.toFixed(2)}</div>
+                          <div className="text-xs text-muted-foreground">GPA</div>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm text-muted-foreground">

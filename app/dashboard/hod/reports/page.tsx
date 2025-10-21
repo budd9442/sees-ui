@@ -567,8 +567,8 @@ export default function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                   <TableRow>
-                    <TableCell className="font-medium">Overall Performance Q1 2024</TableCell>
-                    <TableCell>2024-01-15</TableCell>
+                    <TableCell className="font-medium">Overall Performance Q1 2025</TableCell>
+                    <TableCell>2025-01-15</TableCell>
                     <TableCell>Overall Performance Summary</TableCell>
                     <TableCell>PDF</TableCell>
                     <TableCell>
@@ -583,8 +583,8 @@ export default function ReportsPage() {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-medium">Pathway Analysis 2024</TableCell>
-                    <TableCell>2024-01-10</TableCell>
+                    <TableCell className="font-medium">Pathway Analysis 2025</TableCell>
+                    <TableCell>2025-01-10</TableCell>
                     <TableCell>Pathway Demand Analysis</TableCell>
                     <TableCell>Excel</TableCell>
                     <TableCell>

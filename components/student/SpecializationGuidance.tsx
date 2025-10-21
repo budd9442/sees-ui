@@ -271,7 +271,7 @@ export default function SpecializationGuidance({
     
     // Technical interest matching
     const matchingInterests = specialization.skills.filter((skill: string) => 
-      preferences.technicalInterests.some(interest => 
+      (preferences.technicalInterests || []).some(interest => 
         interest.toLowerCase().includes(skill.toLowerCase()) || 
         skill.toLowerCase().includes(interest.toLowerCase())
       )
@@ -279,13 +279,13 @@ export default function SpecializationGuidance({
     score += matchingInterests * 10;
     
     // Career focus alignment
-    if (preferences.careerFocus.length > 0) {
+    if ((preferences.careerFocus || []).length > 0) {
       score += 15;
     }
     
     // Project type alignment
     const matchingProjects = specialization.projectTypes.filter((project: string) => 
-      preferences.projectTypes.some(type => 
+      (preferences.projectTypes || []).some(type => 
         type.toLowerCase().includes(project.toLowerCase()) || 
         project.toLowerCase().includes(type.toLowerCase())
       )
@@ -293,7 +293,7 @@ export default function SpecializationGuidance({
     score += matchingProjects * 8;
     
     // Learning goals alignment
-    if (preferences.learningGoals.length > 0) {
+    if ((preferences.learningGoals || []).length > 0) {
       score += 12;
     }
     

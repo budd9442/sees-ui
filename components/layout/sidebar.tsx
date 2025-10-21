@@ -10,6 +10,7 @@ import {
   BookOpen,
   BarChart3,
   MessageSquare,
+  MessageCircle,
   Calendar,
   Target,
   Users,
@@ -90,6 +91,12 @@ const navigationItems: NavItem[] = [
     title: 'Academic Goals',
     href: '/dashboard/student/goals',
     icon: Target,
+    roles: ['student'],
+  },
+  {
+    title: 'Personalized Feedback',
+    href: '/dashboard/student/personalized-feedback',
+    icon: MessageCircle,
     roles: ['student'],
   },
   {

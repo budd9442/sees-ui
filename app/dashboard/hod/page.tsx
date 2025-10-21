@@ -56,7 +56,7 @@ export default function HODDashboard() {
     { year: '2021', avgGPA: 3.22, retention: 92, graduation: 86 },
     { year: '2022', avgGPA: 3.28, retention: 93, graduation: 87 },
     { year: '2023', avgGPA: 3.35, retention: 94, graduation: 88 },
-    { year: '2024', avgGPA: 3.40, retention: 94.5, graduation: 88.2 },
+    { year: '2025', avgGPA: 3.40, retention: 94.5, graduation: 88.2 },
   ];
 
   // Pathway distribution with capacity

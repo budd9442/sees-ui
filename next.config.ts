@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Remove turbo config as it's not valid in this Next.js version
 };
 
 export default nextConfig;

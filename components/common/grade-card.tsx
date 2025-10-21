@@ -52,8 +52,8 @@ export function GradeCard({
             {letterGrade}
           </div>
           <div>
-            <p className="text-2xl font-bold">{grade.toFixed(1)}%</p>
-            <p className="text-sm text-muted-foreground">Score</p>
+            <p className="text-sm text-muted-foreground">Grade</p>
+            <p className="text-lg font-medium">{letterGrade}</p>
           </div>
         </div>
       </CardContent>

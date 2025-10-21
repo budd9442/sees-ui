@@ -170,7 +170,7 @@ export default function GpaPage() {
       version: 'v2.1',
       description: 'Updated grade point scale for A+ grade',
       changedBy: 'Admin User',
-      changedAt: '2024-01-15 10:30:00',
+      changedAt: '2025-01-15 10:30:00',
       changes: ['Added A+ grade with 4.0 points', 'Updated thresholds'],
     },
     {
@@ -178,7 +178,7 @@ export default function GpaPage() {
       version: 'v2.0',
       description: 'Major GPA calculation overhaul',
       changedBy: 'System Admin',
-      changedAt: '2024-01-01 09:00:00',
+      changedAt: '2025-01-01 09:00:00',
       changes: ['Changed to weighted average method', 'Updated tiebreaker formula'],
     },
     {

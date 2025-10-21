@@ -500,3 +500,34 @@ export interface ModuleSchedule {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CustomScheduleItem {
+  id: string;
+  studentId: string;
+  title: string;
+  description?: string;
+  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+  startTime: string;
+  endTime: string;
+  location?: string;
+  type: 'personal' | 'study' | 'work' | 'exercise' | 'social' | 'other';
+  color: string;
+  isRecurring: boolean;
+  recurringPattern?: 'daily' | 'weekly' | 'monthly';
+  priority: 'low' | 'medium' | 'high';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ScheduleConflict {
+  id: string;
+  item1Id: string;
+  item2Id: string;
+  item1Type: 'academic' | 'custom';
+  item2Type: 'academic' | 'custom';
+  conflictType: 'time' | 'location';
+  severity: 'warning' | 'error';
+  message: string;
+  createdAt: string;
+}
