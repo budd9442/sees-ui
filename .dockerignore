@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.github
+*.tar
+.venv
+.DS_Store
+README.md
+deploy_local.sh
+k8s/

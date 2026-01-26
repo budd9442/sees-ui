@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 interface UserDialogProps {
@@ -232,7 +233,15 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
                                         <FormItem>
                                             <FormLabel>Admission Year</FormLabel>
                                             <FormControl>
-                                                <Input type="number" placeholder="2025" {...field} />
+                                                <Input
+                                                    type="number"
+                                                    placeholder="2025"
+                                                    {...field}
+                                                    onChange={e => {
+                                                        const val = e.target.valueAsNumber;
+                                                        field.onChange(isNaN(val) ? undefined : val);
+                                                    }}
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -318,6 +327,8 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
                                 />
                             </div>
                         )}
+
+
 
                         <DialogFooter>
                             <Button type="submit" disabled={isLoading}>

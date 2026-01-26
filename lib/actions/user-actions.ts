@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { userSchema, CreateUserSchema, UpdateUserSchema } from '@/lib/validations/user';
 import { hash } from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
+import { sendEmail } from '@/lib/email/brevo';
+import { getWelcomeEmail, generateTempPassword } from '@/lib/email/templates';
 
 export async function getUsers({
     page = 1,
@@ -124,11 +126,12 @@ export async function createUser(data: CreateUserSchema) {
         }
     }
 
-    // Set initial password to match the username
-    const passwordHash = await hash(username, 10);
+    // Set initial password: always generate a secure temp password for new users
+    const tempPassword = generateTempPassword();
+    const passwordHash = await hash(tempPassword, 10);
 
     try {
-        await prisma.$transaction(async (tx) => {
+        const newUser = await prisma.$transaction(async (tx) => {
             const user = await tx.user.create({
                 data: {
                     email,
@@ -145,7 +148,7 @@ export async function createUser(data: CreateUserSchema) {
                     data: {
                         student_id: user.user_id,
                         admission_year: finalAdmissionYear,
-                        degree_path_id: otherDetails.degreePathId || '', // Should validate exists, but foreign key constraint will catch if empty/invalid
+                        degree_path_id: otherDetails.degreePathId || '',
                         enrollment_status: 'ENROLLED',
                     },
                 });
@@ -159,7 +162,23 @@ export async function createUser(data: CreateUserSchema) {
                     },
                 });
             }
+            return user;
         });
+
+        // Always send welcome email
+        try {
+            const emailTemplate = getWelcomeEmail(firstName, username, tempPassword);
+            await sendEmail({
+                to: email,
+                toName: firstName,
+                subject: emailTemplate.subject,
+                htmlContent: emailTemplate.htmlContent
+            });
+            console.log(`Welcome email sent to ${email}`);
+        } catch (emailError) {
+            console.error('Failed to send welcome email:', emailError);
+            // We don't fail the whole user creation if just email fails
+        }
 
         revalidatePath('/dashboard/admin/users');
         return { success: true };

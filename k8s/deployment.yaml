@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sees-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sees-ui
+  template:
+    metadata:
+      labels:
+        app: sees-ui
+    spec:
+      containers:
+      - name: sees-ui
+        image: ghcr.io/budd9442/sees-ui:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: sees-secrets
+              key: DATABASE_URL
+        - name: NEXTAUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: sees-secrets
+              key: NEXTAUTH_SECRET
+        - name: NEXTAUTH_URL
+          valueFrom:
+            secretKeyRef:
+              name: sees-secrets
+              key: NEXTAUTH_URL
+        - name: CI
+          value: "true"
+        - name: AUTH_TRUST_HOST
+          value: "true"
+        ports:
+        - containerPort: 3000
+        command: ["/bin/sh", "-c"]
+        args: ["npx prisma migrate deploy && node server.js"]

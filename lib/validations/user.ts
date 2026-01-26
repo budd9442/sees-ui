@@ -8,7 +8,7 @@ export const userSchema = z.object({
     // Optional fields specific to roles can be added here
     // For student
     studentId: z.string().optional(),
-    admissionYear: z.coerce.number().optional(), // Coerce to handle string input from forms
+    admissionYear: z.number().optional(),
     degreePathId: z.string().optional(),
     // For staff
     staffNumber: z.string().optional(),

@@ -24,7 +24,8 @@ import {
 import { ToggleModuleStatusButton } from './_components/ToggleModuleStatusButton';
 import { AssignStaffDialog } from './_components/AssignStaffDialog';
 
-export default async function AdminModulesPage({ searchParams }: { searchParams: { q: string } }) {
+export default async function AdminModulesPage(props: { searchParams: Promise<{ q?: string }> }) {
+    const searchParams = await props.searchParams;
     const query = searchParams.q || '';
     const modules = await getModules(query);
 
