@@ -1,13 +1,17 @@
 import type { Grade, AcademicClass } from '@/types';
 
 export function calculateGPA(grades: Grade[]): number {
-  if (grades.length === 0) return 0;
+  // Filter out grades that are "Pending" or not yet released
+  // Assuming 'Pending' is the string used for ungraded modules
+  const completedGrades = grades.filter(g => g.grade !== 'Pending' && g.isReleased !== false);
 
-  const totalPoints = grades.reduce(
+  if (completedGrades.length === 0) return 0;
+
+  const totalPoints = completedGrades.reduce(
     (sum, grade) => sum + grade.points * grade.credits,
     0
   );
-  const totalCredits = grades.reduce((sum, grade) => sum + grade.credits, 0);
+  const totalCredits = completedGrades.reduce((sum, grade) => sum + grade.credits, 0);
 
   return totalCredits > 0 ? totalPoints / totalCredits : 0;
 }

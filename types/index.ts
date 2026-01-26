@@ -64,6 +64,7 @@ export interface Module {
   schedule?: string;
   learningOutcomes?: string[];
   status?: 'active' | 'inactive';
+  isCompulsory?: boolean;
 }
 
 export interface Grade {

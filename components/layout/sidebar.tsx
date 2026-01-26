@@ -259,8 +259,14 @@ const navigationItems: NavItem[] = [
   },
   {
     title: 'Programs Config',
-    href: '/dashboard/admin/config/programs',
+    href: '/dashboard/admin/programs',
     icon: GraduationCap,
+    roles: ['admin'],
+  },
+  {
+    title: 'Module Management',
+    href: '/dashboard/admin/modules',
+    icon: BookOpen,
     roles: ['admin'],
   },
   {

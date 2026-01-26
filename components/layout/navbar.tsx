@@ -26,9 +26,18 @@ export function Navbar() {
   const userNotifications = notifications.filter((n) => n.userId === user.id);
   const unreadCount = userNotifications.filter((n) => !n.isRead).length;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Clear client state
     logout();
-    router.push('/login');
+
+    // Call server action to destroy session
+    // We import this dynamically or assume it's available
+    // For now, simpler to just redirect to the signout API or use the action we just created
+    // But since Navbar is a client component, we need to import the server action
+    await import('@/lib/actions').then(({ logoutAction }) => logoutAction());
+
+    // Fallback if the action doesn't redirect (though it should)
+    // router.push('/login'); 
   };
 
   const getInitials = () => {
@@ -41,11 +50,11 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-            
+
               <div>
                 <h1 className="text-lg font-bold">Department of Industrial Management</h1>
                 <p className="text-xs text-muted-foreground">
-                  Student Enrollment & Evaluation System 
+                  Student Enrollment & Evaluation System
                 </p>
               </div>
             </div>
@@ -79,9 +88,8 @@ export function Navbar() {
                     userNotifications.slice(0, 5).map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-3 border-b cursor-pointer hover:bg-accent ${
-                          !notification.isRead ? 'bg-accent/50' : ''
-                        }`}
+                        className={`p-3 border-b cursor-pointer hover:bg-accent ${!notification.isRead ? 'bg-accent/50' : ''
+                          }`}
                       >
                         <div className="flex items-start gap-2">
                           <div className="flex-1">

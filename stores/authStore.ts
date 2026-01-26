@@ -155,6 +155,7 @@ interface AuthState {
   login: (email: string, password: string) => boolean;
   logout: () => void;
   hasRole: (roles: User['role'][]) => boolean;
+  setUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -184,6 +185,10 @@ export const useAuthStore = create<AuthState>()(
       hasRole: (roles: User['role'][]) => {
         const { user } = get();
         return user ? roles.includes(user.role) : false;
+      },
+
+      setUser: (user: User) => {
+        set({ user, isAuthenticated: true });
       },
     }),
     {

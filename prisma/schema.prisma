@@ -1,0 +1,394 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==========================================
+// USER MANAGEMENT ENTITIES
+// ==========================================
+
+model User {
+  user_id         String    @id @default(uuid())
+  email           String    @unique
+  username        String    @unique
+  first_name      String?
+  last_name       String?
+  password_hash   String
+  status          String    @default("ACTIVE") // e.g., ACTIVE, INACTIVE, SUSPENDED
+  created_at      DateTime  @default(now())
+  last_login_date DateTime?
+
+  // 1:1 Relations (Inheritance)
+  student Student?
+  staff   Staff?
+
+  // Communication
+  notifications     Notification[]
+  sent_messages     Message[]      @relation("Sender")
+  received_messages Message[]      @relation("Recipient")
+}
+
+model Student {
+  student_id        String  @id // Foreign key to User.user_id
+  admission_year    Int
+  current_gpa       Float   @default(0.0)
+  academic_class    String? // e.g., First Class, Second Upper
+  degree_path_id    String
+  specialization_id String?
+  advisor_id        String?
+  current_level     String? // e.g., Level 1, Level 2
+  enrollment_status String  @default("ENROLLED")
+
+  // Relations
+  user           User            @relation(fields: [student_id], references: [user_id], onDelete: Cascade)
+  degree_path    DegreeProgram   @relation(fields: [degree_path_id], references: [program_id])
+  specialization Specialization? @relation(fields: [specialization_id], references: [specialization_id])
+  advisor        Advisor?        @relation(fields: [advisor_id], references: [advisor_id])
+
+  module_registrations ModuleRegistration[]
+  grades               Grade[]
+  gpa_history          GPAHistory[]
+  academic_goals       AcademicGoal[]
+  rankings             Ranking[]
+  anonymous_reports    AnonymousReport[]
+}
+
+model Staff {
+  staff_id     String @id // Foreign key to User.user_id
+  staff_number String @unique
+  staff_type   String // e.g., ACADEMIC, ADMIN
+  department   String
+
+  // Relations
+  user              User              @relation(fields: [staff_id], references: [user_id], onDelete: Cascade)
+  advisor           Advisor?
+  hod               HOD?
+  lecture_schedules LectureSchedule[]
+  assignments       StaffAssignment[]
+}
+
+model Advisor {
+  advisor_id              String  @id // Foreign key to Staff.staff_id
+  assigned_degree_path_id String?
+
+  // Relations
+  staff    Staff     @relation(fields: [advisor_id], references: [staff_id], onDelete: Cascade)
+  students Student[]
+}
+
+model HOD {
+  hod_id     String @id // Foreign key to Staff.staff_id
+  department String
+
+  // Relations
+  staff Staff @relation(fields: [hod_id], references: [staff_id], onDelete: Cascade)
+}
+
+// ==========================================
+// ACADEMIC STRUCTURE ENTITIES
+// ==========================================
+
+// ==========================================
+// ACADEMIC STRUCTURE ENTITIES
+// ==========================================
+
+model DegreeProgram { // Renamed from DegreePath
+  program_id     String  @id @default(uuid())
+  code           String  @unique // e.g., "BIT", "MIT"
+  name           String
+  description    String?
+  active         Boolean @default(true)
+  
+  // Relations
+  specializations Specialization[]
+  students        Student[]
+  intakes         ProgramIntake[]
+  structure       ProgramStructure[]
+  staff_assignments StaffAssignment[]
+}
+
+model Specialization {
+  specialization_id String  @id @default(uuid())
+  code              String  @unique // e.g., "SE", "DS"
+  name              String
+  description       String?
+  program_id        String
+  active            Boolean @default(true)
+
+  // Relations
+  degree_program DegreeProgram @relation(fields: [program_id], references: [program_id])
+  students       Student[]
+  structure      ProgramStructure[]
+}
+
+model ProgramIntake {
+  intake_id        String   @id @default(uuid())
+  program_id       String
+  academic_year_id String
+  min_students     Int      @default(0)
+  max_students     Int      @default(100)
+  status           String   @default("OPEN") // OPEN, CLOSED, WAITLIST
+
+  degree_program   DegreeProgram @relation(fields: [program_id], references: [program_id])
+  academic_year    AcademicYear  @relation(fields: [academic_year_id], references: [academic_year_id])
+
+  @@unique([program_id, academic_year_id])
+}
+
+model Module {
+  module_id   String  @id @default(uuid())
+  code        String  @unique
+  name        String
+  credits     Int
+  description String?
+  active      Boolean @default(true)
+  
+  // Note: Level is removed from Module entity as it is context-dependent in ProgramStructure?
+  // Or keep as "Default Level"? Let's keep generic info here, specific usage in Structure.
+  // Actually, keeping 'level' here might be redundant if it depends on the program year, 
+  // but often a module IS a "Level 1" module inherent to its difficulty.
+  // Let's keep generic level for easier filtering, but Structure defines where it sits in a program.
+  level       String // e.g., "L1"
+  
+  // Relations
+  prerequisites    Module[] @relation("ModulePrerequisites")
+  prerequisite_for Module[] @relation("ModulePrerequisites")
+  
+  module_registrations ModuleRegistration[]
+  grades               Grade[]
+  lecture_schedules    LectureSchedule[]
+  
+  // New: Linked to programs via structure
+  in_programs          ProgramStructure[]
+  staff_assignments    StaffAssignment[]
+}
+
+model ProgramStructure {
+  structure_id      String  @id @default(uuid())
+  program_id        String
+  specialization_id String? // Optional: If null, applies to base program (Core)
+  module_id         String
+  
+  semester_id       String? // Optional: Recommended semester? Or just "Semester 1/2" generic?
+                              // Better: Use generic "Term/Semester Number" (1..8) relative to start.
+                              // Linking to actual ID makes it rigid for years. 
+                              // Let's use "year" and "semester_number".
+  academic_level    String  // e.g., "L1", "L2" (Year 1, Year 2)
+  semester_number   Int     // e.g., 1 or 2 (within the level)
+  
+  module_type       String  // CORE, ELECTIVE, OPTIONAL
+  credits           Int?    // Optional override of module credits for this program? Usually same.
+  
+  degree_program    DegreeProgram   @relation(fields: [program_id], references: [program_id])
+  specialization    Specialization? @relation(fields: [specialization_id], references: [specialization_id])
+  module            Module          @relation(fields: [module_id], references: [module_id])
+
+  @@unique([program_id, specialization_id, module_id]) // A module appears once per scope? 
+                                                       // Actually a module could be elective in one year and core in another? Unlikely.
+}
+
+model StaffAssignment {
+  assignment_id String   @id @default(uuid())
+  staff_id      String
+  
+  // Scope of assignment
+  program_id    String? // e.g. Program Coordinator
+  module_id     String? // e.g. Module Leader
+  
+  role          String   // COORDINATOR, LEADER, LECTURER, TUTOR
+  assigned_at   DateTime @default(now())
+  active        Boolean  @default(true)
+  
+  staff          Staff          @relation(fields: [staff_id], references: [staff_id])
+  degree_program DegreeProgram? @relation(fields: [program_id], references: [program_id])
+  module         Module?        @relation(fields: [module_id], references: [module_id])
+}
+
+model AcademicYear {
+  academic_year_id String   @id @default(uuid())
+  label            String   @unique // e.g., "2023-2024"
+  start_date       DateTime
+  end_date         DateTime
+  active           Boolean  @default(true)
+
+  semesters Semester[]
+  intakes   ProgramIntake[]
+}
+
+model Semester {
+  semester_id      String   @id @default(uuid())
+  academic_year_id String
+  label            String // e.g., "Semester 1", "Semester 2"
+  start_date       DateTime
+  end_date         DateTime
+
+  academic_year        AcademicYear         @relation(fields: [academic_year_id], references: [academic_year_id])
+  module_registrations ModuleRegistration[]
+  grades               Grade[]
+}
+
+// ==========================================
+// ENROLLMENT & ASSESSMENT ENTITIES
+// ==========================================
+
+model ModuleRegistration {
+  reg_id            String   @id @default(uuid())
+  student_id        String
+  module_id         String
+  semester_id       String
+  term              String?
+  registration_date DateTime @default(now())
+  status            String   @default("REGISTERED") // e.g., REGISTERED, WITHDRAWN
+
+  student  Student  @relation(fields: [student_id], references: [student_id])
+  module   Module   @relation(fields: [module_id], references: [module_id])
+  semester Semester @relation(fields: [semester_id], references: [semester_id])
+  grade    Grade?
+}
+
+model Grade {
+  grade_id     String    @id @default(uuid())
+  reg_id       String    @unique // Enforce 1:1 with ModuleRegistration
+  student_id   String
+  module_id    String
+  semester_id  String
+  marks        Float
+  grade_point  Float
+  letter_grade String
+  attempt_no   Int       @default(1)
+  released_at  DateTime?
+
+  module_registration ModuleRegistration @relation(fields: [reg_id], references: [reg_id])
+  student             Student            @relation(fields: [student_id], references: [student_id])
+  module              Module             @relation(fields: [module_id], references: [module_id])
+  semester            Semester           @relation(fields: [semester_id], references: [semester_id])
+}
+
+model GradingScheme {
+  scheme_id String  @id @default(uuid())
+  name      String
+  version   String
+  active    Boolean @default(true)
+
+  bands GradingBand[]
+}
+
+model GradingBand {
+  band_id      String @id @default(uuid())
+  scheme_id    String
+  min_marks    Float
+  max_marks    Float
+  grade_point  Float
+  letter_grade String
+
+  grading_scheme GradingScheme @relation(fields: [scheme_id], references: [scheme_id])
+}
+
+// ==========================================
+// STUDENT PROGRESS ENTITIES
+// ==========================================
+
+model GPAHistory {
+  gpa_history_id   String   @id @default(uuid())
+  student_id       String
+  calculation_date DateTime @default(now())
+  gpa              Float
+  academic_class   String?
+
+  student Student @relation(fields: [student_id], references: [student_id])
+}
+
+model AcademicGoal {
+  goal_id      String    @id @default(uuid())
+  student_id   String
+  target_gpa   Float
+  target_class String?
+  created_at   DateTime  @default(now())
+  achieved_at  DateTime?
+
+  student Student @relation(fields: [student_id], references: [student_id])
+}
+
+model Ranking {
+  ranking_id       String   @id @default(uuid())
+  student_id       String
+  degree_path_id   String
+  rank             Int
+  gpa              Float
+  weighted_average Float
+  created_at       DateTime @default(now())
+
+  student Student @relation(fields: [student_id], references: [student_id])
+}
+
+// ==========================================
+// COMMUNICATION ENTITIES
+// ==========================================
+
+model Message {
+  message_id   String    @id @default(uuid())
+  sender_id    String
+  recipient_id String
+  subject      String
+  content      String
+  sent_at      DateTime  @default(now())
+  read_at      DateTime?
+
+  sender    User @relation("Sender", fields: [sender_id], references: [user_id])
+  recipient User @relation("Recipient", fields: [recipient_id], references: [user_id])
+}
+
+model Notification {
+  notification_id String    @id @default(uuid())
+  user_id         String
+  type            String
+  title           String
+  content         String
+  sent_at         DateTime  @default(now())
+  read_at         DateTime?
+
+  user User @relation(fields: [user_id], references: [user_id])
+}
+
+model AnonymousReport {
+  report_id  String   @id @default(uuid())
+  student_id String
+  content    String
+  priority   String
+  status     String   @default("PENDING")
+  created_at DateTime @default(now())
+
+  student Student @relation(fields: [student_id], references: [student_id])
+}
+
+// ==========================================
+// SYSTEM CONFIGURATION & SCHEDULE
+// ==========================================
+
+model SystemSetting {
+  setting_id  String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  category    String
+  updated_at  DateTime @updatedAt
+}
+
+model LectureSchedule {
+  schedule_id String   @id @default(uuid())
+  module_id   String
+  staff_id    String
+  day_of_week String // e.g., "Monday"
+  start_time  DateTime // Time part is significant
+  end_time    DateTime
+  location    String?
+
+  module Module @relation(fields: [module_id], references: [module_id])
+  staff  Staff  @relation(fields: [staff_id], references: [staff_id])
+}

@@ -1,12 +1,12 @@
 // Simple hardcoded data with no external dependencies
-import type { 
-  Student, 
-  Module, 
-  Grade, 
-  Message, 
-  Notification, 
-  AcademicGoal, 
-  PathwayDemand, 
+import type {
+  Student,
+  Module,
+  Grade,
+  Message,
+  Notification,
+  AcademicGoal,
+  PathwayDemand,
   User,
   Internship,
   AnonymousReport,
@@ -45,6 +45,26 @@ export const testStudent: Student = {
 // Other sample students
 export const hardcodedStudents: Student[] = [
   testStudent,
+  // Authenticated Test Student
+  {
+    id: 'STU_TEST',
+    email: 'student@example.com',
+    firstName: 'Student',
+    lastName: 'User',
+    name: 'Student User',
+    role: 'student',
+    isActive: true,
+    studentId: 'STU_TEST',
+    academicYear: 'L2',
+    degreeProgram: 'MIT',
+    specialization: 'BSE',
+    currentGPA: 3.5,
+    totalCredits: 60,
+    academicClass: 'Second Class Upper',
+    pathwayLocked: true,
+    enrollmentDate: '2023-01-01',
+    enrollmentStatus: 'enrolled',
+  },
   {
     id: 'STU002',
     email: 'uditha.sandeepa@kln.ac.lk',
@@ -740,6 +760,25 @@ export const hardcodedPathwayDemand: PathwayDemand = {
 
 // Staff users
 export const hardcodedStaffUsers: User[] = [
+  // Authenticated Test Staff
+  {
+    id: 'STAFF_TEST',
+    email: 'staff@example.com',
+    firstName: 'Staff',
+    lastName: 'User',
+    name: 'Staff User',
+    role: 'staff',
+    isActive: true,
+  },
+  {
+    id: 'ADMIN_TEST',
+    email: 'admin@example.com',
+    firstName: 'System',
+    lastName: 'Admin',
+    name: 'System Admin',
+    role: 'admin',
+    isActive: true,
+  },
   {
     id: 'STAFF001',
     email: 'tharuka.subhashi@kln.ac.lk',

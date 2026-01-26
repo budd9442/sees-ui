@@ -1,40 +1,37 @@
-'use client';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import DashboardContent from './dashboard-layout';
+import { StoreHydrator } from '@/components/auth/store-hydrator';
+import type { User } from '@/types';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
-import { Navbar } from '@/components/layout/navbar';
-import { Sidebar } from '@/components/layout/sidebar';
-
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const session = await auth();
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, router]);
-
-  if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
+  if (!session?.user) {
+    redirect('/login');
   }
 
+  // Convert NextAuth session user to app User type
+  const user: User = {
+    id: session.user.id || '',
+    email: session.user.email || '',
+    firstName: session.user.name?.split(' ')[0] || 'User',
+    lastName: session.user.name?.split(' ').slice(1).join(' ') || '',
+    name: session.user.name || '',
+    role: (session.user as any).role || 'student', // Fallback role
+    isActive: true,
+  };
+
+  console.log('Layout Hydration User:', user);
+
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <Sidebar />
-      <main className="pl-64 pt-16">
-        <div className="container mx-auto p-8">{children}</div>
-      </main>
-    </div>
+    <>
+      <StoreHydrator user={user} />
+      <DashboardContent>{children}</DashboardContent>
+    </>
   );
 }

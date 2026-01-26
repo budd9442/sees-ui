@@ -28,10 +28,10 @@ export default function Chatbot() {
   const handleSend = async () => {
     const text = input.trim();
     if (!text || isLoading) return;
-    
+
     console.log('=== CHATBOT CLIENT DEBUG START ===');
     console.log('User message:', text);
-    
+
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: text, ts: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
@@ -85,25 +85,25 @@ export default function Chatbot() {
 
       const data = await response.json();
       console.log('API response data:', data);
-      
+
       const aiResponse = data.response || 'Sorry, I could not generate a response.';
       console.log('Final AI response:', aiResponse);
-      
+
       const botMsg: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: aiResponse, ts: Date.now() };
       setMessages(prev => [...prev, botMsg]);
       console.log('=== CHATBOT CLIENT DEBUG END (SUCCESS) ===');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error);
       console.log('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name
       });
-      const errorMsg: ChatMessage = { 
-        id: crypto.randomUUID(), 
-        role: 'assistant', 
-        content: `Sorry, I encountered an error: ${error.message}. Please try again or contact support if the issue persists.`, 
-        ts: Date.now() 
+      const errorMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `Sorry, I encountered an error: ${error?.message || 'Unknown error'}. Please try again or contact support if the issue persists.`,
+        ts: Date.now()
       };
       setMessages(prev => [...prev, errorMsg]);
       console.log('=== CHATBOT CLIENT DEBUG END (ERROR) ===');
