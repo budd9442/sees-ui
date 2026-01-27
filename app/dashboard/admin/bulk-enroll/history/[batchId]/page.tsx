@@ -13,7 +13,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Mail, AlertTriangle } from 'lucide-react';
+import { Mail, AlertTriangle, History } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -119,7 +119,7 @@ export default function BatchDetailsPage({ params }: { params: Promise<{ batchId
 
     if (loading) {
         return (
-            <div className="container mx-auto py-8 max-w-6xl">
+            <div className="space-y-6">
                 <div className="text-center py-12 text-muted-foreground">
                     Loading batch details...
                 </div>
@@ -129,7 +129,7 @@ export default function BatchDetailsPage({ params }: { params: Promise<{ batchId
 
     if (!batch) {
         return (
-            <div className="container mx-auto py-8 max-w-6xl">
+            <div className="space-y-6">
                 <div className="text-center py-12 text-muted-foreground">
                     Batch not found
                 </div>
@@ -138,19 +138,20 @@ export default function BatchDetailsPage({ params }: { params: Promise<{ batchId
     }
 
     return (
-        <div className="container mx-auto py-8 max-w-6xl space-y-6">
-            <div className="flex items-center gap-4">
-                <Link href="/dashboard/admin/bulk-enroll/history">
-                    <Button variant="ghost" size="icon">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                </Link>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Batch Details</h1>
                     <p className="text-muted-foreground mt-1">
-                        View individual enrollment records for this batch
+                        View individual enrollment records for this batch.
                     </p>
                 </div>
+                <Link href="/dashboard/admin/bulk-enroll/history">
+                    <Button variant="outline">
+                        <History className="mr-2 h-4 w-4" />
+                        Back to History
+                    </Button>
+                </Link>
             </div>
 
             {/* Batch Summary */}

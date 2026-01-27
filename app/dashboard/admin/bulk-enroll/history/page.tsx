@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Search, FileText } from 'lucide-react';
+import { Search, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
@@ -71,19 +71,20 @@ export default function BulkEnrollHistoryPage() {
     };
 
     return (
-        <div className="container mx-auto py-8 max-w-6xl space-y-6">
-            <div className="flex items-center gap-4">
-                <Link href="/dashboard/admin/bulk-enroll">
-                    <Button variant="ghost" size="icon">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                </Link>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Enrollment History</h1>
                     <p className="text-muted-foreground mt-1">
-                        View all bulk enrollment batches and their status
+                        View all bulk enrollment batches and their processing status.
                     </p>
                 </div>
+                <Link href="/dashboard/admin/bulk-enroll">
+                    <Button variant="outline">
+                        <FileText className="mr-2 h-4 w-4" />
+                        New Enrollment
+                    </Button>
+                </Link>
             </div>
 
             <Card>

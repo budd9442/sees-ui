@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, FileText, CheckCircle2, AlertCircle, Info, ArrowLeft, History } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, Info, History } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
@@ -88,15 +88,13 @@ export default function BulkEnrollPage() {
     };
 
     return (
-        <div className="container mx-auto py-8 max-w-4xl space-y-6">
+        <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Link href="/dashboard/admin">
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                    </Link>
-                    <h1 className="text-3xl font-bold tracking-tight">Bulk Enrollment</h1>
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Bulk Student Enrollment</h1>
+                    <p className="text-muted-foreground mt-1">
+                        Create multiple student accounts at once by uploading a CSV file.
+                    </p>
                 </div>
                 <Link href="/dashboard/admin/bulk-enroll/history">
                     <Button variant="outline">
