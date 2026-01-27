@@ -38,9 +38,17 @@ export async function sendEmail({ to, toName, subject, htmlContent }: EmailParam
         sendSmtpEmail.to = [{ email: to, name: toName }];
 
         console.log(`[Email] Sending email to ${to}: ${subject}`);
+        console.log(`[Email] Payload:`, JSON.stringify({
+            to: sendSmtpEmail.to,
+            subject: sendSmtpEmail.subject,
+            templateId: sendSmtpEmail.templateId,
+            params: sendSmtpEmail.params
+        }, null, 2));
+
         const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
 
         console.log(`[Email] Successfully sent email to ${to}, messageId: ${result.body.messageId}`);
+        console.log(`[Email] Full Response:`, JSON.stringify(result.body, null, 2));
         return result;
     } catch (error) {
         console.error('[Email] Failed to send email:', error);

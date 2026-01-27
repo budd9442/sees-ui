@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import Link from 'next/link';
 import { authenticate } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,31 +31,25 @@ function LoginButton() {
 export default function LoginPage() {
     const [errorMessage, dispatch] = useActionState(authenticate, undefined);
 
-    const testAccounts = [
-        { email: 'student@example.com', role: 'Student (Test)' },
-        { email: 'staff@example.com', role: 'Staff (Test)' },
-        { email: 'admin@kln.ac.lk', role: 'System Administrator' },
-    ];
-
     return (
         <div className="min-h-screen grid lg:grid-cols-2">
             {/* Left Side - Branding */}
-            <div className="hidden lg:flex flex-col justify-center p-12 bg-gradient-to-br from-primary to-primary/80 text-white">
+            <div className="hidden lg:flex flex-col justify-center p-12 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
                 <div className="max-w-md">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-foreground/10 backdrop-blur">
                             <GraduationCap className="h-10 w-10" />
                         </div>
                         <div>
                             <h1 className="text-4xl font-bold">SEES</h1>
-                            <p className="text-white/80">Student Enrollment & Evaluation System</p>
+                            <p className="text-primary-foreground/80">Student Enrollment & Evaluation System</p>
                         </div>
                     </div>
 
                     <h2 className="text-3xl font-bold mb-4">
                         Welcome to Academic Excellence
                     </h2>
-                    <p className="text-lg text-white/90 mb-8">
+                    <p className="text-lg text-primary-foreground/90 mb-8">
                         Manage your academic journey with our comprehensive enrollment and
                         evaluation platform. Track your progress, register for modules, and
                         achieve your academic goals.
@@ -62,23 +57,23 @@ export default function LoginPage() {
 
                     <div className="space-y-4">
                         <div className="flex items-start gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20">
                                 ✓
                             </div>
                             <div>
                                 <h3 className="font-semibold">Real-time GPA Tracking</h3>
-                                <p className="text-sm text-white/80">
+                                <p className="text-sm text-primary-foreground/80">
                                     Monitor your academic performance with live GPA calculations
                                 </p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20">
                                 ✓
                             </div>
                             <div>
                                 <h3 className="font-semibold">Smart Module Registration</h3>
-                                <p className="text-sm text-white/80">
+                                <p className="text-sm text-primary-foreground/80">
                                     Automated prerequisite checking and capacity management
                                 </p>
                             </div>
@@ -92,7 +87,7 @@ export default function LoginPage() {
                 <div className="w-full max-w-md space-y-8">
                     {/* Mobile Logo */}
                     <div className="flex lg:hidden items-center justify-center gap-2 mb-8">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                             <GraduationCap className="h-7 w-7" />
                         </div>
                         <div>
@@ -122,7 +117,16 @@ export default function LoginPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="password">Password</Label>
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="password">Password</Label>
+                                        <Link
+                                            href="/forgot-password"
+                                            className="text-sm text-primary hover:underline"
+                                            tabIndex={-1}
+                                        >
+                                            Forgot password?
+                                        </Link>
+                                    </div>
                                     <Input
                                         id="password"
                                         type="password"
@@ -141,31 +145,6 @@ export default function LoginPage() {
 
                                 <LoginButton />
                             </form>
-                        </CardContent>
-                    </Card>
-
-                    {/* Test Accounts */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Available Accounts</CardTitle>
-                            <CardDescription className="text-xs">
-                                Use these credentials for testing (Password: password123)
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
-                                {testAccounts.map((account) => (
-                                    <div
-                                        key={account.email}
-                                        className="w-full flex flex-col items-start p-2 rounded-md border text-sm"
-                                    >
-                                        <span className="font-medium">{account.email}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                            {account.role}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
                         </CardContent>
                     </Card>
                 </div>

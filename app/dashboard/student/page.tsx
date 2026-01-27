@@ -1,11 +1,17 @@
 import { Suspense } from 'react';
-import { getStudentDashboardData } from '@/lib/actions/student-actions';
+import { getStudentDashboardData, getStudentGPAHistory } from '@/lib/actions/student-actions';
 import { DashboardView } from './dashboard-view';
 import Loading from './loading';
 
+export const dynamic = 'force-dynamic';
+
 export default async function StudentDashboardPage() {
   try {
-    const data = await getStudentDashboardData();
+    const [data, gpaHistory] = await Promise.all([
+      getStudentDashboardData(),
+      getStudentGPAHistory()
+    ]);
+
     if (!data) {
       return (
         <div className="p-6 text-center">
@@ -21,6 +27,7 @@ export default async function StudentDashboardPage() {
           notifications={data.notifications}
           schedules={data.schedules}
           pathwayDemand={data.pathwayDemand}
+          gpaHistory={gpaHistory}
         />
       </Suspense>
     );

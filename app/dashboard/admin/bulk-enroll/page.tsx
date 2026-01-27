@@ -1,25 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Upload, FileText, CheckCircle2, AlertCircle, Info, ArrowLeft } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Upload, FileText, CheckCircle2, AlertCircle, Info, ArrowLeft, History } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+
+interface Program {
+    program_id: string;
+    code: string;
+    name: string;
+}
 
 export default function BulkEnrollPage() {
     const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
+    const [programId, setProgramId] = useState<string>('');
+    const [level, setLevel] = useState<string>('');
+    const [programs, setPrograms] = useState<Program[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [results, setResults] = useState<any>(null);
+
+    useEffect(() => {
+        // Fetch programs
+        fetch('/api/admin/programs')
+            .then(res => res.json())
+            .then(data => setPrograms(data))
+            .catch(err => console.error('Failed to fetch programs:', err));
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -33,9 +50,21 @@ export default function BulkEnrollPage() {
             return;
         }
 
+        if (!programId) {
+            toast.error('Please select a program');
+            return;
+        }
+
+        if (!level) {
+            toast.error('Please select a level');
+            return;
+        }
+
         setIsUploading(true);
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('programId', programId);
+        formData.append('level', level);
 
         try {
             const response = await fetch('/api/admin/bulk-enroll', {
@@ -60,13 +89,21 @@ export default function BulkEnrollPage() {
 
     return (
         <div className="container mx-auto py-8 max-w-4xl space-y-6">
-            <div className="flex items-center gap-4">
-                <Link href="/dashboard/admin">
-                    <Button variant="ghost" size="icon">
-                        <ArrowLeft className="h-5 w-5" />
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <Link href="/dashboard/admin">
+                        <Button variant="ghost" size="icon">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    </Link>
+                    <h1 className="text-3xl font-bold tracking-tight">Bulk Enrollment</h1>
+                </div>
+                <Link href="/dashboard/admin/bulk-enroll/history">
+                    <Button variant="outline">
+                        <History className="mr-2 h-4 w-4" />
+                        View History
                     </Button>
                 </Link>
-                <h1 className="text-3xl font-bold tracking-tight">Bulk Enrollment</h1>
             </div>
 
             <div className="grid gap-6 md:grid-cols-3">
@@ -74,12 +111,45 @@ export default function BulkEnrollPage() {
                     <CardHeader>
                         <CardTitle>Upload CSV File</CardTitle>
                         <CardDescription>
-                            Create multiple user accounts at once by uploading a CSV file.
+                            Create multiple student accounts at once by uploading a CSV file.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="program">Degree Program *</Label>
+                                <Select value={programId} onValueChange={setProgramId} disabled={isUploading}>
+                                    <SelectTrigger id="program">
+                                        <SelectValue placeholder="Select program" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {programs.map((program) => (
+                                            <SelectItem key={program.program_id} value={program.program_id}>
+                                                {program.code} - {program.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="level">Academic Level *</Label>
+                                <Select value={level} onValueChange={setLevel} disabled={isUploading}>
+                                    <SelectTrigger id="level">
+                                        <SelectValue placeholder="Select level" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="L1">Level 1 (L1)</SelectItem>
+                                        <SelectItem value="L2">Level 2 (L2)</SelectItem>
+                                        <SelectItem value="L3">Level 3 (L3)</SelectItem>
+                                        <SelectItem value="L4">Level 4 (L4)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
                         <div className="grid w-full items-center gap-1.5">
-                            <Label htmlFor="csv-file">CSV File</Label>
+                            <Label htmlFor="csv-file">CSV File *</Label>
                             <div className="flex items-center gap-4">
                                 <Input
                                     id="csv-file"
@@ -103,7 +173,7 @@ export default function BulkEnrollPage() {
                                     Automatic Email Notifications
                                 </label>
                                 <p className="text-sm text-muted-foreground">
-                                    All enrolled users will automatically receive an email with their credentials.
+                                    All enrolled students will automatically receive an email with their credentials.
                                 </p>
                             </div>
                         </div>
@@ -119,10 +189,14 @@ export default function BulkEnrollPage() {
                         )}
                     </CardContent>
                     <CardFooter className="flex justify-between border-t p-6">
-                        <Button variant="outline" onClick={() => setFile(null)} disabled={isUploading}>
+                        <Button variant="outline" onClick={() => {
+                            setFile(null);
+                            setProgramId('');
+                            setLevel('');
+                        }} disabled={isUploading}>
                             Clear
                         </Button>
-                        <Button onClick={handleUpload} disabled={!file || isUploading}>
+                        <Button onClick={handleUpload} disabled={!file || !programId || !level || isUploading}>
                             {isUploading ? (
                                 <>
                                     <Upload className="mr-2 h-4 w-4 animate-spin" />
@@ -147,19 +221,24 @@ export default function BulkEnrollPage() {
                             <Info className="h-4 w-4" />
                             <AlertTitle>Required Columns</AlertTitle>
                             <AlertDescription className="text-xs">
-                                email, firstName, lastName, role
+                                email, firstName, lastName
                             </AlertDescription>
                         </Alert>
 
                         <div className="space-y-2">
                             <h4 className="text-sm font-semibold">Column Definitions:</h4>
                             <ul className="text-xs space-y-1 list-disc pl-4 text-muted-foreground">
-                                <li><strong>email</strong>: User's primary email</li>
-                                <li><strong>firstName/lastName</strong>: Display names</li>
-                                <li><strong>role</strong>: student, staff, or admin</li>
-                                <li><strong>degreePathId</strong>: Program ID (optional)</li>
-                                <li><strong>admissionYear</strong>: Year (optional)</li>
+                                <li><strong>email</strong>: Student's email address</li>
+                                <li><strong>firstName</strong>: Student's first name</li>
+                                <li><strong>lastName</strong>: Student's last name</li>
                             </ul>
+                        </div>
+
+                        <div className="space-y-2">
+                            <h4 className="text-sm font-semibold">Note:</h4>
+                            <p className="text-xs text-muted-foreground">
+                                Program and level are selected above and will be applied to all students in the CSV.
+                            </p>
                         </div>
 
                         <Button variant="ghost" className="w-full text-xs justify-start" asChild>
@@ -218,13 +297,20 @@ export default function BulkEnrollPage() {
                         ) : (
                             <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
                                 <CheckCircle2 className="h-12 w-12 text-green-500" />
-                                <h3 className="text-lg font-semibold">All Users Enrolled Successfully</h3>
+                                <h3 className="text-lg font-semibold">All Students Enrolled Successfully</h3>
                                 <p className="text-sm text-muted-foreground max-w-md">
-                                    Successfully created {results.success} user accounts and initiated welcome emails for each.
+                                    Successfully created {results.success} student accounts and initiated welcome emails for each.
                                 </p>
-                                <Button onClick={() => router.push('/dashboard/admin/users')}>
-                                    Go to User Management
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button onClick={() => router.push('/dashboard/admin/users')}>
+                                        Go to User Management
+                                    </Button>
+                                    {results.batchId && (
+                                        <Button variant="outline" onClick={() => router.push(`/dashboard/admin/bulk-enroll/history/${results.batchId}`)}>
+                                            View Batch Details
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </CardContent>

@@ -1,22 +1,27 @@
 'use server';
 
+import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
-import { userSchema, CreateUserSchema, UpdateUserSchema } from '@/lib/validations/user';
-import { hash } from 'bcryptjs';
+import { userSchema, CreateUserSchema, updateUserSchema, UpdateUserSchema, changePasswordSchema, ChangePasswordSchema } from '@/lib/validations/user';
+import bcrypt, { hash } from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 import { sendEmail } from '@/lib/email/brevo';
-import { getWelcomeEmail, generateTempPassword } from '@/lib/email/templates';
+import { getInvitationEmail } from '@/lib/email/templates';
+import { randomBytes } from 'crypto';
+import { addDays } from 'date-fns';
 
 export async function getUsers({
     page = 1,
     limit = 10,
     search = '',
     role,
+    level, // L1, L2, L3, L4, GRADUATE
 }: {
     page?: number;
     limit?: number;
     search?: string;
     role?: string;
+    level?: string;
 }) {
     const skip = (page - 1) * limit;
 
@@ -33,9 +38,24 @@ export async function getUsers({
     // Role filtering
     if (role) {
         if (role === 'student') {
-            where.student = { isNot: null };
+            if (level) {
+                if (level === 'GRADUATE') {
+                    where.student = { enrollment_status: 'GRADUATED' };
+                } else {
+                    where.student = {
+                        current_level: level,
+                        enrollment_status: 'ENROLLED'
+                    };
+                }
+            } else {
+                where.student = { isNot: null };
+            }
         } else if (role === 'staff') {
             where.staff = { isNot: null };
+        } else if (role === 'admin') {
+            // Admin doesn't have a separate relation table usually, or check email domain/attributes?
+            // Based on previous logic:
+            where.email = { contains: 'admin' }; // Simple check from existing logic
         }
     }
 
@@ -47,23 +67,47 @@ export async function getUsers({
                 take: limit,
                 orderBy: { created_at: 'desc' },
                 include: {
-                    student: true,
+                    student: {
+                        include: {
+                            degree_path: true
+                        }
+                    },
                     staff: true,
                 },
             }),
             prisma.user.count({ where }),
         ]);
 
-        // Map users to include a 'role' property for the UI
+        // Map users to include flattened properties for UI
         const mappedUsers = users.map((u) => {
             let role = 'guest';
-            if (u.student) role = 'student';
-            else if (u.staff) role = 'staff';
+            let details: any = {};
+
+            if (u.student) {
+                role = 'student';
+                details = {
+                    gpa: u.student.current_gpa,
+                    level: u.student.current_level,
+                    degree: u.student.degree_path.code,
+                    degreeId: u.student.degree_path.program_id,
+                    admissionYear: u.student.admission_year,
+                    enrollmentStatus: u.student.enrollment_status
+                };
+            }
+            else if (u.staff) {
+                role = 'staff';
+                details = {
+                    staffNumber: u.staff.staff_number,
+                    department: u.staff.department,
+                    type: u.staff.staff_type
+                };
+            }
             else if (u.email.includes('admin')) role = 'admin';
 
             return {
                 ...u,
                 role,
+                ...details
             };
         });
 
@@ -90,6 +134,15 @@ export async function createUser(data: CreateUserSchema) {
     const { firstName, lastName, email, role, ...otherDetails } = result.data;
 
     console.log("Creating User:", { firstName, lastName, email, role, degreePathId: otherDetails.degreePathId });
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+        where: { email },
+    });
+
+    if (existingUser) {
+        return { success: false, error: 'User with this email already exists' };
+    }
 
     let username = `${email.split('@')[0]}_${Math.floor(1000 + Math.random() * 9000)}`;
     let finalLastName = lastName;
@@ -126,9 +179,13 @@ export async function createUser(data: CreateUserSchema) {
         }
     }
 
-    // Set initial password: always generate a secure temp password for new users
-    const tempPassword = generateTempPassword();
-    const passwordHash = await hash(tempPassword, 10);
+    // Generate registration token instead of temp password
+    const token = randomBytes(32).toString('hex');
+    const tokenExpiry = addDays(new Date(), 7); // 7 days expiry
+
+    // Set a placeholder password hash that cannot be used to login
+    // We use a specific prefix to identify these easily if needed, but standard bcrypt check will fail anyway
+    const passwordHash = await hash(randomBytes(16).toString('hex'), 10);
 
     try {
         const newUser = await prisma.$transaction(async (tx) => {
@@ -140,16 +197,37 @@ export async function createUser(data: CreateUserSchema) {
                     last_name: finalLastName,
                     password_hash: passwordHash,
                     status: 'ACTIVE',
+                    registrationTokens: {
+                        create: {
+                            token,
+                            expires_at: tokenExpiry
+                        }
+                    }
                 },
             });
 
             if (role === 'student') {
+                // Calculate Level
+                // Calculate Level or use provided
+                let calculatedLevel = 'L1';
+
+                if (otherDetails.currentLevel) {
+                    calculatedLevel = otherDetails.currentLevel;
+                } else {
+                    const currentYear = new Date().getFullYear();
+                    const diff = currentYear - finalAdmissionYear + 1;
+                    if (diff >= 4) calculatedLevel = 'L4';
+                    else if (diff === 3) calculatedLevel = 'L3';
+                    else if (diff === 2) calculatedLevel = 'L2';
+                }
+
                 await tx.student.create({
                     data: {
                         student_id: user.user_id,
                         admission_year: finalAdmissionYear,
                         degree_path_id: otherDetails.degreePathId || '',
                         enrollment_status: 'ENROLLED',
+                        current_level: calculatedLevel,
                     },
                 });
             } else if (role === 'staff') {
@@ -165,18 +243,19 @@ export async function createUser(data: CreateUserSchema) {
             return user;
         });
 
-        // Always send welcome email
+        // Send invitation email
         try {
-            const emailTemplate = getWelcomeEmail(firstName, username, tempPassword);
+            const invitationLink = `${process.env.NEXTAUTH_URL}/register?token=${token}`;
+            const emailTemplate = getInvitationEmail(firstName, username, invitationLink);
             await sendEmail({
                 to: email,
                 toName: firstName,
                 subject: emailTemplate.subject,
                 htmlContent: emailTemplate.htmlContent
             });
-            console.log(`Welcome email sent to ${email}`);
+            console.log(`Invitation email sent to ${email}`);
         } catch (emailError) {
-            console.error('Failed to send welcome email:', emailError);
+            console.error('Failed to send invitation email:', emailError);
             // We don't fail the whole user creation if just email fails
         }
 
@@ -189,7 +268,7 @@ export async function createUser(data: CreateUserSchema) {
 }
 
 export async function updateUser(updatedData: UpdateUserSchema) {
-    const result = userSchema.safeParse(updatedData);
+    const result = updateUserSchema.safeParse(updatedData);
 
     if (!result.success) {
         return { success: false, error: result.error.flatten() };
@@ -211,7 +290,28 @@ export async function updateUser(updatedData: UpdateUserSchema) {
             });
 
             // 2. Update Student specific info if role is student
-            // Note: Currently Student model doesn't have partial update fields exposed in UI
+            if (role === 'student' && otherDetails) {
+                await tx.student.update({
+                    where: { student_id: id },
+                    data: {
+                        current_level: otherDetails.currentLevel,
+                        degree_path_id: otherDetails.degreePathId,
+                        admission_year: otherDetails.admissionYear
+                    }
+                });
+            }
+
+            // 3. Update Staff specific info
+            if (role === 'staff' && otherDetails) {
+                await tx.staff.update({
+                    where: { staff_id: id },
+                    data: {
+                        staff_number: otherDetails.staffNumber,
+                        department: otherDetails.department,
+                        staff_type: otherDetails.staffType
+                    }
+                });
+            }
         });
 
         revalidatePath('/dashboard/admin/users');
@@ -239,14 +339,165 @@ export async function toggleUserStatus(userId: string, currentStatus: string) {
 
 export async function deleteUser(userId: string) {
     try {
-        // Soft delete implementation
-        await prisma.user.update({
+        // Hard delete implementation
+        await prisma.user.delete({
             where: { user_id: userId },
-            data: { status: 'DELETED' }
         });
         revalidatePath('/dashboard/admin/users');
         return { success: true };
     } catch (error) {
         return { success: false, error: 'Failed to delete user' };
+    }
+}
+
+export async function validateRegistrationToken(token: string) {
+    try {
+        const registrationToken = await prisma.registrationToken.findUnique({
+            where: { token },
+            include: { user: true }
+        });
+
+        if (!registrationToken) {
+            return { success: false, error: 'Invalid token' };
+        }
+
+        if (registrationToken.used) {
+            return { success: false, error: 'Token already used' };
+        }
+
+        if (new Date() > registrationToken.expires_at) {
+            return { success: false, error: 'Token expired' };
+        }
+
+        return {
+            success: true,
+            data: {
+                username: registrationToken.user.username,
+                email: registrationToken.user.email,
+                firstName: registrationToken.user.first_name,
+                userId: registrationToken.user.user_id
+            }
+        };
+
+    } catch (error) {
+        console.error('Failed to validate token:', error);
+        return { success: false, error: 'System error' };
+    }
+}
+
+export async function completeRegistration(token: string, password: string) {
+    try {
+        // validate again
+        const validation = await validateRegistrationToken(token);
+        if (!validation.success) {
+            return validation;
+        }
+
+        const userId = validation.data?.userId;
+        if (!userId) return { success: false, error: 'User not found' };
+
+        const hashedPassword = await hash(password, 10);
+
+        await prisma.$transaction(async (tx) => {
+            // Update user password and status (if we were using PENDING)
+            await tx.user.update({
+                where: { user_id: userId },
+                data: {
+                    password_hash: hashedPassword,
+                    status: 'ACTIVE' // confirm active
+                }
+            });
+
+            // Mark token as used
+            await tx.registrationToken.update({
+                where: { token },
+                data: {
+                    used: true,
+                    used_at: new Date()
+                }
+            });
+        });
+
+
+        return { success: true };
+
+    } catch (error) {
+        console.error('Registration completion failed:', error);
+        return { success: false, error: 'Failed to set password' };
+    }
+}
+
+export async function changePassword(data: ChangePasswordSchema & { userId: string }) {
+    const result = changePasswordSchema.safeParse(data);
+
+    if (!result.success) {
+        return { success: false, error: result.error.flatten() };
+    }
+
+    const { currentPassword, newPassword } = result.data;
+    const { userId } = data;
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { user_id: userId },
+        });
+
+        if (!user) {
+            return { success: false, error: 'User not found' };
+        }
+
+        const isValid = await bcrypt.compare(currentPassword, user.password_hash);
+
+        if (!isValid) {
+            return { success: false, error: 'Current password is incorrect' };
+        }
+
+        const hashedPassword = await hash(newPassword, 10);
+
+        await prisma.user.update({
+            where: { user_id: userId },
+            data: { password_hash: hashedPassword },
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to change password:', error);
+        return { success: false, error: 'Failed to change password' };
+    }
+}
+
+export async function updateProfile(userId: string, data: { firstName: string; lastName: string }) {
+    try {
+        // Secure: Verify with session and use robust lookup
+        const session = await auth();
+        let targetId = userId;
+
+        if (session?.user?.email) {
+            // Check if userId exists, if not fallback to email
+            const existing = await prisma.user.findUnique({ where: { user_id: userId } });
+            if (!existing) {
+                console.warn(`updateProfile: User ID ${userId} not found. Attempting recovery via email ${session.user.email}`);
+                const byEmail = await prisma.user.findUnique({ where: { email: session.user.email } });
+                if (byEmail) {
+                    targetId = byEmail.user_id;
+                } else {
+                    throw new Error("User record not found");
+                }
+            }
+        }
+
+        await prisma.user.update({
+            where: { user_id: targetId },
+            data: {
+                first_name: data.firstName,
+                last_name: data.lastName,
+            },
+        });
+
+        revalidatePath('/dashboard/profile');
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to update profile:', error);
+        return { success: false, error: 'Failed to update user profile' };
     }
 }

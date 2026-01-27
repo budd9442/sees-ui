@@ -1,13 +1,15 @@
 import { Suspense } from 'react';
 import { getModuleRegistrationData } from '@/lib/actions/student-actions';
 import { ModuleRegistrationView } from './module-registration-view';
-import Loading from '../loading'; // Reusing student loading component
+import Loading from '../loading';
+import { FEATURE_FLAGS } from '@/lib/services/feature-flags';
+import FeatureGuard from '@/components/feature-guard';
 
 export default async function ModuleRegistrationPage() {
-  try {
-    const data = await getModuleRegistrationData();
+  const data = await getModuleRegistrationData();
 
-    return (
+  return (
+    <FeatureGuard featureKey={FEATURE_FLAGS.ENABLE_MODULE_REGISTRATION} userRole="STUDENT">
       <Suspense fallback={<Loading />}>
         <ModuleRegistrationView
           student={data.student}
@@ -18,13 +20,6 @@ export default async function ModuleRegistrationPage() {
           compulsoryModuleIds={data.compulsoryModuleIds}
         />
       </Suspense>
-    );
-  } catch (error) {
-    console.error("Failed to load module registration:", error);
-    return (
-      <div className="p-6 text-center text-red-500">
-        Failed to load module registration data. Please try again later.
-      </div>
-    );
-  }
+    </FeatureGuard>
+  );
 }

@@ -247,7 +247,7 @@ const navigationItems: NavItem[] = [
   },
   {
     title: 'Bulk Enrollment',
-    href: '/dashboard/admin/enrollment',
+    href: '/dashboard/admin/bulk-enroll',
     icon: UserPlus,
     roles: ['admin'],
   },
@@ -277,7 +277,7 @@ const navigationItems: NavItem[] = [
   },
   {
     title: 'Calendar Config',
-    href: '/dashboard/admin/config/calendar',
+    href: '/dashboard/admin/academic-calendar',
     icon: Calendar,
     roles: ['admin'],
   },
@@ -313,15 +313,32 @@ const navigationItems: NavItem[] = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolean> }) {
   const pathname = usePathname();
   const { user } = useAuthStore();
 
   if (!user) return null;
 
-  const filteredItems = navigationItems.filter(
-    (item) => !item.roles || item.roles.includes(user.role)
-  );
+  // Feature Key Mapping
+  const FEATURE_KEYS: Record<string, string> = {
+    '/dashboard/student/pathway': 'pathway_selection',
+    '/dashboard/student/modules': 'module_registration',
+    '/dashboard/student/specialization': 'specialization_selection',
+    '/dashboard/student/reports': 'anonymous_reports',
+  };
+
+  const filteredItems = navigationItems.filter((item) => {
+    // 1. Role Check
+    if (item.roles && !item.roles.includes(user.role)) return false;
+
+    // 2. Feature Flag Check
+    const featureKey = FEATURE_KEYS[item.href];
+    if (featureKey && featureFlags) {
+      if (featureFlags[featureKey] === false) return false;
+    }
+
+    return true;
+  });
 
   return (
     <aside className="fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 border-r bg-background">

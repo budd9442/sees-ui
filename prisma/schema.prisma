@@ -35,6 +35,25 @@ model User {
   
   // Password reset
   passwordResetTokens PasswordResetToken[]
+  
+  // Registration
+  registrationTokens RegistrationToken[]
+}
+
+model RegistrationToken {
+  id         String   @id @default(cuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  used       Boolean  @default(false)
+  used_at    DateTime?
+  
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([user_id])
+  @@map("registration_tokens")
 }
 
 model Student {
@@ -438,3 +457,83 @@ model PasswordResetToken {
   @@index([user_id])
   @@map("password_reset_tokens")
 }
+
+// ==========================================
+// FEATURE FLAGS & CALENDAR
+// ==========================================
+
+model FeatureFlag {
+  id          String    @id @default(uuid())
+  key         String    @unique // e.g., "module_registration"
+  name        String
+  description String?
+  isEnabled   Boolean   @default(false)
+  startDate   DateTime? // Optional start time for the feature
+  endDate     DateTime? // Optional end time for the feature
+  targetRoles String[]  // e.g. ["student"]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("feature_flags")
+}
+
+model CalendarEvent {
+  id                String   @id @default(uuid())
+  title             String
+  description       String?
+  startDate         DateTime
+  endDate           DateTime
+  type              String   // e.g. "semester_start", "holiday"
+  isRecurring       Boolean  @default(false)
+  recurrencePattern String?  // "weekly", "monthly", "yearly"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("calendar_events")
+}
+
+// ==========================================
+// BULK ENROLLMENT HISTORY
+// ==========================================
+
+model BulkEnrollmentBatch {
+  batch_id           String   @id @default(uuid())
+  uploaded_by        String   // Admin user ID
+  filename           String
+  program_id         String?  // Degree program applied to all students
+  level              String?  // Academic level applied to all students (L1, L2, L3, L4)
+  total_records      Int      @default(0)
+  successful_records Int      @default(0)
+  failed_records     Int      @default(0)
+  status             String   @default("PROCESSING") // PROCESSING, COMPLETED, FAILED
+  created_at         DateTime @default(now())
+  
+  records BulkEnrollmentRecord[]
+  
+  @@map("bulk_enrollment_batches")
+}
+
+model BulkEnrollmentRecord {
+  record_id          String    @id @default(uuid())
+  batch_id           String
+  email              String
+  first_name         String
+  last_name          String
+  role               String    @default("student")
+  user_id            String?   // Created user ID if successful
+  status             String    @default("PENDING") // PENDING, SUCCESS, FAILED
+  error_message      String?
+  email_sent         Boolean   @default(false)
+  email_sent_at      DateTime?
+  email_resend_count Int       @default(0)
+  last_email_sent_at DateTime?
+  created_at         DateTime  @default(now())
+  
+  batch BulkEnrollmentBatch @relation(fields: [batch_id], references: [batch_id], onDelete: Cascade)
+  
+  @@index([batch_id])
+  @@index([email])
+  @@index([status])
+  @@map("bulk_enrollment_records")
+}
+

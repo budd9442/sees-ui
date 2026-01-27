@@ -39,8 +39,12 @@ export function ModuleRegistrationView({
     const router = useRouter();
 
     // Initialize selection with already registered modules + compulsory modules
+    // IMPORTANT: Only include modules that are actually in the 'availableModules' list (current year/context).
+    // This prevents validation errors from historical registrations that aren't visible here.
     const initialSelection = useMemo(() => {
-        const set = new Set([...registeredModuleIds]);
+        const availableIds = new Set(availableModules.map(m => m.id));
+        const set = new Set([...registeredModuleIds].filter(id => availableIds.has(id)));
+
         availableModules.filter(m => m.isCompulsory).forEach(m => set.add(m.id));
         return Array.from(set);
     }, [registeredModuleIds, availableModules]);
@@ -142,6 +146,38 @@ export function ModuleRegistrationView({
         }
     };
 
+    const hasIssues = selectedModules.some(id => {
+        const m = availableModules.find(mod => mod.id === id);
+        return m && !checkPrerequisites(m);
+    });
+
+    const registrationIssuesContent = hasIssues ? (
+        <div className="pt-4 border-t">
+            <h3 className="font-medium mb-3 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+                Registration Issues
+            </h3>
+
+            <div className="space-y-3">
+                {selectedModules.map(id => {
+                    const module = availableModules.find(m => m.id === id);
+                    if (!module || checkPrerequisites(module)) return null;
+
+                    const missing = module.prerequisites.filter(p => !completedModuleCodes.includes(p));
+
+                    return (
+                        <Alert key={id} variant="destructive" className="p-3">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription className="text-xs">
+                                <span className="font-semibold">{module.code}:</span> Missing {missing.join(', ')}
+                            </AlertDescription>
+                        </Alert>
+                    );
+                })}
+            </div>
+        </div>
+    ) : null;
+
     const isValidSelection =
         selectedCredits >= minCredits &&
         // selectedCredits <= maxCredits && // Removed max limit
@@ -165,19 +201,7 @@ export function ModuleRegistrationView({
                         <CardDescription>Current semester details</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="search">Search Optional Modules</Label>
-                            <div className="relative">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="search"
-                                    placeholder="Module code or title..."
-                                    className="pl-8"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                        </div>
+
 
                         <div className="space-y-3">
                             <div className="flex items-center justify-between text-sm">
@@ -215,6 +239,10 @@ export function ModuleRegistrationView({
                                 Compulsory modules are automatically added. Only optional modules can be selected/deselected.
                             </AlertDescription>
                         </Alert>
+
+                        {/* Conflicts / Prerequisites Summary */}
+                        {/* Conflicts / Prerequisites Summary */}
+                        {registrationIssuesContent}
                     </CardContent>
                 </Card>
 
@@ -276,7 +304,7 @@ export function ModuleRegistrationView({
                                         {compulsoryModulesList.map((module) => (
                                             <div
                                                 key={module.id}
-                                                className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                                                className="flex items-center justify-between p-3 bg-muted/40 border rounded-lg"
                                             >
                                                 <div>
                                                     <p className="font-medium">{module.code}</p>
@@ -313,7 +341,7 @@ export function ModuleRegistrationView({
                                                     return (
                                                         <div
                                                             key={moduleId}
-                                                            className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg"
+                                                            className="flex items-center justify-between p-3 bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/20 rounded-lg"
                                                         >
                                                             <div>
                                                                 <p className="font-medium">{module.code}</p>
@@ -342,9 +370,21 @@ export function ModuleRegistrationView({
 
                     {/* Available Optional Modules */}
                     <div>
-                        <h2 className="text-2xl font-bold mb-4">
-                            Available Optional Modules ({displayedOptionalModules.length})
-                        </h2>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                            <h2 className="text-2xl font-bold">
+                                Available Optional Modules ({displayedOptionalModules.length})
+                            </h2>
+                            <div className="relative w-full md:w-72">
+                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    id="search"
+                                    placeholder="Search modules..."
+                                    className="pl-8"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                        </div>
                         {displayedOptionalModules.length === 0 ? (
                             <Card>
                                 <CardContent className="py-12 text-center">

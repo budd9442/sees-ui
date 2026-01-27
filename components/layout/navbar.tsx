@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppStore } from '@/stores/appStore';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export function Navbar() {
   const { user, logout } = useAuthStore();
@@ -27,22 +28,15 @@ export function Navbar() {
   const unreadCount = userNotifications.filter((n) => !n.isRead).length;
 
   const handleLogout = async () => {
-    // Clear client state
-    logout();
-
-    // Call server action to destroy session
-    // We import this dynamically or assume it's available
-    // For now, simpler to just redirect to the signout API or use the action we just created
-    // But since Navbar is a client component, we need to import the server action
+    // 1. Call server action to destroy session
+    // We import this dynamically to avoid server-action-in-client-component issues if not bundled correctly
     await import('@/lib/actions').then(({ logoutAction }) => logoutAction());
 
-    // Fallback if the action doesn't redirect (though it should)
-    // router.push('/login'); 
+    // 2. Clear client state
+    logout();
   };
 
-  const getInitials = () => {
-    return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
-  };
+
 
   return (
     <nav className="fixed top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -116,8 +110,10 @@ export function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatar} />
-                    <AvatarFallback>{getInitials()}</AvatarFallback>
+                    <AvatarImage src={user.avatar || undefined} />
+                    <AvatarFallback>
+                      <User className="h-5 w-5" />
+                    </AvatarFallback>
                   </Avatar>
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-medium">
@@ -132,13 +128,17 @@ export function Navbar() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/profile" className="flex items-center cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/settings" className="flex items-center cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>

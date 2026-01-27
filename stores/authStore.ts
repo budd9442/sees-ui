@@ -7,7 +7,7 @@ const hardcodedUsers: (User | Student)[] = [
   // Demo student (matches hardcoded-data test student)
   {
     id: 'STU001',
-    email: 'buddhika.bandara@kln.ac.lk',
+    email: 'bandara-im22053@stu.kln.ac.lk',
     firstName: 'buddhika',
     lastName: 'Bandara',
     role: 'student',

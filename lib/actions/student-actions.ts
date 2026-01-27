@@ -5,18 +5,7 @@ import { auth } from '@/auth';
 import { Student, Grade, AcademicGoal, Notification, Module } from '@/types';
 import { revalidatePath } from 'next/cache';
 
-// Helper to calculate current GPA
-// Helper to calculate current GPA
-// Note: grades relation in schema is 'grades' (check schema: grades Grade[])
-// Grade model fields: grade_point, module (relation), marks etc.
-// Check Grade model in schema: grade_point Float. module Module.
-// Check Module model: credits Int.
-function calculateGPA(grades: any[]) {
-    if (!grades.length) return 0;
-    const totalPoints = grades.reduce((acc, g) => acc + (g.grade_point * g.module.credits), 0);
-    const totalCredits = grades.reduce((acc, g) => acc + g.module.credits, 0);
-    return totalCredits > 0 ? Number((totalPoints / totalCredits).toFixed(2)) : 0;
-}
+import { calculateGPA, getAcademicClass } from '@/lib/gpaCalculations'; // Use standard calculation logic
 
 export async function getStudentDashboardData() {
     const session = await auth();
@@ -25,6 +14,10 @@ export async function getStudentDashboardData() {
     }
 
     let userId = session.user.id;
+    // ... (rest of function)
+
+    // ... Inside student object construction:
+
 
     // Robust User Lookup:
     // 1. Try fetching by ID (Standard)
@@ -63,12 +56,25 @@ export async function getStudentDashboardData() {
 
     // Cast to any to bypass linter issues with relation inference
     const record = studentRecord as any;
-    const currentGPA = calculateGPA(record.grades);
+
+    // Map raw DB grades to the shape expected by calculateGPA
+
+
+    const mappedGrades = record.grades.map((g: any) => ({
+        ...g,
+        gradePoint: g.grade_point,
+        letterGrade: g.letter_grade,
+        isReleased: !!g.released_at, // Only consider released grades
+        points: g.grade_point, // fallback for safety
+        credits: g.module.credits // Critical fix: Flatten credits for calculator
+    }));
+
+    const currentGPA = calculateGPA(mappedGrades);
 
     // Grade model: grade_point (snake_case in schema line 186)
     // Module model: credits (line 123)
     const totalCredits = record.grades
-        .filter((g: any) => g.grade_point > 0)
+        .filter((g: any) => g.released_at && g.grade_point >= 0) // Filter unreleased
         .reduce((sum: any, g: any) => sum + g.module.credits, 0);
 
     // Map to frontend Student type (camelCase)
@@ -90,7 +96,7 @@ export async function getStudentDashboardData() {
         specialization: record.specialization?.code as any,
         currentGPA,
         totalCredits,
-        academicClass: record.academic_class as any || 'Pass',
+        academicClass: getAcademicClass(currentGPA), // Calculated dynamically
         pathwayLocked: !!record.degree_path_id,
         enrollmentDate: new Date().toISOString(),
         enrollmentStatus: record.enrollment_status as any
@@ -379,25 +385,61 @@ export async function registerForModules(moduleIds: string[]) {
             throw new Error(`Missing prerequisites: ${missingPrereqs.join(', ')}`);
         }
 
-        await prisma.$transaction(async (tx) => {
-            // Delete existing 'REGISTERED' status for this semester
-            await tx.moduleRegistration.deleteMany({
-                where: {
-                    student_id: record.student_id,
-                    semester_id: semester.semester_id,
-                    status: 'REGISTERED'
-                } as any
-            });
+        // 5. Differential Sync: Add/Remove instead of Wipe/Replace
+        // We must fetch existing registrations to avoid FK violations (deleting a reg with a grade)
+        const existingRegistrations = await prisma.moduleRegistration.findMany({
+            where: {
+                student_id: record.student_id,
+                semester_id: semester.semester_id,
+                status: 'REGISTERED' // Only managing active registrations
+            },
+            include: {
+                grade: true // Check for grades
+            }
+        });
 
-            for (const mod of modules) {
-                await tx.moduleRegistration.create({
-                    data: {
+        const existingModuleIds = existingRegistrations.map(r => r.module_id);
+
+        // Determine what to add and what to remove
+        const toAdd = moduleIds.filter(id => !existingModuleIds.includes(id));
+        const toRemove = existingModuleIds.filter(id => !moduleIds.includes(id));
+
+        // Validation: Cannot remove modules that have associated grades
+        // instead of throwing an error, we simply REMOVE them from the 'toRemove' list.
+        // This handles cases where the frontend filtered them out (e.g. historical modules)
+        // and we shouldn't attempt to delete them anyway.
+        const lockedModules = existingRegistrations.filter(r =>
+            toRemove.includes(r.module_id) && (r.grade || r.status === 'COMPLETED')
+        );
+
+        const lockedModuleIds = lockedModules.map(r => r.module_id);
+        const safeToRemove = toRemove.filter(id => !lockedModuleIds.includes(id));
+
+        await prisma.$transaction(async (tx) => {
+            // 1. Remove deselected modules (that are safe to remove)
+            if (safeToRemove.length > 0) {
+                await tx.moduleRegistration.deleteMany({
+                    where: {
                         student_id: record.student_id,
-                        module_id: mod.module_id,
+                        semester_id: semester.semester_id,
+                        module_id: { in: safeToRemove },
+                        status: 'REGISTERED'
+                    }
+                });
+            }
+
+            // 2. Add new modules
+            if (toAdd.length > 0) {
+                // Use createMany for efficiency if supported, or loop
+                // createMany is supported in most SQL providers now (Postgres/MySQL)
+                await tx.moduleRegistration.createMany({
+                    data: toAdd.map(moduleId => ({
+                        student_id: record.student_id,
+                        module_id: moduleId,
                         semester_id: semester.semester_id,
                         status: 'REGISTERED',
                         registration_date: new Date(),
-                    } as any
+                    }))
                 });
             }
         });
@@ -424,7 +466,9 @@ export async function getStudentGrades() {
             module_registrations: {
                 include: {
                     module: true,
-                    semester: true,
+                    semester: {
+                        include: { academic_year: true }
+                    },
                     grade: true
                 }
             } as any
@@ -445,7 +489,8 @@ export async function getStudentGrades() {
         grade: reg.grade?.letter_grade || 'Pending',
         gradePoint: reg.grade?.grade_point || 0.0,
         semester: reg.semester?.label || 'Unknown',
-        academicYear: '2024-2025', // Should inferred from semester relation
+        // User requested "Year" to mean Level (L1, L2)
+        level: reg.module.level || 'L1',
         date: reg.grade?.released_at || reg.registration_date,
         isReleased: !!reg.grade
     }));
@@ -505,4 +550,110 @@ export async function getStudentSchedule() {
         isAcademic: true,
         isRecurring: true
     }));
+}
+
+export async function getStudentGPAHistory() {
+    const session = await auth();
+    if (!session?.user?.email) throw new Error("Unauthorized");
+
+    const u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!u) throw new Error("User not found");
+
+    const studentRecord = await prisma.student.findUnique({
+        where: { student_id: u.user_id },
+        include: {
+            grades: {
+                include: {
+                    module: true,
+                    semester: true
+                }
+            } as any
+        } as any
+    });
+
+    if (!studentRecord) return [];
+
+    // Sort grades by date/semester
+    const grades = (studentRecord as any).grades
+        .filter((g: any) =>
+            g.released_at &&
+            g.letter_grade !== 'Pending' &&
+            g.letter_grade !== 'Pass' &&
+            g.semester
+        )
+        .sort((a: any, b: any) => {
+            const dateA = a.semester.end_date ? new Date(a.semester.end_date).getTime() : 0;
+            const dateB = b.semester.end_date ? new Date(b.semester.end_date).getTime() : 0;
+            return dateA - dateB;
+        });
+
+    // Group by Level + Semester (to handle duplicated semester IDs in seed)
+    const semesterMap = new Map<string, any[]>();
+
+    // Init map with all active registrations (even if no grades yet)
+    const registrations = (studentRecord as any).module_registrations || [];
+    registrations.forEach((r: any) => {
+        const level = r.module.level || 'Lx';
+        const label = r.semester.label || 'Unknown';
+        const key = `${level} ${label}`;
+        if (!semesterMap.has(key)) semesterMap.set(key, []);
+    });
+
+    grades.forEach((g: any) => {
+        // Use Module Level if available, or infer from somewhere else?
+        // Grades have module included. Module has 'level'.
+        const level = g.module.level || 'Lx';
+        const label = g.semester.label || 'Unknown';
+        const key = `${level} ${label}`; // e.g. "L1 Semester 1"
+
+        if (!semesterMap.has(key)) semesterMap.set(key, []);
+        semesterMap.get(key)?.push(g);
+    });
+
+    // Calculate Cumulative GPA over time
+    let cumulativePoints = 0;
+    let cumulativeCredits = 0;
+    const history: { semester: string; gpa: number }[] = [];
+
+    // Sort keys logically: L1 S1, L1 S2, L2 S1, L2 S2
+    const sortedKeys = Array.from(semesterMap.keys()).sort((a, b) => {
+        // Heuristic sort: L1 < L2, Sem1 < Sem2
+        const levelA = a.match(/L(\d+)/)?.[1] || '0';
+        const levelB = b.match(/L(\d+)/)?.[1] || '0';
+        const semA = a.match(/Semester (\d+)/)?.[1] || '0';
+        const semB = b.match(/Semester (\d+)/)?.[1] || '0';
+
+        if (levelA !== levelB) return Number(levelA) - Number(levelB);
+        return Number(semA) - Number(semB);
+    });
+
+    for (const key of sortedKeys) {
+        const semGrades = semesterMap.get(key) || [];
+
+        // Add this semester's contribution
+        semGrades.forEach(g => {
+            cumulativePoints += (g.grade_point * g.module.credits);
+            cumulativeCredits += g.module.credits;
+        });
+
+        if (cumulativeCredits > 0) {
+            history.push({
+                semester: key.replace('Semester ', 'S'), // Shorten label: "L1 S1"
+                gpa: Number((cumulativePoints / cumulativeCredits).toFixed(2))
+            });
+        } else if (history.length > 0) {
+            // If no new credits (pending semester), carry forward previous cumulative GPA
+            history.push({
+                semester: key.replace('Semester ', 'S'),
+                gpa: history[history.length - 1].gpa
+            });
+        }
+    }
+
+    // Fallback if no history yet (e.g. new student)
+    if (history.length === 0) {
+        return [{ semester: 'Start', gpa: 0 }];
+    }
+
+    return history;
 }

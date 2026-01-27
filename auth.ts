@@ -55,7 +55,18 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     // Force admin role for the specific seed admin email if db relation fails/missing for some reason
                     if (email === 'admin@sees.com') role = 'admin';
 
-                    return { ...user, role };
+                    const firstName = user.first_name || 'User';
+                    const lastName = user.last_name || '';
+
+                    return {
+                        ...user,
+                        role,
+                        firstName,
+                        lastName,
+                        name: `${firstName} ${lastName}`.trim(),
+                        first_name: user.first_name || undefined,
+                        last_name: user.last_name || undefined
+                    };
                 }
 
                 return null;

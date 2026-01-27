@@ -8,8 +8,10 @@ import { Sidebar } from '@/components/layout/sidebar';
 
 export default function DashboardContent({
   children,
+  featureFlags,
 }: {
   children: React.ReactNode;
+  featureFlags?: Record<string, boolean>;
 }) {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
@@ -35,7 +37,7 @@ export default function DashboardContent({
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <Sidebar />
+      <Sidebar featureFlags={featureFlags} />
       <main className="pl-64 pt-16">
         <div className="container mx-auto p-8">{children}</div>
       </main>

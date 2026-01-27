@@ -15,7 +15,7 @@ import {
     Bell,
     AlertTriangle,
 } from 'lucide-react';
-import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatRelativeTime } from '@/lib/dateFormatters';
 import { useRouter } from 'next/navigation';
 import type { Student, Notification } from '@/types';
@@ -25,18 +25,26 @@ interface DashboardViewProps {
     notifications: any[];
     schedules: any[];
     pathwayDemand: any;
+    gpaHistory: { semester: string; gpa: number }[];
 }
 
-export function DashboardView({ student, notifications, schedules, pathwayDemand }: DashboardViewProps) {
+export function DashboardView({ student, notifications, schedules, pathwayDemand, gpaHistory }: DashboardViewProps) {
     const router = useRouter();
 
-    // Mock GPA trend data (would calculate from actual grades)
-    const gpaData = [
-        { semester: 'S1', gpa: student.currentGPA - 0.5 },
-        { semester: 'S2', gpa: student.currentGPA - 0.3 },
-        { semester: 'S3', gpa: student.currentGPA - 0.1 },
-        { semester: 'S4', gpa: student.currentGPA },
-    ];
+    // Use real semester-wise cumulative GPA history
+    const gpaData = gpaHistory;
+
+    // Calculate GPA Trend
+    let trendValue = 0;
+    let isPositive = true;
+
+    if (gpaData.length >= 2) {
+        const current = gpaData[gpaData.length - 1].gpa;
+        const previous = gpaData[gpaData.length - 2].gpa;
+        const diff = current - previous;
+        trendValue = previous ? (Math.abs(diff) / previous) * 100 : 0;
+        isPositive = diff >= 0;
+    }
 
     // Credit distribution
     const totalRequired = 120;
@@ -99,7 +107,7 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                     title="Current GPA"
                     value={student.currentGPA.toFixed(2)}
                     icon={TrendingUp}
-                    trend={{ value: 5.2, isPositive: true }}
+                    trend={{ value: Number(trendValue.toFixed(1)), isPositive }}
                 />
                 <StatCard
                     title="Credits Earned"
@@ -142,27 +150,52 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                         <CardTitle>GPA Trend</CardTitle>
                         <CardDescription>Your academic performance over time</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pl-0">
                         <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={gpaData}>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                                <XAxis dataKey="semester" className="text-xs" />
-                                <YAxis domain={[0, 4]} className="text-xs" />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'hsl(var(--background))',
-                                        border: '1px solid hsl(var(--border))',
-                                        borderRadius: '8px',
-                                    }}
+                            <AreaChart data={gpaData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorGpa" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--color-chart-1)" stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor="var(--color-chart-1)" stopOpacity={0.0} />
+                                    </linearGradient>
+                                </defs>
+                                <XAxis
+                                    dataKey="semester"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }}
+                                    dy={10}
                                 />
-                                <Line
+                                <YAxis
+                                    domain={['auto', 'auto']}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }}
+                                    padding={{ top: 20, bottom: 20 }}
+                                />
+                                <CartesianGrid vertical={false} stroke="var(--color-border)" strokeDasharray="3 3" />
+                                <Tooltip
+                                    cursor={{ stroke: 'var(--color-foreground)', strokeWidth: 1, strokeDasharray: '5 5' }}
+                                    contentStyle={{
+                                        backgroundColor: 'var(--color-popover)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '8px',
+                                        color: 'var(--color-popover-foreground)',
+                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                    }}
+                                    itemStyle={{ color: 'var(--color-chart-1)' }}
+                                    labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '0.25rem' }}
+                                    formatter={(value: number) => [`${value.toFixed(2)}`, 'GPA']}
+                                />
+                                <Area
                                     type="monotone"
                                     dataKey="gpa"
-                                    stroke="hsl(var(--primary))"
+                                    stroke="var(--color-chart-1)"
                                     strokeWidth={3}
-                                    dot={{ fill: 'hsl(var(--primary))', r: 5 }}
+                                    fillOpacity={1}
+                                    fill="url(#colorGpa)"
                                 />
-                            </LineChart>
+                            </AreaChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
@@ -371,6 +404,6 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                     </Card>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

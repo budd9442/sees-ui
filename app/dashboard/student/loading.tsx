@@ -15,9 +15,15 @@ export default function StudentDashboardLoading() {
                 ))}
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3 h-96">
+            <div className="grid gap-6 md:grid-cols-3 mb-8 h-96">
                 <div className="md:col-span-2 rounded-xl bg-muted/20 border border-muted/30" />
                 <div className="rounded-xl bg-muted/20 border border-muted/30" />
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-64 rounded-xl bg-muted/20 border border-muted/30" />
+                ))}
             </div>
         </div>
     );

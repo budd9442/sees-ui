@@ -25,7 +25,7 @@ interface Grade {
     grade: number | string;
     gradePoint: number;
     semester: string;
-    academicYear: string;
+    level: string;
     isReleased: boolean;
 }
 
@@ -38,7 +38,7 @@ export function GradesView({ initialGrades }: GradesViewProps) {
 
     // Group grades by semester
     const gradesBySemester = initialGrades.reduce((acc, grade) => {
-        const key = `${grade.academicYear} - ${grade.semester}`;
+        const key = `${grade.level} - ${grade.semester}`;
         if (!acc[key]) {
             acc[key] = [];
         }
@@ -149,6 +149,7 @@ export function GradesView({ initialGrades }: GradesViewProps) {
                                 <TableHead>Module Code</TableHead>
                                 <TableHead>Module Name</TableHead>
                                 <TableHead>Credits</TableHead>
+                                <TableHead>Year</TableHead>
                                 <TableHead>Semester</TableHead>
                                 <TableHead>Grade</TableHead>
                                 <TableHead>Points</TableHead>
@@ -161,6 +162,7 @@ export function GradesView({ initialGrades }: GradesViewProps) {
                                         <TableCell className="font-medium">{grade.moduleCode}</TableCell>
                                         <TableCell>{grade.moduleName}</TableCell>
                                         <TableCell>{grade.credits}</TableCell>
+                                        <TableCell>{grade.level}</TableCell>
                                         <TableCell>{grade.semester}</TableCell>
                                         <TableCell>
                                             <Badge variant={grade.gradePoint >= 2.0 ? 'default' : 'destructive'}>

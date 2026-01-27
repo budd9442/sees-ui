@@ -104,7 +104,13 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
                     lastName: user.last_name || '',
                     email: user.email || '',
                     role: (['student', 'staff', 'admin'].includes(user.role) ? user.role : 'student') as any,
-                    // We would ideally populate specific fields if editing, but for now basic user info
+                    studentId: user.studentId || '',
+                    admissionYear: user.admissionYear || new Date().getFullYear(),
+                    currentLevel: user.level || '',
+                    degreePathId: user.degreeId || '', // Check if user object has degreeId from flattening
+                    staffNumber: user.staffNumber || '',
+                    department: user.department || '',
+                    staffType: user.type || 'ACADEMIC'
                 });
             } else {
                 reset({
@@ -225,28 +231,53 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
                         />
 
                         {selectedRole === 'student' && (
-                            <div className="grid grid-cols-2 gap-4 border-t pt-2">
-                                <FormField
-                                    control={form.control}
-                                    name="admissionYear"
-                                    render={({ field }: { field: any }) => (
-                                        <FormItem>
-                                            <FormLabel>Admission Year</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    placeholder="2025"
-                                                    {...field}
-                                                    onChange={e => {
-                                                        const val = e.target.valueAsNumber;
-                                                        field.onChange(isNaN(val) ? undefined : val);
-                                                    }}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                            <div className="space-y-4 border-t pt-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="admissionYear"
+                                        render={({ field }: { field: any }) => (
+                                            <FormItem>
+                                                <FormLabel>Admission Year</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="2025"
+                                                        {...field}
+                                                        onChange={e => {
+                                                            const val = e.target.valueAsNumber;
+                                                            field.onChange(isNaN(val) ? undefined : val);
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="currentLevel"
+                                        render={({ field }: { field: any }) => (
+                                            <FormItem>
+                                                <FormLabel>Level</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select Level" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="L1">L1</SelectItem>
+                                                        <SelectItem value="L2">L2</SelectItem>
+                                                        <SelectItem value="L3">L3</SelectItem>
+                                                        <SelectItem value="L4">L4</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                                 <FormField
                                     control={form.control}
                                     name="degreePathId"
@@ -255,14 +286,16 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
                                             <FormLabel>Degree Program</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select Program" />
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue placeholder="Select Program" className="truncate" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
                                                     {degreePrograms?.map((prog: any) => (
                                                         <SelectItem key={prog.program_id} value={prog.program_id}>
-                                                            {prog.code} - {prog.name}
+                                                            <span className="truncate block max-w-[300px]">
+                                                                {prog.code} - {prog.name}
+                                                            </span>
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
