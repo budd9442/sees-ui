@@ -24,6 +24,7 @@ async function clearDb() {
     await prisma.academicGoal.deleteMany();
     await prisma.ranking.deleteMany();
     await prisma.anonymousReport.deleteMany();
+    await prisma.systemMetric.deleteMany();
 
     await prisma.programStructure.deleteMany();
     await prisma.programIntake.deleteMany();
@@ -244,8 +245,7 @@ async function main() {
     // 5. Users
     console.log('Seeding Users...');
     const adminPassword = await hash('admin123', 10);
-    // Generic Admin removed in favor of matching AuthStore admin below
-    /*
+    // Generic Admin reinstated
     await prisma.user.create({
         data: {
             email: 'admin@sees.com',
@@ -256,14 +256,13 @@ async function main() {
             status: 'ACTIVE',
             staff: {
                 create: {
-                    staff_number: 'ADM001',
+                    staff_number: 'ADM000',
                     staff_type: 'ADMIN',
                     department: 'Registry'
                 }
             }
         }
     });
-    */
 
     const staffPassword = await hash('staff123', 10);
     const lecturer = await prisma.user.create({
@@ -298,7 +297,7 @@ async function main() {
                 student: {
                     create: {
                         admission_year: 2024,
-                        current_level: 'L1',
+                        current_level: 'Level 1',
                         degree_path_id: mitProgram.program_id,
                         enrollment_status: 'ENROLLED'
                     }
@@ -343,7 +342,7 @@ async function main() {
                 student: {
                     create: {
                         admission_year: 2023,
-                        current_level: 'L2',
+                        current_level: 'Level 2',
                         degree_path_id: mitProgram.program_id,
                         enrollment_status: 'ENROLLED',
                         current_gpa: 2.38 // Average of Y1 (3.84) and Y2 (0.92) roughly? Or just use latest cumulative logic? Let's use latest calc.
@@ -451,6 +450,44 @@ async function main() {
 
         // Add GPA History
         await prisma.gPAHistory.create({ data: { student_id: 'STU001', gpa: 3.84, calculation_date: new Date('2023-12-31') } });
+    }
+
+    // 6. System Metrics
+    console.log('Seeding System Metrics...');
+    await prisma.systemMetric.create({
+        data: {
+            cpu: 42,
+            cores: 8,
+            memory: 65,
+            storage_used: 250,
+            storage_total: 512,
+            storage_percent: 48,
+            uptime: 99.9,
+            health: 100,
+            active_users: 87
+        }
+    });
+
+    // 7. Anonymous Reports
+    console.log('Seeding Anonymous Reports...');
+    const targetStudent = await prisma.student.findFirst();
+    if (targetStudent) {
+        await prisma.anonymousReport.create({
+            data: {
+                student_id: targetStudent.student_id,
+                content: 'The study area on the 3rd floor of the library has poor lighting in the evenings.',
+                priority: 'medium',
+                status: 'PENDING'
+            }
+        });
+        await prisma.anonymousReport.create({
+            data: {
+                student_id: targetStudent.student_id,
+                content: 'Requesting more practical sessions for Web Application Development.',
+                priority: 'high',
+                status: 'IN_REVIEW'
+            }
+        });
     }
 
     console.log("Seeding completed successfully.");

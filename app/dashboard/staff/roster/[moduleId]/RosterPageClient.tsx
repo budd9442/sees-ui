@@ -1,8 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthStore } from '@/stores/authStore';
-import { useAppStore } from '@/stores/appStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,12 +22,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -38,64 +30,65 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '@/components/ui/alert';
-import {
-  Users,
-  Mail,
-  Phone,
-  Calendar,
-  BookOpen,
-  TrendingUp,
-  TrendingDown,
-  CheckCircle2,
-  AlertCircle,
   Search,
-  Filter,
   Download,
   Eye,
   MessageSquare,
-  GraduationCap,
-  Target,
+  Calendar,
   BarChart3,
   Clock,
-  User,
+  BookOpen,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Student, Grade } from '@/types';
+
+type RosterData = {
+  id: string;
+  title: string;
+  code: string;
+  credits: number;
+  academicYear: string;
+  semester: string;
+  capacity: number;
+  students: {
+    id: string;
+    name: string;
+    email: string;
+    academicYear: string;
+    specialization: string;
+    grade: {
+      points: number;
+      letterGrade: string;
+      isReleased: boolean;
+    } | null;
+    attendance: number;
+    lastActive: string;
+  }[];
+};
 
 interface RosterPageClientProps {
-  moduleId: string;
+  initialRoster: RosterData;
 }
 
-export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
-  const { user } = useAuthStore();
-  const { students, modules, grades, messages } = useAppStore();
+export default function RosterPageClient({ initialRoster }: RosterPageClientProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<string>('');
   const [showStudentDialog, setShowStudentDialog] = useState(false);
   const [filterBy, setFilterBy] = useState('all');
   const [sortBy, setSortBy] = useState('name');
 
-  const currentModule = modules.find(m => m.id === moduleId);
-
-  // Get students enrolled in this module
-  const enrolledStudents = students.filter(student => 
-    grades.some(grade => grade.moduleId === moduleId && grade.studentId === student.id)
-  );
-
-  // Get grades for this module
-  const moduleGrades = grades.filter(grade => grade.moduleId === moduleId);
+  const currentModule = initialRoster;
+  const enrolledStudents = currentModule.students;
 
   // Calculate student statistics
   const getStudentStats = (studentId: string) => {
-    const studentGrades = moduleGrades.filter(g => g.studentId === studentId);
-    const currentGrade = studentGrades[0]; // Assuming one grade per module
-    const attendance = Math.floor(Math.random() * 20) + 80; // Mock attendance percentage
-    const lastActive = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000); // Mock last active date
-    
+    const studentInfo = enrolledStudents.find(s => s.id === studentId);
+    if (!studentInfo) return { grade: null, attendance: 0, lastActive: new Date(), isAtRisk: false };
+
+    const currentGrade = studentInfo.grade;
+    const attendance = studentInfo.attendance;
+    const lastActive = new Date(studentInfo.lastActive);
+
     return {
       grade: currentGrade,
       attendance,
@@ -108,8 +101,8 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
   const filteredStudents = enrolledStudents
     .filter(student => {
       const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          student.id.toLowerCase().includes(searchTerm.toLowerCase());
-      
+        student.id.toLowerCase().includes(searchTerm.toLowerCase());
+
       if (filterBy === 'at-risk') {
         const stats = getStudentStats(student.id);
         return matchesSearch && stats.isAtRisk;
@@ -120,7 +113,7 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
         const stats = getStudentStats(student.id);
         return matchesSearch && !stats.grade;
       }
-      
+
       return matchesSearch;
     })
     .sort((a, b) => {
@@ -143,7 +136,7 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
     });
 
   const handleContactStudent = (studentId: string) => {
-    const student = students.find(s => s.id === studentId);
+    const student = enrolledStudents.find(s => s.id === studentId);
     if (student) {
       toast.success(`Opening contact form for ${student.name}`);
     }
@@ -182,7 +175,6 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold">Student Roster</h1>
@@ -198,7 +190,6 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
         </div>
       </div>
 
-      {/* Module Information */}
       <Card>
         <CardHeader>
           <CardTitle>Module Information</CardTitle>
@@ -227,7 +218,6 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
         </CardContent>
       </Card>
 
-      {/* Statistics */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
@@ -246,9 +236,9 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
           <CardContent>
             <div className="text-2xl font-bold">
               {(() => {
-                const gradedStudents = moduleGrades.filter(g => g.points > 0);
-                return gradedStudents.length > 0 
-                  ? (gradedStudents.reduce((sum, g) => sum + g.points, 0) / gradedStudents.length).toFixed(1)
+                const gradedStudents = enrolledStudents.filter(g => g.grade && g.grade.points > 0);
+                return gradedStudents.length > 0
+                  ? (gradedStudents.reduce((sum, g) => sum + g.grade!.points, 0) / gradedStudents.length).toFixed(1)
                   : '0.0';
               })()}
             </div>
@@ -284,7 +274,6 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
         </Card>
       </div>
 
-      {/* Filters and Search */}
       <Card>
         <CardHeader>
           <CardTitle>Student List</CardTitle>
@@ -386,15 +375,15 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleViewStudent(student.id)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleContactStudent(student.id)}
                           >
@@ -411,7 +400,6 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
         </CardContent>
       </Card>
 
-      {/* Student Detail Dialog */}
       <Dialog open={showStudentDialog} onOpenChange={setShowStudentDialog}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -422,13 +410,12 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
           </DialogHeader>
 
           {selectedStudent && (() => {
-            const student = students.find(s => s.id === selectedStudent);
+            const student = enrolledStudents.find(s => s.id === selectedStudent);
             const stats = getStudentStats(selectedStudent);
             if (!student) return null;
 
             return (
               <div className="space-y-6">
-                {/* Student Information */}
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Student Name</Label>
@@ -456,7 +443,6 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
                   </div>
                 </div>
 
-                {/* Performance Metrics */}
                 <div className="space-y-4">
                   <h4 className="font-semibold">Performance in {currentModule.title}</h4>
                   <div className="grid gap-4 md:grid-cols-3">
@@ -499,7 +485,6 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
                   </div>
                 </div>
 
-                {/* Recent Activity */}
                 <div className="space-y-4">
                   <h4 className="font-semibold">Recent Activity</h4>
                   <div className="space-y-2">
@@ -520,7 +505,6 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex gap-2">
                   <Button onClick={() => handleContactStudent(student.id)}>
                     <MessageSquare className="mr-2 h-4 w-4" />
@@ -549,4 +533,3 @@ export default function RosterPageClient({ moduleId }: RosterPageClientProps) {
     </div>
   );
 }
-

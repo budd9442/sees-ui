@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { getStudentInterventions } from '@/lib/actions/student-actions';
 import { PageHeader } from '@/components/layout/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,7 +45,7 @@ import {
 import type { Intervention, InterventionResource, Student } from '@/types';
 
 // Mock data for interventions
-const mockInterventions: Intervention[] = [
+const _mockInterventions: Intervention[] = [
   {
     id: 'int-001',
     studentId: 'STU001',
@@ -142,19 +143,38 @@ const resourceIcons = {
 
 export default function PersonalizedFeedbackPage() {
   const { user } = useAuthStore();
-  const [interventions, setInterventions] = useState<Intervention[]>(mockInterventions);
+  const [interventions, setInterventions] = useState<Intervention[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedIntervention, setSelectedIntervention] = useState<Intervention | null>(null);
   const [studentNotes, setStudentNotes] = useState('');
   const [showContactDialog, setShowContactDialog] = useState(false);
 
-  if (!user || user.role !== 'student') {
-    return <div>Loading...</div>;
+  useEffect(() => {
+    async function fetchInterventions() {
+      try {
+        const data = await getStudentInterventions();
+        setInterventions(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchInterventions();
+  }, []);
+
+  if (!user || user.role !== 'student' || loading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   const handleAcknowledgeIntervention = (interventionId: string) => {
-    setInterventions(prev => 
-      prev.map(int => 
-        int.id === interventionId 
+    setInterventions(prev =>
+      prev.map(int =>
+        int.id === interventionId
           ? { ...int, acknowledged: true, acknowledgedAt: new Date().toISOString() }
           : int
       )
@@ -162,24 +182,24 @@ export default function PersonalizedFeedbackPage() {
   };
 
   const handleSelectResource = (interventionId: string, resourceId: string, selected: boolean) => {
-    setInterventions(prev => 
-      prev.map(int => 
-        int.id === interventionId 
-          ? { 
-              ...int, 
-              selectedResources: selected 
-                ? [...(int.selectedResources || []), resourceId]
-                : (int.selectedResources || []).filter(id => id !== resourceId)
-            }
+    setInterventions(prev =>
+      prev.map(int =>
+        int.id === interventionId
+          ? {
+            ...int,
+            selectedResources: selected
+              ? [...(int.selectedResources || []), resourceId]
+              : (int.selectedResources || []).filter(id => id !== resourceId)
+          }
           : int
       )
     );
   };
 
   const handleSaveNotes = (interventionId: string) => {
-    setInterventions(prev => 
-      prev.map(int => 
-        int.id === interventionId 
+    setInterventions(prev =>
+      prev.map(int =>
+        int.id === interventionId
           ? { ...int, studentNotes }
           : int
       )
@@ -280,11 +300,11 @@ export default function PersonalizedFeedbackPage() {
       {/* Interventions List */}
       <div className="space-y-6">
         <h2 className="text-2xl font-bold">Academic Interventions & Recommendations</h2>
-        
+
         {interventions.map((intervention) => {
           const SeverityIcon = getSeverityIcon(intervention.severity);
           const TypeIcon = getTypeIcon(intervention.type);
-          
+
           return (
             <Card key={intervention.id} className={`border-l-4 ${intervention.severity === 'high' ? 'border-l-red-500' : intervention.severity === 'medium' ? 'border-l-yellow-500' : 'border-l-blue-500'}`}>
               <CardHeader>
@@ -309,7 +329,7 @@ export default function PersonalizedFeedbackPage() {
                   </div>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-6">
                 {/* Trigger Reason */}
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -337,7 +357,7 @@ export default function PersonalizedFeedbackPage() {
                     {intervention.resources.map((resource) => {
                       const ResourceIcon = resourceIcons[resource.type as keyof typeof resourceIcons] || BookOpen;
                       const isSelected = intervention.selectedResources?.includes(resource.id) || false;
-                      
+
                       return (
                         <div key={resource.id} className={`p-4 border rounded-lg ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
                           <div className="flex items-start gap-3">
@@ -352,9 +372,9 @@ export default function PersonalizedFeedbackPage() {
                               </div>
                               <p className="text-sm text-gray-600 mb-2">{resource.description}</p>
                               {resource.url && (
-                                <a 
-                                  href={resource.url} 
-                                  target="_blank" 
+                                <a
+                                  href={resource.url}
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
                                 >
@@ -387,7 +407,7 @@ export default function PersonalizedFeedbackPage() {
                       Acknowledge
                     </Button>
                   )}
-                  
+
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="outline">
@@ -425,7 +445,7 @@ export default function PersonalizedFeedbackPage() {
                     </DialogContent>
                   </Dialog>
 
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={() => setShowContactDialog(true)}
                   >
@@ -471,7 +491,7 @@ export default function PersonalizedFeedbackPage() {
                 </p>
               </div>
             </div>
-            
+
             <div>
               <Label htmlFor="message">Message to Advisor</Label>
               <Textarea
@@ -480,7 +500,7 @@ export default function PersonalizedFeedbackPage() {
                 rows={4}
               />
             </div>
-            
+
             <div className="bg-blue-50 p-3 rounded-lg">
               <h5 className="font-medium text-blue-800 mb-1">Available Meeting Times</h5>
               <p className="text-sm text-blue-700">
@@ -525,7 +545,7 @@ export default function PersonalizedFeedbackPage() {
                 Visit Center
               </Button>
             </div>
-            
+
             <div className="p-4 border rounded-lg hover:bg-gray-50">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="h-5 w-5 text-green-600" />
@@ -539,7 +559,7 @@ export default function PersonalizedFeedbackPage() {
                 Find Tutor
               </Button>
             </div>
-            
+
             <div className="p-4 border rounded-lg hover:bg-gray-50">
               <div className="flex items-center gap-2 mb-2">
                 <Brain className="h-5 w-5 text-purple-600" />
@@ -562,7 +582,7 @@ export default function PersonalizedFeedbackPage() {
         <Heart className="h-4 w-4 text-green-600" />
         <AlertTitle className="text-green-800">You've Got This!</AlertTitle>
         <AlertDescription className="text-green-700">
-          Academic challenges are a normal part of the learning journey. With the right support and resources, 
+          Academic challenges are a normal part of the learning journey. With the right support and resources,
           you can overcome any obstacle. Remember, seeking help is a sign of strength, not weakness.
         </AlertDescription>
       </Alert>

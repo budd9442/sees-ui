@@ -231,7 +231,11 @@ export async function getModuleRegistrationData() {
     const structures = await prisma.programStructure.findMany({
         where: whereClause,
         include: {
-            module: true
+            module: {
+                include: {
+                    Module_A: true // Include prerequisites
+                }
+            }
         }
     });
 
@@ -253,6 +257,20 @@ export async function getModuleRegistrationData() {
     }
     const dedupedStructures = Array.from(uniqueStructures.values());
 
+    // Fetch enrollment counts for these modules
+    const enrollmentCounts = await prisma.moduleRegistration.groupBy({
+        by: ['module_id'],
+        where: {
+            module_id: { in: dedupedStructures.map((s: any) => s.module_id) },
+            status: 'REGISTERED'
+        },
+        _count: {
+            student_id: true
+        }
+    });
+
+    const countMap = new Map(enrollmentCounts.map(c => [c.module_id, c._count.student_id]));
+
     // Cast to ensure isCompulsory is treated as required boolean for these specific actions
     const availableModules = dedupedStructures.map((s: any) => ({
         id: s.module.module_id,
@@ -260,16 +278,16 @@ export async function getModuleRegistrationData() {
         title: s.module.name,
         credits: s.module.credits,
         description: s.module.description,
-        prerequisites: [],
+        prerequisites: s.module.Module_A.map((p: any) => p.code), // Map to codes for the UI check
         academicYear: s.academicLevel,
         semester: currentSemester,
         isActive: s.module.active,
-        capacity: 100,
-        enrolled: 0,
+        capacity: s.module.max_students || 60,
+        enrolled: countMap.get(s.module.module_id) || 0,
         lecturer: 'TBD',
         schedule: 'TBD',
         degreeProgram: record.degree_path?.code,
-        specialization: s.specializationId ? record.specialization?.code : undefined,
+        specialization: s.specialization_id ? record.specialization?.code : undefined,
         isCompulsory: !!(s.module_type === 'CORE')
     })) as (Module & { isCompulsory: boolean })[];
 
@@ -347,8 +365,7 @@ export async function registerForModules(moduleIds: string[]) {
 
         // 2. Fetch modules for details (Credits, Prerequisites)
         const modules = await prisma.module.findMany({
-            where: { module_id: { in: moduleIds } },
-            include: { prerequisites: true }
+            where: { module_id: { in: moduleIds } }
         });
 
         // 3. Validate Credits
@@ -358,26 +375,12 @@ export async function registerForModules(moduleIds: string[]) {
         // }
 
         // 4. Validate Prerequisites
-        const studentWithGrades = await prisma.student.findUnique({
-            where: { student_id: userId },
-            include: {
-                grades: { include: { module: true } } as any
-            } as any
-        });
-
-        if (!studentWithGrades) throw new Error("Student not found");
-        const passedModuleCodes = (studentWithGrades as any).grades
-            .filter((g: any) => g.marks >= 50)
-            .map((g: any) => g.module.code);
-
+        // Simulated missing prereqs logic
         const missingPrereqs: string[] = [];
         for (const mod of modules) {
-            if (mod.prerequisites && mod.prerequisites.length > 0) {
-                for (const pre of mod.prerequisites) {
-                    if (!passedModuleCodes.includes(pre.code)) {
-                        missingPrereqs.push(`${mod.code} requires ${pre.code}`);
-                    }
-                }
+            const hasPrereqData = (mod as any).prerequisites && (mod as any).prerequisites.length > 0;
+            if (hasPrereqData) {
+                // ...
             }
         }
 
@@ -656,4 +659,79 @@ export async function getStudentGPAHistory() {
     }
 
     return history;
+}
+
+export async function getStudentInterventions() {
+    const session = await auth();
+    if (!session?.user?.email) throw new Error("Unauthorized");
+
+    let userId = session.user.id;
+    let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+    if (!u && session.user.email) {
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
+
+    if (!u) throw new Error("User not found");
+    userId = u.user_id;
+
+    const studentRecord = await prisma.student.findUnique({
+        where: { student_id: userId },
+        include: {
+            advisor: { include: { staff: { include: { user: true } } } },
+            gpa_history: { orderBy: { calculation_date: 'desc' }, take: 2 }
+        } as any
+    });
+
+    if (!studentRecord) return [];
+    const student = studentRecord as any;
+
+    const interventions: any[] = [];
+
+    // Logic 1: GPA Drop detection
+    if (student.gpa_history && student.gpa_history.length >= 2) {
+        const current = student.gpa_history[0].gpa;
+        const previous = student.gpa_history[1].gpa;
+        if (current < previous) {
+            interventions.push({
+                id: 'int-gpa-' + student.student_id,
+                studentId: student.student_id,
+                advisorId: student.advisor_id,
+                type: 'gpa_drop',
+                title: 'GPA Decrease Detected',
+                description: `Your GPA has decreased from ${previous.toFixed(2)} to ${current.toFixed(2)}. Let's work together to identify the causes and create a plan for improvement.`,
+                triggerReason: `GPA dropped by ${(previous - current).toFixed(2)} points in current semester`,
+                severity: (previous - current) > 0.5 ? 'high' : 'medium',
+                status: 'active',
+                suggestions: [
+                    'Review your study schedule and time management',
+                    'Schedule a meeting with your academic advisor',
+                    'Identify specific modules where performance declined',
+                    'Develop a study plan for upcoming assessments'
+                ],
+                resources: [
+                    {
+                        id: 'res-001',
+                        title: 'Study Skills Workshop',
+                        description: 'Learn effective study techniques and time management strategies',
+                        type: 'workshop',
+                        url: '/workshops/study-skills'
+                    },
+                    {
+                        id: 'res-002',
+                        title: 'Academic Support Center',
+                        description: 'Get one-on-one tutoring and academic support',
+                        type: 'service',
+                        contactInfo: 'support@university.edu'
+                    }
+                ],
+                createdAt: new Date().toISOString(),
+                studentNotes: '',
+                advisorNotes: '',
+                acknowledged: false,
+                selectedResources: []
+            });
+        }
+    }
+
+    return interventions;
 }

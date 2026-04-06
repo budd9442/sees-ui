@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Search, BookOpen, CheckCircle, AlertCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
-import { registerForModules } from '@/lib/actions/student-actions';
+import { registerForModules } from '@/lib/actions/enrollment-actions';
 import type { Module } from '@/types';
 
 interface ModuleRegistrationViewProps {
@@ -102,10 +102,10 @@ export function ModuleRegistrationView({
             if (prev.includes(moduleId)) {
                 return prev.filter((id) => id !== moduleId);
             } else {
-                // if (selectedCredits + module.credits > maxCredits) {
-                //     toast.error(`Cannot exceed ${maxCredits} credits per semester`);
-                //     return prev;
-                // }
+                if (selectedCredits + module.credits > maxCredits) {
+                    toast.error(`Cannot exceed ${maxCredits} credits per semester`);
+                    return prev;
+                }
                 return [...prev, moduleId];
             }
         });
@@ -117,10 +117,11 @@ export function ModuleRegistrationView({
             return;
         }
 
-        // if (selectedCredits > maxCredits) {
-        //     toast.error(`Maximum ${maxCredits} credits allowed`);
-        //     return;
-        // }
+        if (selectedCredits > maxCredits) {
+            toast.error(`Maximum ${maxCredits} credits allowed`);
+            return;
+        }
+ Broadway
 
         // Check all prerequisites
         const invalidModules = selectedModules.filter((id) => {
@@ -312,11 +313,16 @@ export function ModuleRegistrationView({
                                                         {module.title}
                                                     </p>
                                                 </div>
-                                                <div className="flex items-center gap-3">
-                                                    <Badge variant="secondary">{module.credits} credits</Badge>
-                                                    <Badge variant="outline" className="text-blue-600 border-blue-300">
-                                                        Compulsory
-                                                    </Badge>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <div className="flex items-center gap-3">
+                                                        <Badge variant="secondary">{module.credits} credits</Badge>
+                                                        <Badge variant="outline" className="text-blue-600 border-blue-300">
+                                                            Compulsory
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-[10px] text-muted-foreground font-medium">
+                                                        {module.enrolled} / {module.capacity} enrolled
+                                                    </p>
                                                 </div>
                                             </div>
                                         ))}
@@ -400,6 +406,7 @@ export function ModuleRegistrationView({
                                         key={module.id}
                                         module={module}
                                         isSelected={selectedModules.includes(module.id)}
+                                        isInitiallySelected={registeredModuleIds.includes(module.id)}
                                         prerequisitesMet={checkPrerequisites(module)}
                                         onToggleSelect={() => toggleModule(module.id)}
                                     />

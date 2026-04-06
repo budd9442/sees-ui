@@ -14,7 +14,15 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
                 const user = await prisma.user.findUnique({
                     where: { email: String(email) },
-                    include: { student: true, staff: true }
+                    include: { 
+                        student: true, 
+                        staff: {
+                            include: {
+                                advisor: true,
+                                hod: true
+                            }
+                        } 
+                    }
                 });
 
                 if (!user) return null;
@@ -36,30 +44,29 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
                     // Determine role based on relations
                     let role = 'student';
-                    if ((user as any).staff?.staff_type === 'ADMIN' || (user as any).staff?.staff_type === 'REGISTRAR') {
+                    const staff = (user as any).staff;
+                    
+                    if (staff?.staff_type === 'ADMIN' || staff?.staff_type === 'REGISTRAR' || email.toString().toLowerCase().includes('admin')) {
                         role = 'admin';
-                    } else if (email.toString().toLowerCase().includes('admin')) {
-                        // Fallback for seed admin if needed, though seed admin has staff type ADMIN usually? 
-                        // Check seed: staff_type: 'ADMIN'
-                        role = 'admin';
-                    } else if ((user as any).staff) {
+                    } else if (staff?.hod) {
+                        role = 'hod';
+                    } else if (staff?.advisor) {
+                        role = 'advisor';
+                    } else if (staff) {
                         role = 'staff';
                     } else if ((user as any).student) {
                         role = 'student';
-                    } else {
-                        // Fallback or guest?
-                        // If explicit admin email but no staff record (e.g. bootstrap), keep as admin via email check above
-                        if (email.toString().toLowerCase().includes('admin')) role = 'admin';
                     }
 
                     // Force admin role for the specific seed admin email if db relation fails/missing for some reason
-                    if (email === 'admin@sees.com') role = 'admin';
+                    if (email === 'admin@sees.com' || email === 'admin@kln.ac.lk') role = 'admin';
 
                     const firstName = user.first_name || 'User';
                     const lastName = user.last_name || '';
 
                     return {
                         ...user,
+                        id: user.user_id,
                         role,
                         firstName,
                         lastName,

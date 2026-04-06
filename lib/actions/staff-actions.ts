@@ -164,16 +164,40 @@ export async function updateStudentGrade(registrationId: string, marks: number) 
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
 
-    // Basic calc logic (Hardcoded for now as seed didn't populate schemes fully or we want simplicity)
-    // >85 A, >75 B, >65 C, >50 D, else F
+    // Fetch active grading scheme
+    const activeScheme = await prisma.gradingScheme.findFirst({
+        where: { active: true },
+        include: { bands: { orderBy: { min_marks: 'desc' } } }
+    });
+
     let letter = 'F';
     let points = 0.0;
 
-    if (marks >= 85) { letter = 'A'; points = 4.0; }
-    else if (marks >= 70) { letter = 'B'; points = 3.0; }
-    else if (marks >= 55) { letter = 'C'; points = 2.0; }
-    else if (marks >= 40) { letter = 'D'; points = 1.0; }
-    else { letter = 'E'; points = 0.0; } // or F
+    if (activeScheme && activeScheme.bands.length > 0) {
+        const band = activeScheme.bands.find(b => marks >= b.min_marks && marks <= b.max_marks);
+        if (band) {
+            letter = band.letter_grade;
+            points = band.grade_point;
+        } else {
+            // If marks outside all ranges, pick the lowest if marks < min, or highest if marks > max
+            const lowest = activeScheme.bands[activeScheme.bands.length - 1];
+            const highest = activeScheme.bands[0];
+            if (marks > highest.max_marks) {
+                letter = highest.letter_grade;
+                points = highest.grade_point;
+            } else {
+                letter = lowest.letter_grade;
+                points = lowest.grade_point;
+            }
+        }
+    } else {
+        // Fallback logic
+        if (marks >= 85) { letter = 'A'; points = 4.0; }
+        else if (marks >= 70) { letter = 'B'; points = 3.0; }
+        else if (marks >= 55) { letter = 'C'; points = 2.0; }
+        else if (marks >= 40) { letter = 'D'; points = 1.0; }
+        else { letter = 'E'; points = 0.0; }
+    }
 
     const reg = await prisma.moduleRegistration.findUnique({
         where: { reg_id: registrationId },
@@ -204,4 +228,110 @@ export async function updateStudentGrade(registrationId: string, marks: number) 
 
     revalidatePath(`/dashboard/staff/modules/${reg.module_id}`);
     return { success: true };
+}
+
+export async function getStaffDashboardData() {
+    const session = await auth();
+    if (!session?.user?.email) throw new Error("Unauthorized");
+
+    let userId = session.user.id;
+
+    // Robust User Lookup
+    let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+    if (!u && session.user.email) {
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
+
+    if (!u) throw new Error("Staff unauthenticated");
+    userId = u.user_id;
+
+    const staffRecord = await prisma.staff.findUnique({
+        where: { staff_id: userId },
+        include: {
+            user: true,
+            assignments: {
+                include: {
+                    module: true
+                }
+            } as any,
+            lecture_schedules: {
+                include: {
+                    module: true
+                }
+            } as any
+        } as any
+    });
+
+    if (!staffRecord) throw new Error("Staff profile not found");
+    const record = staffRecord as any;
+
+    const myModules = record.assignments.filter((a: any) => a.active && a.module).map((a: any) => a.module);
+    const moduleIds = myModules.map((m: any) => m.module_id);
+
+    // Fetch the students registered for these classes
+    const registrations = await prisma.moduleRegistration.findMany({
+        where: {
+            module_id: { in: moduleIds },
+            status: { in: ['REGISTERED', 'ENROLLED'] }
+        },
+        include: { grade: true }
+    });
+
+    // Unique enrolled students out of all the subjects
+    const enrolledStudentsIds = new Set(registrations.map(r => r.student_id));
+    const totalStudents = enrolledStudentsIds.size;
+
+    // pending grading operations
+    const pendingGradesC = registrations.filter(r => r.status === 'ENROLLED' && (!r.grade || !r.grade.released_at)).length;
+
+    // Dynamic grade distribution based on released letter grades
+    const gradeCounts: Record<string, number> = {};
+    registrations.forEach(r => {
+        if (r.grade?.released_at) {
+            const lg = r.grade.letter_grade;
+            gradeCounts[lg] = (gradeCounts[lg] || 0) + 1;
+        }
+    });
+
+    const gradeDistribution = Object.entries(gradeCounts).map(([name, value]) => ({
+        name,
+        value,
+        color: name.startsWith('A') ? '#10b981' : name.startsWith('B') ? '#3b82f6' : name.startsWith('C') ? '#f59e0b' : '#ef4444'
+    })).sort((a, b) => a.name.localeCompare(b.name));
+
+    const myModuleWorkload = myModules.map((m: any) => {
+        const moduleRegs = registrations.filter((r: any) => r.module_id === m.module_id);
+        const studentCountForModule = moduleRegs.length;
+        const gradedCount = moduleRegs.filter(r => r.grade && r.grade.marks !== null).length;
+
+        return {
+            name: m.code,
+            fullName: m.name,
+            students: studentCountForModule,
+            assignments: studentCountForModule, // Assuming 1 assessment per registration for simplicity
+            completion: studentCountForModule > 0 ? Math.round((gradedCount / studentCountForModule) * 100) : 0
+        };
+    });
+
+    return {
+        staff: {
+            firstName: record.user.first_name,
+            lastName: record.user.last_name,
+            department: record.department
+        },
+        myModules,
+        totalStudents,
+        assignmentsToGrade: pendingGradesC,
+        upcomingClasses: record.lecture_schedules.length, // Total schedules found
+        gradeDistribution,
+        moduleWorkload: myModuleWorkload,
+        performanceData: [
+            { month: 'Jan', avgGrade: 72 },
+            { month: 'Feb', avgGrade: 75 },
+            { month: 'Mar', avgGrade: 71 },
+            { month: 'Apr', avgGrade: 78 },
+            { month: 'May', avgGrade: 76 },
+            { month: 'Jun', avgGrade: 80 },
+        ]
+    };
 }

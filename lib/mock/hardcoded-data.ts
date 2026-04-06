@@ -18,7 +18,7 @@ import type {
   NotificationTemplate,
   ReportTemplate,
 } from '@/types';
-import { mockData } from './data';
+// export const mockData import removed as it was deleted during cleanup
 
 // Hardcoded test student that matches login
 export const testStudent: Student = {
@@ -858,13 +858,13 @@ export const hardcodedData = {
   pathwayDemand: hardcodedPathwayDemand,
   staffUsers: hardcodedStaffUsers,
   allUsers: hardcodedAllUsers,
-  internships: mockData.internships,
-  anonymousReports: mockData.anonymousReports,
-  interventions: mockData.interventions,
-  meetings: mockData.meetings,
-  systemConfiguration: mockData.systemConfiguration,
-  auditLogs: mockData.auditLogs,
-  backups: mockData.backups,
-  notificationTemplates: mockData.notificationTemplates,
-  reportTemplates: mockData.reportTemplates,
+  internships: [],
+  anonymousReports: [],
+  interventions: [],
+  meetings: [],
+  systemConfiguration: {} as any,
+  auditLogs: [],
+  backups: [],
+  notificationTemplates: [],
+  reportTemplates: [],
 };

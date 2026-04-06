@@ -27,14 +27,14 @@ GPA: First Class ≥3.70, Upper ≥3.30, Lower ≥3.00, Pass ≥2.00
 export async function POST(request: NextRequest) {
   try {
     console.log('=== CHAT API DEBUG START ===');
-    
+
     if (!GEMINI_API_KEY) {
       console.error('GEMINI_API_KEY is not configured');
-      return NextResponse.json({ 
-        error: 'AI service is not configured. Please contact administrator.' 
+      return NextResponse.json({
+        error: 'AI service is not configured. Please contact administrator.'
       }, { status: 500 });
     }
-    
+
     const { message, userContext } = await request.json();
     console.log('Request body:', { message, userContext });
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const requestBody = {
       contents: [{
         parts: [{
-          text: `${GUIDE_BOOK_CONTEXT}\n\n${prompt}\n\nStudent: ${userContext?.student ? `${userContext.student.academicYear} ${userContext.student.degreeProgram || ''} ${userContext.student.specialization || ''}` : 'none'}\n\nQuestion: ${message}`
+          text: `${GUIDE_BOOK_CONTEXT}\n\n${prompt}\n\nUser: ${userContext?.user ? `${userContext.user.name} (${userContext.user.role})` : 'Anonymous'}\n\nQuestion: ${message}`
         }]
       }],
       generationConfig: {
@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
       const errorData = await response.text();
       console.error('Gemini API error response:', errorData);
       console.log('=== CHAT API DEBUG END (ERROR) ===');
-      return NextResponse.json({ 
-        error: 'Failed to get AI response', 
+      return NextResponse.json({
+        error: 'Failed to get AI response',
         details: errorData,
-        status: response.status 
+        status: response.status
       }, { status: 500 });
     }
 
@@ -93,10 +93,10 @@ export async function POST(request: NextRequest) {
     const parts = first?.content?.parts;
     const joinedFromParts = Array.isArray(parts)
       ? parts
-          .map((p: any) => (typeof p?.text === 'string' ? p.text : ''))
-          .filter(Boolean)
-          .join('\n\n')
-          .trim()
+        .map((p: any) => (typeof p?.text === 'string' ? p.text : ''))
+        .filter(Boolean)
+        .join('\n\n')
+        .trim()
       : '';
     const fallbackField = (first?.content?.text || first?.text || '').trim();
     const aiResponse = (joinedFromParts || fallbackField || '').trim();
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     console.log('Final AI response preview:', finalText.substring(0, 100) + '...');
     console.log('=== CHAT API DEBUG END (SUCCESS) ===');
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       response: finalText,
       debug: {
         finishReason: first?.finishReason,
@@ -151,10 +151,10 @@ export async function POST(request: NextRequest) {
     console.error('Chat API error:', error);
     console.log('Error stack:', (error as Error).stack);
     console.log('=== CHAT API DEBUG END (EXCEPTION) ===');
-    return NextResponse.json({ 
-      error: 'Internal server error', 
+    return NextResponse.json({
+      error: 'Internal server error',
       details: (error as Error).message,
-      stack: (error as Error).stack 
+      stack: (error as Error).stack
     }, { status: 500 });
   }
 }

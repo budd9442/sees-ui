@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthStore } from '@/stores/authStore';
-import { useAppStore } from '@/stores/appStore';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,33 +9,59 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, AlertTriangle, Lock, TrendingUp, Users, BookOpen, Briefcase, Lightbulb, Target, HelpCircle, Info, Star, ArrowRight } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Lock, TrendingUp, Users, BookOpen, Briefcase, Target, HelpCircle, Info, Star, ArrowRight, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Student, DegreeProgram } from '@/types';
+import type { DegreeProgram } from '@/types';
+import { updateStudentPathway } from '@/lib/actions/student-subactions';
+import { submitPathwayPreferences } from '@/lib/actions/pathway-actions';
 
-export default function PathwayClient() {
-    const { user } = useAuthStore();
-    const { students, pathwayDemand, updateStudent } = useAppStore();
-    const [selectedPathway, setSelectedPathway] = useState<DegreeProgram | null>(null);
+interface PathwayClientProps {
+    initialData: {
+        currentStudent: {
+            studentId: string;
+            academicYear: string | null;
+            degreeProgram: string;
+            pathwayLocked: boolean;
+            currentGPA: number;
+            preference1: string | null;
+            preference2: string | null;
+        };
+        pathwayDemand: {
+            MIT: number;
+            IT: number;
+            mitCount: number;
+            itCount: number;
+            mitCapacity: number;
+            itCapacity: number;
+            totalStudents: number;
+        };
+        studentRank: number;
+    }
+}
+
+export default function PathwayClient({ initialData }: PathwayClientProps) {
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
+    const { currentStudent, pathwayDemand, studentRank } = initialData;
+
+    // Use codes for selection state
+    const [pref1, setPref1] = useState<string | null>(currentStudent.preference1 || null);
+    const [pref2, setPref2] = useState<string | null>(currentStudent.preference2 || null);
+    
     const [activeTab, setActiveTab] = useState('overview');
 
-    const currentStudent = students.find((s) => s.email === user?.email) as Student | undefined;
-
-    if (!currentStudent) {
-        return <div>Loading...</div>;
-    }
-
     const isL1Student = currentStudent.academicYear === 'L1';
-    const hasSelectedPathway = !!currentStudent.degreeProgram;
+    const hasSelectedPathway = currentStudent.degreeProgram === 'MIT' || currentStudent.degreeProgram === 'IT';
     const isLocked = currentStudent.pathwayLocked;
 
     const mitDemand = pathwayDemand.MIT;
     const itDemand = pathwayDemand.IT;
-    const mitOversubscribed = mitDemand >= 60;
-    const itOversubscribed = itDemand >= 60;
-
-    // Mock GPA ranking (would be calculated from actual data)
-    const studentRank = Math.floor(Math.random() * 50) + 1;
+    const mitCount = pathwayDemand.mitCount;
+    const itCount = pathwayDemand.itCount;
+    const mitCapacity = pathwayDemand.mitCapacity;
+    const itCapacity = pathwayDemand.itCapacity;
+    const mitOversubscribed = mitCount >= mitCapacity;
+    const itOversubscribed = itCount >= itCapacity;
     const totalStudents = pathwayDemand.totalStudents;
 
     // Comprehensive pathway data based on guide book
@@ -154,26 +179,44 @@ export default function PathwayClient() {
         }
     };
 
-    const handleSelectPathway = (pathway: DegreeProgram) => {
+    const handleSelectPathway = (pathway: string, rank: 1 | 2) => {
         if (isLocked) {
             toast.error('Pathway selection is locked');
             return;
         }
-        setSelectedPathway(pathway);
+
+        if (rank === 1) {
+            if (pathway === pref2) setPref2(null);
+            setPref1(pathway);
+        } else {
+            if (pathway === pref1) {
+                toast.error("You cannot select the same program for both preferences.");
+                return;
+            }
+            setPref2(pathway);
+        }
     };
 
-    const handleConfirmSelection = () => {
-        if (!selectedPathway) {
-            toast.error('Please select a pathway');
+    const handleConfirmPathway = async () => {
+        if (!pref1 || !pref2) {
+            toast.error("Please select both a 1st and 2nd choice.");
             return;
         }
-
-        updateStudent(currentStudent.studentId, {
-            degreeProgram: selectedPathway,
-        });
-
-        toast.success(`Pathway selected: ${selectedPathway}`);
+        
+        try {
+            await submitPathwayPreferences({ 
+                preference1: pref1, 
+                preference2: pref2 
+            });
+            toast.success(`Preferences submitted successfully!`);
+            startTransition(() => {
+                router.refresh();
+            });
+        } catch (e: any) {
+            toast.error(e.message || "Failed to submit preferences");
+        }
     };
+
 
     // Decision Helper Questions
     const decisionQuestions = [
@@ -255,7 +298,7 @@ export default function PathwayClient() {
 
             {/* Comprehensive Guidance Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-5 flex-wrap md:flex-nowrap mb-6 md:mb-0">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="guidance">Guidance</TabsTrigger>
                     <TabsTrigger value="mit">MIT Details</TabsTrigger>
@@ -313,37 +356,54 @@ export default function PathwayClient() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {Object.values(pathwayData).map((pathway) => (
-                                <div key={pathway.code}>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="font-medium">{pathway.code}</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm text-muted-foreground">
-                                                {pathway.code === 'MIT' ? mitDemand : itDemand}%
-                                            </span>
-                                            {(pathway.code === 'MIT' ? mitOversubscribed : itOversubscribed) && (
-                                                <Badge variant="destructive" className="text-xs">
-                                                    Oversubscribed
-                                                </Badge>
-                                            )}
+                            {Object.values(pathwayData).map((pathway) => {
+                                const initialCount = pathway.code === 'MIT' ? mitCount : itCount;
+                                const initialPathway = currentStudent.degreeProgram;
+                                const isSelectedNow = (pref1 || initialPathway) === pathway.code;
+                                const wasSelected = initialPathway === pathway.code;
+                                
+                                const liveCount = initialCount + (isSelectedNow && !wasSelected ? 1 : !isSelectedNow && wasSelected ? -1 : 0);
+                                const capacity = pathway.code === 'MIT' ? mitCapacity : itCapacity;
+                                const percentage = Math.min(100, Math.round((liveCount / capacity) * 100));
+                                const isOversubscribed = liveCount > capacity;
+
+                                return (
+                                    <div key={pathway.code} className={`p-4 rounded-xl border-2 transition-all ${isSelectedNow ? 'bg-primary/5 border-primary/20 shadow-sm' : 'bg-muted/50 border-transparent hover:border-muted'}`}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">{pathway.code}</span>
+                                                {isSelectedNow && !wasSelected && (
+                                                    <Badge variant="secondary" className="text-[10px] h-4 bg-blue-100 text-blue-700">Pending</Badge>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-muted-foreground">
+                                                    {liveCount} / {capacity} students ({percentage}%)
+                                                </span>
+                                                {isOversubscribed && (
+                                                    <Badge variant="destructive" className="text-xs">
+                                                        Full
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </div>
+                                        <Progress
+                                            value={percentage}
+                                            className={isOversubscribed ? '[&>div]:bg-red-500' : percentage >= 80 ? '[&>div]:bg-orange-500' : ''}
+                                        />
+                                        {percentage >= 90 && percentage < 100 && (
+                                            <p className="text-xs text-orange-600 mt-1">
+                                                Approaching capacity - selection may trigger GPA-based allocation
+                                            </p>
+                                        )}
+                                        {isOversubscribed && (
+                                            <p className="text-xs text-red-600 mt-1">
+                                                ⚠️ Capacity reached. Final selection will be based on GPA ranking
+                                            </p>
+                                        )}
                                     </div>
-                                    <Progress
-                                        value={pathway.code === 'MIT' ? mitDemand : itDemand}
-                                        className={(pathway.code === 'MIT' ? mitOversubscribed : itOversubscribed) ? '[&>div]:bg-red-500' : ''}
-                                    />
-                                    {(pathway.code === 'MIT' ? mitDemand : itDemand) >= 55 && (pathway.code === 'MIT' ? mitDemand : itDemand) < 60 && (
-                                        <p className="text-xs text-orange-600 mt-1">
-                                            Approaching 60% threshold - may trigger GPA-based allocation
-                                        </p>
-                                    )}
-                                    {(pathway.code === 'MIT' ? mitOversubscribed : itOversubscribed) && (
-                                        <p className="text-xs text-red-600 mt-1">
-                                            ⚠️ Selection will be based on GPA ranking
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
+                                );
+                            })}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -682,7 +742,7 @@ export default function PathwayClient() {
                             <div className="p-4 bg-muted rounded-lg">
                                 <p className="text-sm text-muted-foreground mb-1">Percentile</p>
                                 <p className="text-3xl font-bold">
-                                    {((1 - studentRank / totalStudents) * 100).toFixed(0)}%
+                                    {totalStudents > 0 ? ((1 - studentRank / totalStudents) * 100).toFixed(0) : 100}%
                                 </p>
                             </div>
                         </div>
@@ -700,16 +760,16 @@ export default function PathwayClient() {
             {/* Pathway Selection Cards */}
             <div className="grid md:grid-cols-2 gap-6 mb-6">
                 {Object.values(pathwayData).map((pathway) => {
-                    const isSelected =
-                        selectedPathway === pathway.code ||
-                        (currentStudent.degreeProgram === pathway.code && !selectedPathway);
+                    const isPref1 = pref1 === pathway.code;
+                    const isPref2 = pref2 === pathway.code;
+                    const isSelected = isPref1 || isPref2;
 
                     return (
                         <Card
                             key={pathway.code}
                             className={`transition-all ${isSelected
-                                    ? 'border-primary border-2 shadow-lg'
-                                    : 'hover:shadow-md'
+                                ? 'border-primary border-2 shadow-lg ring-2 ring-primary/10'
+                                : 'hover:shadow-md'
                                 } ${isLocked && !isSelected ? 'opacity-50' : ''}`}
                         >
                             <CardHeader>
@@ -720,11 +780,23 @@ export default function PathwayClient() {
                                             {pathway.name}
                                         </CardDescription>
                                     </div>
-                                    {isSelected && (
-                                        <Badge variant="default" className="text-sm">
-                                            {isLocked ? 'Confirmed' : 'Selected'}
-                                        </Badge>
-                                    )}
+                                    <div className="flex flex-col gap-1 items-end">
+                                        {isPref1 && (
+                                            <Badge variant="default" className="text-[10px] h-5 bg-primary">
+                                                1st Choice
+                                            </Badge>
+                                        )}
+                                        {isPref2 && (
+                                            <Badge variant="outline" className="text-[10px] h-5 border-primary text-primary">
+                                                2nd Choice
+                                            </Badge>
+                                        )}
+                                        {isLocked && isSelected && (
+                                            <Badge variant="secondary" className="text-[10px] h-5">
+                                                Confirmed
+                                            </Badge>
+                                        )}
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -734,16 +806,29 @@ export default function PathwayClient() {
 
                                 {/* Demand Status */}
                                 <div className="p-3 bg-muted rounded-lg">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm font-medium">Current Demand</span>
-                                        <span className="text-sm font-bold">
-                                            {pathway.code === 'MIT' ? mitDemand : itDemand}%
-                                        </span>
-                                    </div>
-                                    <Progress
-                                        value={pathway.code === 'MIT' ? mitDemand : itDemand}
-                                        className={(pathway.code === 'MIT' ? mitOversubscribed : itOversubscribed) ? '[&>div]:bg-red-500' : ''}
-                                    />
+                                    {(() => {
+                                        const initialCount = pathway.code === 'MIT' ? mitCount : itCount;
+                                        const initialWasP1 = currentStudent.preference1 === pathway.code;
+                                        const isP1Now = pref1 === pathway.code;
+                                        const liveCount = initialCount + (isP1Now && !initialWasP1 ? 1 : !isP1Now && initialWasP1 ? -1 : 0);
+                                        const capacity = pathway.code === 'MIT' ? mitCapacity : itCapacity;
+                                        const percentage = Math.min(100, Math.round((liveCount / capacity) * 100));
+                                        
+                                        return (
+                                            <>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium">Enrollment Capacity</span>
+                                                    <span className="text-sm font-bold">
+                                                        {liveCount} / {capacity}
+                                                    </span>
+                                                </div>
+                                                <Progress
+                                                    value={percentage}
+                                                    className={liveCount >= capacity ? '[&>div]:bg-red-500' : percentage >= 80 ? '[&>div]:bg-orange-500' : ''}
+                                                />
+                                            </>
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* Specializations */}
@@ -776,26 +861,68 @@ export default function PathwayClient() {
                                     </ul>
                                 </div>
 
-                                {/* Action Button */}
-                                <Button
-                                    className="w-full"
-                                    variant={isSelected ? 'default' : 'outline'}
-                                    onClick={() => handleSelectPathway(pathway.code)}
-                                    disabled={isLocked}
-                                >
-                                    {isLocked
-                                        ? isSelected
-                                            ? 'Confirmed'
-                                            : 'Locked'
-                                        : isSelected
-                                            ? 'Selected'
-                                            : 'Select This Pathway'}
-                                </Button>
+                                {/* Action Selection */}
+                                <div className="flex flex-col gap-2">
+                                    <Button
+                                        className="w-full flex justify-between"
+                                        variant={isPref1 ? 'default' : 'outline'}
+                                        onClick={() => handleSelectPathway(pathway.code, 1)}
+                                        disabled={isLocked || isPending || isPref1}
+                                    >
+                                        <span>Set as 1st Choice</span>
+                                        {isPref1 && <CheckCircle className="h-4 w-4" />}
+                                    </Button>
+                                    <Button
+                                        className="w-full flex justify-between"
+                                        variant={isPref2 ? 'default' : 'outline'}
+                                        onClick={() => handleSelectPathway(pathway.code, 2)}
+                                        disabled={isLocked || isPending || isPref2}
+                                    >
+                                        <span>Set as 2nd Choice</span>
+                                        {isPref2 && <CheckCircle className="h-4 w-4" />}
+                                    </Button>
+                                </div>
                             </CardContent>
                         </Card>
                     );
                 })}
             </div>
+
+            {!isLocked && (pref1 !== currentStudent.preference1 || pref2 !== currentStudent.preference2) && (
+                <div className="mt-8 flex justify-center sticky bottom-6 z-50">
+                    <Card className="border-primary shadow-2xl bg-white/95 backdrop-blur-md border-2 w-full max-w-lg">
+                        <CardContent className="py-4 flex items-center justify-between gap-6">
+                            <div className="flex-1 space-y-1">
+                                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Confirm Preferences</p>
+                                <div className="text-sm flex gap-3">
+                                    <span className="font-medium">1: <span className="text-primary font-bold">{pref1 || '---'}</span></span>
+                                    <span className="font-medium">2: <span className="text-primary font-bold">{pref2 || '---'}</span></span>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button 
+                                    onClick={handleConfirmPathway} 
+                                    disabled={isPending || !pref1 || !pref2}
+                                    className="px-6 shadow-lg shadow-primary/20"
+                                >
+                                    {isPending ? 'Saving...' : 'Save Choices'}
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => {
+                                        setPref1(currentStudent.preference1);
+                                        setPref2(currentStudent.preference2);
+                                    }}
+                                    disabled={isPending}
+                                >
+                                    Reset
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

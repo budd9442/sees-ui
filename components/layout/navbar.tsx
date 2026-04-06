@@ -13,13 +13,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/stores/authStore';
-import { useAppStore } from '@/stores/appStore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export function Navbar() {
   const { user, logout } = useAuthStore();
-  const { notifications } = useAppStore();
+  const notifications: any[] = [];
   const router = useRouter();
 
   if (!user) return null;

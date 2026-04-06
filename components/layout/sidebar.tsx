@@ -135,31 +135,31 @@ const navigationItems: NavItem[] = [
     title: 'Dashboard',
     href: '/dashboard/staff',
     icon: LayoutDashboard,
-    roles: ['staff'],
+    roles: ['staff', 'advisor', 'hod'],
   },
   {
     title: 'My Modules',
     href: '/dashboard/staff/modules',
     icon: BookOpen,
-    roles: ['staff'],
+    roles: ['staff', 'advisor', 'hod'],
   },
   {
     title: 'Grade Management',
     href: '/dashboard/staff/grades',
     icon: ClipboardList,
-    roles: ['staff'],
+    roles: ['staff', 'advisor', 'hod'],
   },
   {
     title: 'Schedule',
     href: '/dashboard/staff/schedule',
     icon: Calendar,
-    roles: ['staff'],
+    roles: ['staff', 'advisor', 'hod'],
   },
   {
     title: 'Analytics',
     href: '/dashboard/staff/analytics',
     icon: BarChart3,
-    roles: ['staff'],
+    roles: ['staff', 'advisor', 'hod'],
   },
 
   // Advisor Navigation
@@ -167,31 +167,26 @@ const navigationItems: NavItem[] = [
     title: 'Dashboard',
     href: '/dashboard/advisor',
     icon: LayoutDashboard,
-    roles: ['advisor'],
+    roles: ['advisor', 'hod'],
   },
   {
     title: 'My Advisees',
     href: '/dashboard/advisor/students',
     icon: Users,
-    roles: ['advisor'],
+    roles: ['advisor', 'hod'],
   },
-  {
-    title: 'Meetings',
-    href: '/dashboard/advisor/meetings',
-    icon: Clock,
-    roles: ['advisor'],
-  },
+
   {
     title: 'Academic Records',
     href: '/dashboard/advisor/records',
     icon: FileText,
-    roles: ['advisor'],
+    roles: ['advisor', 'hod'],
   },
   {
     title: 'Messages',
     href: '/dashboard/advisor/messages',
     icon: MessageSquare,
-    roles: ['advisor'],
+    roles: ['advisor', 'hod'],
   },
 
   // HOD Navigation

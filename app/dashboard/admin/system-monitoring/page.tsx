@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { getSystemMonitoringData } from '@/lib/actions/admin-actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -175,20 +176,52 @@ const mockSystemConfigs: SystemConfiguration[] = [
 
 export default function SystemMonitoringPage() {
   const { user } = useAuthStore();
-  const [systemMetrics, setSystemMetrics] = useState(mockSystemMetrics);
-  const [alerts, setAlerts] = useState(mockAlerts);
-  const [auditLogs, setAuditLogs] = useState(mockAuditLogs);
-  const [systemConfigs, setSystemConfigs] = useState(mockSystemConfigs);
+  const [systemMetrics, setSystemMetrics] = useState<any>(mockSystemMetrics);
+  const [alerts, setAlerts] = useState<any[]>(mockAlerts);
+  const [auditLogs, setAuditLogs] = useState<any[]>(mockAuditLogs);
+  const [systemConfigs, setSystemConfigs] = useState<any[]>(mockSystemConfigs);
+  const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState('24h');
   const [logFilter, setLogFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const fetchMonitoringData = async () => {
+    try {
+      const data = await getSystemMonitoringData();
+      setSystemMetrics(data.metrics);
+      setAlerts(data.alerts);
+      setAuditLogs(data.logs);
+      setSystemConfigs(data.configs);
+    } catch (err) {
+      console.error('Failed to load system monitoring data:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetchMonitoringData().finally(() => setLoading(false));
+    } else if (user) {
+      setLoading(false); // Done checking role but they aren't authorized
+    }
+  }, [user]);
 
   const refreshData = async () => {
     setIsRefreshing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await fetchMonitoringData();
     setIsRefreshing(false);
   };
+
+  if (!user || user.role !== 'admin' || loading) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-muted-foreground">Loading system metrics...</p>
+        </div>
+      </div>
+    );
+  }
 
   const getAlertColor = (severity: string) => {
     switch (severity) {
@@ -246,8 +279,8 @@ export default function SystemMonitoringPage() {
                 <SelectItem value="30d">Last 30 Days</SelectItem>
               </SelectContent>
             </Select>
-            <Button 
-              onClick={refreshData} 
+            <Button
+              onClick={refreshData}
               disabled={isRefreshing}
               variant="outline"
             >
@@ -346,34 +379,34 @@ export default function SystemMonitoringPage() {
                   <span>{systemMetrics.cpuUsage}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full" 
+                  <div
+                    className="bg-blue-600 h-2 rounded-full"
                     style={{ width: systemMetrics.cpuUsage }}
                   />
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Memory Usage</span>
                   <span>{systemMetrics.memoryUsage}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-yellow-600 h-2 rounded-full" 
+                  <div
+                    className="bg-yellow-600 h-2 rounded-full"
                     style={{ width: systemMetrics.memoryUsage }}
                   />
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Disk Usage</span>
                   <span>{systemMetrics.diskUsage}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-red-600 h-2 rounded-full" 
+                  <div
+                    className="bg-red-600 h-2 rounded-full"
                     style={{ width: systemMetrics.diskUsage }}
                   />
                 </div>

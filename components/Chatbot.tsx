@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import { MessageCircle, X, Send, GraduationCap, Info, BookOpen, Route, Award, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { useAppStore } from '@/stores/appStore';
 
 type ChatMessage = {
   id: string;
@@ -14,7 +13,6 @@ type ChatMessage = {
 
 export default function Chatbot() {
   const { user } = useAuthStore();
-  const { students, modules, pathwayDemand } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -22,8 +20,6 @@ export default function Chatbot() {
     id: 'm1', role: 'assistant', ts: Date.now(),
     content: 'Hi! I\'m your SEES academic assistant. I can help with pathway selection, module information, credit requirements, GPA guidance, and general academic questions based on the MIT/IT curriculum guide.'
   }]);
-
-  const currentStudent = useMemo(() => students.find(s => s.id === user?.id), [students, user]);
 
   const handleSend = async () => {
     const text = input.trim();
@@ -39,26 +35,11 @@ export default function Chatbot() {
 
     try {
       const userContext = {
-        student: currentStudent ? {
-          id: currentStudent.id,
-          academicYear: currentStudent.academicYear,
-          degreeProgram: currentStudent.degreeProgram,
-          specialization: currentStudent.specialization,
-          currentGPA: currentStudent.currentGPA,
-          totalCredits: currentStudent.totalCredits
-        } : null,
         user: user ? {
           role: user.role,
-          name: user.name
-        } : null,
-        pathwayDemand,
-        availableModules: modules.slice(0, 20).map(m => ({
-          code: m.code,
-          title: m.title,
-          academicYear: m.academicYear,
-          semester: m.semester,
-          credits: m.credits
-        }))
+          name: user.name,
+          email: user.email
+        } : null
       };
 
       console.log('Sending request to /api/chat with context:', userContext);

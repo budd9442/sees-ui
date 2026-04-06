@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { useAppStore } from '@/stores/appStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -55,15 +54,15 @@ interface InterventionModalProps {
   academicClass?: string;
 }
 
-export default function InterventionModal({ 
-  isOpen, 
-  onClose, 
+export default function InterventionModal({
+  isOpen,
+  onClose,
   intervention,
   gpaChange,
-  academicClass 
+  academicClass
 }: InterventionModalProps) {
   const { user } = useAuthStore();
-  const { interventions, addIntervention } = useAppStore();
+  const addIntervention = (data: any) => console.log('Mock add intervention:', data);
   const [acknowledged, setAcknowledged] = useState(false);
   const [notes, setNotes] = useState('');
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
@@ -148,8 +147,8 @@ export default function InterventionModal({
   };
 
   const toggleResource = (resourceId: string) => {
-    setSelectedResources(prev => 
-      prev.includes(resourceId) 
+    setSelectedResources(prev =>
+      prev.includes(resourceId)
         ? prev.filter(id => id !== resourceId)
         : [...prev, resourceId]
     );
@@ -188,8 +187,8 @@ export default function InterventionModal({
               <TrendingDown className="h-4 w-4" />
               <AlertTitle>GPA Change Detected</AlertTitle>
               <AlertDescription>
-                Your GPA has changed from {gpaChange.previous.toFixed(2)} to {gpaChange.current.toFixed(2)} 
-                ({gpaChange.change > 0 ? '+' : ''}{gpaChange.change.toFixed(2)}). 
+                Your GPA has changed from {gpaChange.previous.toFixed(2)} to {gpaChange.current.toFixed(2)}
+                ({gpaChange.change > 0 ? '+' : ''}{gpaChange.change.toFixed(2)}).
                 {academicClass && ` Your academic class is: ${academicClass}`}
               </AlertDescription>
             </Alert>
@@ -231,19 +230,17 @@ export default function InterventionModal({
                 {interventionData.resources.map((resource) => {
                   const ResourceIcon = getResourceIcon(resource.type);
                   const isSelected = selectedResources.includes(resource.id);
-                  
+
                   return (
-                    <div 
+                    <div
                       key={resource.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                        }`}
                       onClick={() => toggleResource(resource.id)}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                          isSelected ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-                        }`}>
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isSelected ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                          }`}>
                           <ResourceIcon className="h-4 w-4" />
                         </div>
                         <div className="flex-1">
