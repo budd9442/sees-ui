@@ -58,6 +58,7 @@ import {
 import { toast } from 'sonner';
 import { createStaffSchedule } from '@/lib/actions/staff-subactions';
 import { useRouter } from 'next/navigation';
+import { ScheduleEditModal } from './schedule-edit-modal';
 
 export default function ScheduleClient({ initialData }: { initialData: any }) {
     const router = useRouter();
@@ -304,22 +305,27 @@ export default function ScheduleClient({ initialData }: { initialData: any }) {
                                                                     <TypeIcon className="h-5 w-5 text-blue-600" />
                                                                 </div>
                                                                 <div>
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <h4 className="font-semibold capitalize">{schedule.type}</h4>
-                                                                        <Badge className={getDayColor(schedule.day)}>
-                                                                            {schedule.day}
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="flex items-center justify-between w-full">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <h4 className="font-semibold capitalize">{schedule.type || 'Lecture'}</h4>
+                                                                            <Badge className={getDayColor(schedule.day || schedule.day_of_week)}>
+                                                                                {schedule.day || schedule.day_of_week}
                                                                         </Badge>
-                                                                    </div>
-                                                                    <div className="space-y-1 text-sm text-muted-foreground">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Clock className="h-4 w-4" />
-                                                                            {schedule.startTime} - {schedule.endTime}
                                                                         </div>
-                                                                        <div className="flex items-center gap-2">
-                                                                            <MapPin className="h-4 w-4" />
-                                                                            Room {schedule.room}
-                                                                        </div>
+                                                                        <ScheduleEditModal schedule={schedule} />
                                                                     </div>
+                                                                </div>
+                                                                <div className="space-y-1 text-sm text-muted-foreground mt-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Clock className="h-4 w-4" />
+                                                                        {schedule.startTime || format(new Date(schedule.start_time), 'HH:mm')} - {schedule.endTime || format(new Date(schedule.end_time), 'HH:mm')}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <MapPin className="h-4 w-4" />
+                                                                        Room {schedule.room || schedule.location}
+                                                                    </div>
+                                                                </div>
                                                                 </div>
                                                             </div>
                                                         </div>

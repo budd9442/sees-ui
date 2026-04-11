@@ -15,11 +15,18 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getPublicSystemInfo } from '@/lib/actions/system-settings-actions';
+import { useEffect, useState } from 'react';
 
 export function Navbar() {
   const { user, logout } = useAuthStore();
+  const [systemInfo, setSystemInfo] = useState({ institutionName: 'SEES Platform', maintenanceMode: false });
   const notifications: any[] = [];
   const router = useRouter();
+
+  useEffect(() => {
+    getPublicSystemInfo().then(setSystemInfo);
+  }, []);
 
   if (!user) return null;
 
@@ -45,9 +52,9 @@ export function Navbar() {
             <div className="flex items-center gap-2">
 
               <div>
-                <h1 className="text-lg font-bold">Department of Industrial Management</h1>
-                <p className="text-xs text-muted-foreground">
-                  Student Enrollment & Evaluation System
+                <h1 className="text-lg font-bold">{systemInfo.institutionName}</h1>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                  Academic Intelligence System
                 </p>
               </div>
             </div>

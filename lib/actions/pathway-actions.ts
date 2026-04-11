@@ -14,6 +14,12 @@ export async function submitPathwayPreferences(preferences: {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
+    // [GOVERNANCE] Check if pathway selection window is open
+    const windowSetting = await prisma.systemSetting.findUnique({ where: { key: 'is_pathway_selection_open' } });
+    if (windowSetting?.value !== 'true') {
+        throw new Error("Pathway selection is currently CLOSED by administration.");
+    }
+
     // 1. Resolve codes to IDs if necessary
     const [p1, p2] = await Promise.all([
         prisma.degreeProgram.findUnique({ where: { code: preferences.preference1 } }),

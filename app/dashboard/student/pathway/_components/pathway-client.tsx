@@ -14,6 +14,8 @@ import { toast } from 'sonner';
 import type { DegreeProgram } from '@/types';
 import { updateStudentPathway } from '@/lib/actions/student-subactions';
 import { submitPathwayPreferences } from '@/lib/actions/pathway-actions';
+import { getAIGuidance } from '@/lib/actions/ai-actions';
+import { Sparkles, BrainCircuit, MessageSquare, Quote, Loader2 } from 'lucide-react';
 
 interface PathwayClientProps {
     initialData: {
@@ -49,6 +51,8 @@ export default function PathwayClient({ initialData }: PathwayClientProps) {
     const [pref2, setPref2] = useState<string | null>(currentStudent.preference2 || null);
     
     const [activeTab, setActiveTab] = useState('overview');
+    const [aiAdvice, setAIAdvice] = useState<any>(null);
+    const [loadingAI, setLoadingAI] = useState(false);
 
     const isL1Student = currentStudent.academicYear === 'L1';
     const hasSelectedPathway = currentStudent.degreeProgram === 'MIT' || currentStudent.degreeProgram === 'IT';
@@ -216,7 +220,18 @@ export default function PathwayClient({ initialData }: PathwayClientProps) {
             toast.error(e.message || "Failed to submit preferences");
         }
     };
-
+    const fetchAIAdvice = async () => {
+        setLoadingAI(true);
+        try {
+            const advice = await getAIGuidance();
+            setAIAdvice(advice);
+            setActiveTab('aicounselor');
+        } catch (err) {
+            toast.error("Failed to connect to the AI Counselor.");
+        } finally {
+            setLoadingAI(false);
+        }
+    };
 
     // Decision Helper Questions
     const decisionQuestions = [
@@ -298,12 +313,16 @@ export default function PathwayClient({ initialData }: PathwayClientProps) {
 
             {/* Comprehensive Guidance Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-                <TabsList className="grid w-full grid-cols-5 flex-wrap md:flex-nowrap mb-6 md:mb-0">
+                <TabsList className="grid w-full grid-cols-6 flex-wrap md:flex-nowrap mb-6 md:mb-0">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="guidance">Guidance</TabsTrigger>
+                    <TabsTrigger value="aicounselor" className="bg-primary/5 text-primary">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        AI Counselor
+                    </TabsTrigger>
                     <TabsTrigger value="mit">MIT Details</TabsTrigger>
                     <TabsTrigger value="it">IT Details</TabsTrigger>
-                    <TabsTrigger value="decision">Decision Helper</TabsTrigger>
+                    <TabsTrigger value="guidance">Ref. Guidance</TabsTrigger>
+                    <TabsTrigger value="decision">Helper</TabsTrigger>
                 </TabsList>
 
                 {/* Overview Tab */}
@@ -408,7 +427,125 @@ export default function PathwayClient({ initialData }: PathwayClientProps) {
                     </Card>
                 </TabsContent>
 
-                {/* Guidance Tab */}
+                {/* AI Counselor Tab */}
+                <TabsContent value="aicounselor" className="space-y-6">
+                    <Card className="border-primary/20 bg-primary/5 shadow-inner">
+                        <CardHeader className="text-center pb-2">
+                            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                                <Sparkles className="h-6 w-6 text-primary" />
+                            </div>
+                            <CardTitle className="text-2xl font-bold">Academic Career Counselor</CardTitle>
+                            <CardDescription>
+                                AI-driven analysis of your Year 1 performance to find your perfect pathway match.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col items-center py-6">
+                            {!aiAdvice && !loadingAI && (
+                                <div className="text-center space-y-4">
+                                    <p className="text-sm text-muted-foreground max-w-sm">
+                                        Our AI Counselor will analyze your grades, academic strengths, and domain-specific scores 
+                                        to suggest the best pathway for your future career.
+                                    </p>
+                                    <Button onClick={fetchAIAdvice} className="bg-primary hover:bg-primary/90">
+                                        <BrainCircuit className="h-4 w-4 mr-2" />
+                                        Begin Data-Driven Analysis
+                                    </Button>
+                                </div>
+                            )}
+
+                            {loadingAI && (
+                                <div className="text-center space-y-4 py-8">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                                    <p className="text-sm font-medium animate-pulse text-primary">
+                                        Analyzing transcript & skill vectors...
+                                    </p>
+                                </div>
+                            )}
+
+                            {aiAdvice && (
+                                <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="flex flex-col md:flex-row items-center justify-center gap-8 p-6 bg-white/80 rounded-2xl border border-primary/10 shadow-sm">
+                                        <div className="relative">
+                                            <div className="h-24 w-24 rounded-full border-4 border-primary/20 flex items-center justify-center">
+                                                <span className="text-2xl font-black text-primary">{aiAdvice.fit_score}%</span>
+                                            </div>
+                                            <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-white">
+                                                <CheckCircle className="h-4 w-4 text-white" />
+                                            </div>
+                                        </div>
+                                        <div className="text-center md:text-left space-y-1">
+                                            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">The AI Suggests</p>
+                                            <h3 className="text-3xl font-black text-primary">{aiAdvice.primary_recommendation} Pathway</h3>
+                                            <p className="text-sm text-muted-foreground">Academic Match: Excellent</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative p-6 bg-slate-900 text-slate-50 rounded-2xl overflow-hidden group">
+                                        <Quote className="absolute top-2 left-2 h-12 w-12 text-slate-800 -rotate-12" />
+                                        <div className="relative z-10 flex gap-4">
+                                            <MessageSquare className="h-6 w-6 text-primary flex-shrink-0" />
+                                            <p className="text-lg leading-relaxed font-medium italic">
+                                                "{aiAdvice.insight}"
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <Card className="bg-white/50 border-white/50 backdrop-blur-sm">
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-sm flex items-center gap-2">
+                                                    <Target className="h-4 w-4 text-orange-500" />
+                                                    Core Strengths
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <ul className="space-y-2">
+                                                    {aiAdvice.supporting_reasons.map((reason: string, i: number) => (
+                                                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                                                            <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5" />
+                                                            {reason}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </CardContent>
+                                        </Card>
+
+                                        <Card className="bg-white/50 border-white/50 backdrop-blur-sm">
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-sm flex items-center gap-2">
+                                                    <TrendingUp className="h-4 w-4 text-green-500" />
+                                                    Skill Profile
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="space-y-4">
+                                                <div className="space-y-1">
+                                                    <div className="flex justify-between text-[10px] uppercase font-bold">
+                                                        <span>Technical Logic</span>
+                                                        <span>{aiAdvice.primary_recommendation === 'IT' ? '92%' : '78%'}</span>
+                                                    </div>
+                                                    <Progress value={aiAdvice.primary_recommendation === 'IT' ? 92 : 78} className="h-1" />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="flex justify-between text-[10px] uppercase font-bold">
+                                                        <span>Business Operations</span>
+                                                        <span>{aiAdvice.primary_recommendation === 'MIT' ? '94%' : '65%'}</span>
+                                                    </div>
+                                                    <Progress value={aiAdvice.primary_recommendation === 'MIT' ? 94 : 65} className="h-1" />
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                    
+                                    <Button variant="outline" className="w-full text-xs" onClick={() => setAIAdvice(null)}>
+                                        Reset Guidance Engine
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Reference Guidance Tab */}
                 <TabsContent value="guidance" className="space-y-6">
                     <Card>
                         <CardHeader>

@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthStore } from '@/stores/authStore';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,16 +37,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import {
   Settings,
   Plus,
   Edit,
-  Trash2,
   AlertTriangle,
   Info,
   GraduationCap,
@@ -55,661 +47,278 @@ import {
   Shield,
   Bell,
   Search,
+  Activity,
+  History,
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
-import type { SystemConfiguration } from '@/types';
-
-// Mock data for system configurations
-const mockConfigurations: SystemConfiguration[] = [
-  {
-    id: 'config-001',
-    category: 'academic',
-    key: 'gpa_calculation_formula',
-    value: 'weighted_average',
-    description: 'Formula used for calculating student GPA',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T10:00:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-002',
-    category: 'academic',
-    key: 'credit_limits_min',
-    value: '12',
-    description: 'Minimum credits required per semester',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T09:30:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-003',
-    category: 'academic',
-    key: 'credit_limits_max',
-    value: '18',
-    description: 'Maximum credits allowed per semester',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T09:30:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-004',
-    category: 'academic',
-    key: 'pathway_threshold',
-    value: '60',
-    description: 'Percentage threshold for pathway demand allocation',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T08:00:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-005',
-    category: 'academic',
-    key: 'academic_class_first',
-    value: '3.7',
-    description: 'GPA threshold for First Class',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T08:00:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-006',
-    category: 'user_management',
-    key: 'max_login_attempts',
-    value: '5',
-    description: 'Maximum login attempts before account lockout',
-    isActive: true,
-    version: 2,
-    lastModified: '2025-12-15T07:30:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-007',
-    category: 'user_management',
-    key: 'session_timeout',
-    value: '3600',
-    description: 'Session timeout in seconds',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T07:00:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-008',
-    category: 'system_settings',
-    key: 'maintenance_mode',
-    value: 'false',
-    description: 'Enable maintenance mode for system updates',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T06:00:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-009',
-    category: 'notifications',
-    key: 'email_notifications_enabled',
-    value: 'true',
-    description: 'Enable email notifications for users',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T05:30:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-010',
-    category: 'security',
-    key: 'password_min_length',
-    value: '8',
-    description: 'Minimum password length requirement',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T05:00:00Z',
-    modifiedBy: 'ADMIN001'
-  }
-];
+import { getCategorizedSettings, updateSystemSettingWithAudit, initializeSystemGovernance, getAuditLogs } from '@/lib/actions/system-settings-actions';
+import { toast } from 'sonner';
 
 const configurationCategories = [
-  { value: 'academic', label: 'Academic Settings', icon: GraduationCap, description: 'GPA calculations, credit limits, academic rules' },
-  { value: 'user_management', label: 'User Management', icon: Users, description: 'Login policies, session management, user roles' },
-  { value: 'system_settings', label: 'System Settings', icon: Settings, description: 'System behavior, maintenance, performance' },
-  { value: 'security', label: 'Security', icon: Shield, description: 'Password policies, security rules, access control' },
-  { value: 'notifications', label: 'Notifications', icon: Bell, description: 'Email settings, notification preferences' }
+  { value: 'ACADEMIC', label: 'Academic Policies', icon: GraduationCap },
+  { value: 'OPERATIONS', label: 'Gov. Windows', icon: Activity },
+  { value: 'SYSTEM', label: 'Infrastructural', icon: Settings },
+  { value: 'SECURITY', label: 'Authentication', icon: Shield },
+  { value: 'BRANDING', label: 'Identity', icon: Users },
+  { value: 'HISTORY', label: 'Audit Logs', icon: History },
+  { value: 'GENERAL', label: 'Miscellaneous', icon: Info }
 ];
 
-
 export default function DynamicConfigurationPage() {
-  const { user } = useAuthStore();
-  const [configurations, setConfigurations] = useState<SystemConfiguration[]>(mockConfigurations);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [settings, setSettings] = useState<Record<string, any[]>>({});
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('OPERATIONS');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [selectedConfig, setSelectedConfig] = useState<SystemConfiguration | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [configForm, setConfigForm] = useState({
-    category: 'academic',
-    key: '',
-    value: '',
-    description: '',
-    isActive: true
-  });
+  const [editingConfig, setEditingConfig] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const getCategoryIcon = (category: string) => {
-    const cat = configurationCategories.find(c => c.value === category);
-    return cat ? cat.icon : Settings;
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'academic': return 'bg-blue-100 text-blue-800';
-      case 'user_management': return 'bg-green-100 text-green-800';
-      case 'system_settings': return 'bg-purple-100 text-purple-800';
-      case 'security': return 'bg-red-100 text-red-800';
-      case 'notifications': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const filteredConfigurations = configurations.filter(config => {
-    const matchesCategory = selectedCategory === 'all' || config.category === selectedCategory;
-    const matchesSearch = config.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         config.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const handleCreateConfig = async () => {
-    setIsSaving(true);
+  const fetchSettings = async () => {
+    setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newConfig: SystemConfiguration = {
-        id: `config-${Date.now()}`,
-        category: configForm.category as SystemConfiguration['category'],
-        key: configForm.key,
-        value: configForm.value,
-        description: configForm.description,
-        isActive: configForm.isActive,
-        version: 1,
-        lastModified: new Date().toISOString(),
-        modifiedBy: user?.id || 'ADMIN001'
-      };
-      
-      setConfigurations(prev => [newConfig, ...prev]);
-      setShowCreateDialog(false);
-      setConfigForm({
-        category: 'academic',
-        key: '',
-        value: '',
-        description: '',
-        isActive: true
-      });
-    } catch (error) {
-      console.error('Error creating configuration:', error);
+      const data = await getCategorizedSettings();
+      setSettings(data);
+    } catch (err) {
+      toast.error("Failed to load real-time settings.");
     } finally {
-      setIsSaving(false);
+      setLoading(false);
     }
   };
 
-  const handleUpdateConfig = async () => {
-    if (!selectedConfig) return;
-    
-    setIsSaving(true);
+  const fetchLogs = async () => {
+    setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setConfigurations(prev => 
-        prev.map(config => 
-          config.id === selectedConfig.id 
-            ? { 
-                ...config, 
-                category: configForm.category as SystemConfiguration['category'],
-                key: configForm.key,
-                value: configForm.value,
-                description: configForm.description,
-                isActive: configForm.isActive,
-                version: config.version + 1,
-                lastModified: new Date().toISOString(),
-                modifiedBy: user?.id || 'ADMIN001'
-              }
-            : config
-        )
-      );
-      
-      setShowEditDialog(false);
-      setSelectedConfig(null);
-    } catch (error) {
-      console.error('Error updating configuration:', error);
+      const data = await getAuditLogs();
+      setLogs(data);
+    } catch (err) {
+      toast.error("Failed to load audit trail.");
     } finally {
-      setIsSaving(false);
+      setLoading(false);
     }
   };
 
-  const handleDeleteConfig = (configId: string) => {
-    setConfigurations(prev => prev.filter(config => config.id !== configId));
+  useEffect(() => {
+    if (selectedCategory === 'HISTORY') {
+      fetchLogs();
+    } else {
+      fetchSettings();
+    }
+  }, [selectedCategory]);
+
+  const handleUpdate = async (key: string, value: string) => {
+    setSaving(true);
+    try {
+      const res = await updateSystemSettingWithAudit(key, value);
+      if (res.success) {
+        toast.success(`Updated ${key} successfully.`);
+        fetchSettings();
+        setEditingConfig(null);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleToggleActive = async (configId: string) => {
-    setConfigurations(prev => 
-      prev.map(config => 
-        config.id === configId 
-          ? { 
-              ...config, 
-              isActive: !config.isActive,
-              lastModified: new Date().toISOString(),
-              modifiedBy: user?.id || 'ADMIN001'
-            }
-          : config
-      )
-    );
-  };
+  const currentSettings = settings[selectedCategory] || [];
+  const filteredSettings = currentSettings.filter(s => 
+    s.key.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    s.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const openEditDialog = (config: SystemConfiguration) => {
-    setSelectedConfig(config);
-    setConfigForm({
-      category: config.category,
-      key: config.key,
-      value: config.value,
-      description: config.description,
-      isActive: config.isActive
-    });
-    setShowEditDialog(true);
-  };
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
+      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <p className="text-muted-foreground animate-pulse">Syncing with Governance Engine...</p>
+    </div>
+  );
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Dynamic Configuration</h1>
-            <p className="text-gray-600">
-              Manage system settings and configurations without code changes.
-            </p>
+    <div className="container mx-auto p-6 max-w-7xl animate-in fade-in duration-500">
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-black tracking-tight mb-2">Enterprise Governance</h1>
+          <p className="text-muted-foreground">Manage real-time windows, policies, and system sovereignty.</p>
+        </div>
+        <Button variant="outline" onClick={() => initializeSystemGovernance().then(() => fetchSettings())}>
+          Bootstrap Defaults
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Sidebar Nav */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Categories</CardTitle>
+            </CardHeader>
+            <CardContent className="p-2">
+              {configurationCategories.map(cat => (
+                <button
+                  key={cat.value}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                    selectedCategory === cat.value 
+                    ? "bg-primary text-primary-foreground shadow-lg scale-[1.02]" 
+                    : "hover:bg-muted"
+                  }`}
+                >
+                  <cat.icon className="h-4 w-4" />
+                  {cat.label}
+                  <Badge variant="secondary" className="ml-auto opacity-50">
+                    {settings[cat.value]?.length || 0}
+                  </Badge>
+                </button>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Alert className="bg-blue-50/50 border-blue-200">
+            <History className="h-4 w-4 text-blue-600" />
+            <AlertTitle className="text-blue-800 text-xs font-bold uppercase">Audit Enabled</AlertTitle>
+            <AlertDescription className="text-blue-600 text-[10px]">
+              Every change is logged with your Admin ID for accountability.
+            </AlertDescription>
+          </Alert>
+        </div>
+
+        {/* Main Content */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search keys, descriptions, or logs..." 
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <Button 
-              onClick={() => setShowCreateDialog(true)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Configuration
-            </Button>
+
+          <div className="grid gap-4">
+            {selectedCategory === 'HISTORY' ? (
+               logs.filter(l => l.action.includes(searchTerm.toUpperCase()) || l.entity_id.includes(searchTerm)).map(log => (
+                <div key={log.log_id} className="border rounded-lg p-4 bg-muted/30 flex items-center justify-between">
+                   <div className="flex items-center gap-4">
+                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                         <History className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-tight text-muted-foreground">{log.action}</div>
+                        <div className="text-sm font-medium">Changed <span className="font-mono">{log.new_value}</span></div>
+                        <div className="text-[10px] text-muted-foreground">AD: {log.admin_id} | {new Date(log.timestamp).toLocaleString()}</div>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <Badge variant="outline" className="text-[9px]">ID: {log.entity_id.slice(0,8)}</Badge>
+                   </div>
+                </div>
+               ))
+            ) : (
+              filteredSettings.map(s => (
+                <Card key={s.setting_id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <code className="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded text-xs">{s.key}</code>
+                          <Badge variant="outline" className="text-[10px] uppercase font-bold">{s.category}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{s.description || "No description provided."}</p>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-3">
+                        <div className="flex items-center gap-4">
+                          {s.value === 'true' || s.value === 'false' ? (
+                            <div className="flex items-center gap-2">
+                               <Switch 
+                                 checked={s.value === 'true'} 
+                                 onCheckedChange={(val) => handleUpdate(s.key, val.toString())}
+                               />
+                               <span className={`text-[10px] font-bold ${s.value === 'true' ? "text-green-600" : "text-gray-400"}`}>
+                                  {s.value === 'true' ? "OPEN/ACTIVE" : "LOCKED/INACTIVE"}
+                               </span>
+                            </div>
+                          ) : (
+                            <div className="text-right">
+                               <div className="text-xs font-mono font-bold bg-muted px-3 py-1 rounded truncate max-w-[150px]">
+                                 {s.value}
+                               </div>
+                               <p className="text-[9px] text-muted-foreground mt-1">Last Updated: {new Date(s.updated_at).toLocaleDateString()}</p>
+                            </div>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setEditingConfig(s)}
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+
+            {selectedCategory === 'HISTORY' && logs.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl italic">
+                The audit trail is currently empty. Start making changes to see records here.
+              </div>
+            )}
+
+            {selectedCategory !== 'HISTORY' && filteredSettings.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl italic">
+                No configurations found in {selectedCategory}.
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Configuration Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        {configurationCategories.map((category) => {
-          const IconComponent = category.icon;
-          const count = configurations.filter(c => c.category === category.value).length;
-          const activeCount = configurations.filter(c => c.category === category.value && c.isActive).length;
-          
-          return (
-            <Card key={category.value}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <IconComponent className="h-5 w-5 text-gray-600" />
-                  {category.label}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-800">
-                  {count}
-                </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  {activeCount} active
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Filters and Search */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search configurations..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="w-full md:w-48">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {configurationCategories.map(category => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Configurations Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            System Configurations
-          </CardTitle>
-          <CardDescription>
-            Manage all system settings and configurations
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead>Key</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Modified</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredConfigurations.map((config) => {
-                const CategoryIcon = getCategoryIcon(config.category);
-                
-                return (
-                  <TableRow key={config.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <CategoryIcon className="h-4 w-4 text-gray-600" />
-                        <Badge className={getCategoryColor(config.category)}>
-                          {config.category}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{config.key}</div>
-                      <div className="text-xs text-gray-500">v{config.version}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-xs truncate font-mono text-sm">
-                        {config.value}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-xs">
-                        <p className="text-sm text-gray-600">{config.description}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={config.isActive}
-                          onCheckedChange={() => handleToggleActive(config.id)}
-                        />
-                        <Badge variant={config.isActive ? 'default' : 'secondary'}>
-                          {config.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="text-sm">{new Date(config.lastModified).toLocaleDateString()}</div>
-                        <div className="text-xs text-gray-500">{config.modifiedBy}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => openEditDialog(config)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDeleteConfig(config.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Create Configuration Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Configuration</DialogTitle>
-            <DialogDescription>
-              Add a new system configuration setting.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="category">Category</Label>
-              <Select 
-                value={configForm.category} 
-                onValueChange={(value) => setConfigForm(prev => ({ ...prev, category: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {configurationCategories.map(category => (
-                    <SelectItem key={category.value} value={category.value}>
-                      <div>
-                        <div className="font-medium">{category.label}</div>
-                        <div className="text-xs text-gray-600">{category.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="key">Configuration Key</Label>
-              <Input
-                id="key"
-                placeholder="e.g., gpa_calculation_formula"
-                value={configForm.key}
-                onChange={(e) => setConfigForm(prev => ({ ...prev, key: e.target.value }))}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="value">Value</Label>
-              <Input
-                id="value"
-                placeholder="Enter configuration value"
-                value={configForm.value}
-                onChange={(e) => setConfigForm(prev => ({ ...prev, value: e.target.value }))}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe what this configuration does"
-                value={configForm.description}
-                onChange={(e) => setConfigForm(prev => ({ ...prev, description: e.target.value }))}
-                rows={3}
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={configForm.isActive}
-                onCheckedChange={(checked) => setConfigForm(prev => ({ ...prev, isActive: checked }))}
-              />
-              <Label>Active</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleCreateConfig}
-              disabled={!configForm.key || !configForm.value || isSaving}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isSaving ? 'Creating...' : 'Create Configuration'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Configuration Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+      {/* Edit Dialog */}
+      <Dialog open={!!editingConfig} onOpenChange={() => setEditingConfig(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Configuration</DialogTitle>
             <DialogDescription>
-              Modify the selected configuration setting.
+              Modifying <span className="font-bold text-blue-600">{editingConfig?.key}</span>. 
+              Changes impact system behavior immediately.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="editCategory">Category</Label>
-              <Select 
-                value={configForm.category} 
-                onValueChange={(value) => setConfigForm(prev => ({ ...prev, category: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {configurationCategories.map(category => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="editKey">Configuration Key</Label>
-              <Input
-                id="editKey"
-                value={configForm.key}
-                onChange={(e) => setConfigForm(prev => ({ ...prev, key: e.target.value }))}
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Current Value</Label>
+              <Input 
+                 defaultValue={editingConfig?.value} 
+                 id="edit-config-val"
+                 className="font-mono bg-muted"
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="editValue">Value</Label>
-              <Input
-                id="editValue"
-                value={configForm.value}
-                onChange={(e) => setConfigForm(prev => ({ ...prev, value: e.target.value }))}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="editDescription">Description</Label>
-              <Textarea
-                id="editDescription"
-                value={configForm.description}
-                onChange={(e) => setConfigForm(prev => ({ ...prev, description: e.target.value }))}
-                rows={3}
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={configForm.isActive}
-                onCheckedChange={(checked) => setConfigForm(prev => ({ ...prev, isActive: checked }))}
-              />
-              <Label>Active</Label>
+              <p className="text-[10px] text-muted-foreground italic">
+                {editingConfig?.key.includes('threshold') ? "Expected: Float (e.g. 3.7)" : "Expected: String or Number"}
+              </p>
             </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setEditingConfig(null)}>Cancel</Button>
             <Button 
-              onClick={handleUpdateConfig}
-              disabled={!configForm.key || !configForm.value || isSaving}
-              className="bg-blue-600 hover:bg-blue-700"
+              disabled={saving}
+              onClick={() => {
+                const val = (document.getElementById('edit-config-val') as HTMLInputElement).value;
+                handleUpdate(editingConfig.key, val);
+              }}
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+              Save & Audit
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Configuration Guidelines */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="h-5 w-5 text-blue-600" />
-            Configuration Guidelines
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-medium mb-3">Best Practices</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>• Use descriptive keys that clearly indicate the setting's purpose</li>
-                <li>• Provide detailed descriptions for future reference</li>
-                <li>• Test configuration changes in a development environment first</li>
-                <li>• Document any dependencies between configurations</li>
-                <li>• Use version control for configuration changes</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium mb-3">Value Types</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>• <strong>String:</strong> Text values, formulas, file paths</li>
-                <li>• <strong>Number:</strong> Numeric values, thresholds, limits</li>
-                <li>• <strong>Boolean:</strong> True/false settings, feature flags</li>
-                <li>• <strong>JSON:</strong> Complex objects, arrays, nested settings</li>
-                <li>• <strong>Array:</strong> Lists of values, multiple options</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Warning Alert */}
-      <Alert className="mt-6 border-yellow-200 bg-yellow-50">
-        <AlertTriangle className="h-4 w-4 text-yellow-600" />
-        <AlertTitle className="text-yellow-800">Important Notice</AlertTitle>
-        <AlertDescription className="text-yellow-700">
-          Configuration changes take effect immediately and may impact system behavior. 
-          Always test changes in a development environment before applying to production.
-        </AlertDescription>
-      </Alert>
     </div>
   );
 }

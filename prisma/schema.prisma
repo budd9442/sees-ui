@@ -298,6 +298,30 @@ model Ranking {
   student          Student  @relation(fields: [student_id], references: [student_id])
 }
 
+model SystemSetting {
+  setting_id  String   @id @default(uuid())
+  category    String   @default("GENERAL") // ACADEMIC, SYSTEM, SECURITY, BRANDING
+  key         String   @unique
+  value       String
+  description String?
+  updated_at  DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model AuditLog {
+  log_id      String   @id @default(uuid())
+  admin_id    String
+  action      String   // e.g., "UPDATE_SETTING"
+  entity_type String   // e.g., "SYSTEM_SETTING"
+  entity_id   String
+  old_value   String?
+  new_value   String?
+  timestamp   DateTime @default(now())
+  
+  @@map("audit_logs")
+}
+
 model Message {
   message_id   String    @id @default(uuid())
   sender_id    String

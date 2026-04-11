@@ -57,7 +57,9 @@ export class AcademicEngine {
         totalCredits: number;
         limit: number;
     }> {
-        const MAX_CREDITS = 21;
+        // Fetch dynamic limit from settings
+        const setting = await prisma.systemSetting.findUnique({ where: { key: 'limit_semester_credits' } });
+        const MAX_CREDITS = parseInt(setting?.value || '21');
 
         // 1. Get currently registered modules for this semester
         const existing = await prisma.moduleRegistration.findMany({
@@ -115,6 +117,87 @@ export class AcademicEngine {
             hasSpace: count < capacity,
             currentCount: count,
             totalCapacity: capacity
+        };
+    }
+
+    /**
+     * Production-Grade GPA Calculation (Best Attempt Policy)
+     * Fetches all released grades for a student and calculates cumulative GPA using 
+     * the highest score per module.
+     */
+    static async calculateStudentGPA(studentId: string): Promise<{
+        gpa: number;
+        totalCredits: number;
+        academicClass: string;
+    }> {
+        const grades = await prisma.grade.findMany({
+            where: {
+                student_id: studentId,
+                released_at: { not: null } // Strict: Only released grades
+            },
+            include: { module: true }
+        });
+
+        if (grades.length === 0) {
+            return { gpa: 0, totalCredits: 0, academicClass: 'Unassigned' };
+        }
+
+    /**
+     * Determines if GPA-based allocation is required based on dynamic threshold.
+     */
+    static async shouldUseGPABasedAllocation(demandPercentage: number): Promise<boolean> {
+        const setting = await prisma.systemSetting.findUnique({ where: { key: 'threshold_pathway_priority' } });
+        const threshold = parseFloat(setting?.value || '60');
+        return demandPercentage >= threshold;
+    }
+
+    /**
+     * Production-Grade GPA Calculation (Best Attempt Policy)
+
+        const moduleMap = new Map<string, { points: number, credits: number }>();
+        
+        grades.forEach(g => {
+            const current = moduleMap.get(g.module_id);
+            if (!current || g.grade_point > current.points) {
+                moduleMap.set(g.module_id, {
+                    points: g.grade_point,
+                    credits: g.module.credits
+                });
+            }
+        });
+
+        let totalPoints = 0;
+        let totalCredits = 0;
+
+        moduleMap.forEach(data => {
+            totalPoints += data.points * data.credits;
+            totalCredits += data.credits;
+        });
+
+        const gpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
+
+        // Dynamic Honors Determination
+        const settings = await prisma.systemSetting.findMany({
+            where: { key: { startsWith: 'threshold_' } }
+        });
+
+        const thresholds = {
+            first: parseFloat(settings.find(s => s.key === 'threshold_first_class')?.value || '3.7'),
+            upper: parseFloat(settings.find(s => s.key === 'threshold_second_upper')?.value || '3.3'),
+            lower: parseFloat(settings.find(s => s.key === 'threshold_second_lower')?.value || '3.0'),
+            third: parseFloat(settings.find(s => s.key === 'threshold_third_class')?.value || '2.5')
+        };
+
+        let honors = 'Pass';
+        if (gpa >= thresholds.first) honors = 'First Class';
+        else if (gpa >= thresholds.upper) honors = 'Second Class Upper';
+        else if (gpa >= thresholds.lower) honors = 'Second Class Lower';
+        else if (gpa >= thresholds.third) honors = 'Third Class';
+
+        return {
+            gpa: parseFloat(gpa.toFixed(2)),
+            totalCredits,
+            academicClass: honors
         };
     }
 }

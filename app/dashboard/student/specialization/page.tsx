@@ -1,19 +1,24 @@
-import { Suspense } from 'react';
-import { FEATURE_FLAGS } from '@/lib/services/feature-flags';
-import FeatureGuard from '@/components/feature-guard';
-import SpecializationClient from './_components/specialization-client';
-import { getSpecializationData } from '@/lib/actions/student-subactions';
+'use server';
 
-export const dynamic = 'force-dynamic';
+import { Suspense } from 'react';
+import { getSpecializationInitialData } from '@/lib/actions/specialization-actions';
+import { SpecializationClient } from './_components/specialization-client';
+import { PageHeader } from '@/components/layout/page-header';
+import Loading from '../../loading';
 
 export default async function SpecializationPage() {
-  const data = await getSpecializationData();
+    const initialData = await getSpecializationInitialData();
 
-  return (
-    <FeatureGuard featureKey={FEATURE_FLAGS.ENABLE_SPECIALIZATION_SELECTION} userRole="STUDENT">
-      <Suspense fallback={<div>Loading...</div>}>
-        <SpecializationClient initialData={data} />
-      </Suspense>
-    </FeatureGuard>
-  );
+    return (
+        <div className="p-6 space-y-6">
+            <PageHeader 
+                title="Specialization Selection"
+                description="Choose your MIT specialized branch based on your academic performance."
+            />
+
+            <Suspense fallback={<Loading />}>
+                <SpecializationClient initialData={initialData} />
+            </Suspense>
+        </div>
+    );
 }

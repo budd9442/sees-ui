@@ -20,6 +20,8 @@ import { formatRelativeTime } from '@/lib/dateFormatters';
 import { useRouter } from 'next/navigation';
 import type { Student, Notification } from '@/types';
 
+import { AcademicRecoveryCard } from '@/components/student/academic-recovery-card';
+
 interface DashboardViewProps {
     student: Student;
     notifications: any[];
@@ -81,6 +83,11 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                 title={`Welcome back, ${student.firstName}!`}
                 description="Here's your academic overview and recent activity"
             />
+
+            {/* AI Recovery Intervention (FR3.5c) */}
+            <div className="mb-6">
+                <AcademicRecoveryCard />
+            </div>
 
             {/* Pathway Warning if applicable */}
             {student.academicYear === 'L1' &&

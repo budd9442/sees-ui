@@ -71,6 +71,14 @@ export default async function DashboardLayout({
 
   console.log('Layout Hydration User:', user);
 
+  // [MAINTENANCE LOCKDOWN]
+  // If maintenance mode is active, block all non-admins
+  const { prisma } = await import('@/lib/db');
+  const maintenanceSetting = await prisma.systemSetting.findUnique({ where: { key: 'maintenance_mode' } });
+  if (maintenanceSetting?.value === 'true' && user.role !== 'admin') {
+    redirect('/maintenance');
+  }
+
   return (
     <>
       <StoreHydrator user={user} />

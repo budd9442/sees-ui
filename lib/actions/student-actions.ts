@@ -5,7 +5,7 @@ import { auth } from '@/auth';
 import { Student, Grade, AcademicGoal, Notification, Module } from '@/types';
 import { revalidatePath } from 'next/cache';
 
-import { calculateGPA, getAcademicClass } from '@/lib/gpaCalculations'; // Use standard calculation logic
+import { AcademicEngine } from '@/lib/services/academic-engine'; 
 
 export async function getStudentDashboardData() {
     const session = await auth();
@@ -69,34 +69,24 @@ export async function getStudentDashboardData() {
         credits: g.module.credits // Critical fix: Flatten credits for calculator
     }));
 
-    const currentGPA = calculateGPA(mappedGrades);
-
-    // Grade model: grade_point (snake_case in schema line 186)
-    // Module model: credits (line 123)
-    const totalCredits = record.grades
-        .filter((g: any) => g.released_at && g.grade_point >= 0) // Filter unreleased
-        .reduce((sum: any, g: any) => sum + g.module.credits, 0);
+    const { gpa: currentGPA, totalCredits, academicClass } = await AcademicEngine.calculateStudentGPA(studentRecord.student_id);
 
     // Map to frontend Student type (camelCase)
     const student: Student = {
         id: record.user.user_id,
         email: record.user.email,
-        firstName: record.user.firstName || '',
-        lastName: record.user.lastName || '',
-        name: `${record.user.firstName || ''} ${record.user.lastName || ''}`,
+        firstName: record.user.first_name || '', // Corrected case
+        lastName: record.user.last_name || '',   // Corrected case
+        name: `${record.user.first_name || ''} ${record.user.last_name || ''}`,
         role: 'student',
         isActive: record.user.status === 'ACTIVE',
-        studentId: record.student_id, // client alias? or student_id? Schema has student_id. Client alias usually studentId if mapped? No, wait. 
-        // Student model has `student_id`? Let's check schema/seed. `student_id String @id`.
-        // So record.student_id.
-        // I will fix this later if broken. Focus on major ones.
-        // Calculate academic year from admission_year
+        studentId: record.student_id,
         academicYear: 'L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1)) as any,
         degreeProgram: record.degree_path?.code as any,
         specialization: record.specialization?.code as any,
         currentGPA,
         totalCredits,
-        academicClass: getAcademicClass(currentGPA), // Calculated dynamically
+        academicClass: academicClass as any, 
         pathwayLocked: !!record.degree_path_id,
         enrollmentDate: new Date().toISOString(),
         enrollmentStatus: record.enrollment_status as any
@@ -142,6 +132,18 @@ export async function getStudentDashboardData() {
 
 // Helper to get current active semester
 async function getCurrentSemester() {
+    // 1. [SOVEREIGNTY] Check if an active semester ID is explicitly set in Global Governance
+    const activeSetting = await prisma.systemSetting.findUnique({ where: { key: 'active_semester_id' } });
+    
+    if (activeSetting?.value && activeSetting.value !== 'SEM-CURRENT-UUID') {
+        const manualSemester = await prisma.semester.findUnique({
+            where: { semester_id: activeSetting.value },
+            include: { academic_year: true }
+        });
+        if (manualSemester) return manualSemester;
+    }
+
+    // 2. Fallback: Date-based logic
     const activeYear = await prisma.academicYear.findFirst({
         where: { active: true }
     });
@@ -341,9 +343,14 @@ export async function registerForModules(moduleIds: string[]) {
     // Cast to any to access dynamic fields if needed, or rely on type inference
     const record = studentRecord as any;
 
-    try {
         const semester = await getCurrentSemester();
         if (!semester) throw new Error("No active semester found for registration");
+
+        // [GOVERNANCE] Check if registration window is open
+        const regSetting = await prisma.systemSetting.findUnique({ where: { key: 'is_registration_open' } });
+        if (regSetting?.value !== 'true') {
+            throw new Error("Module registration is currently CLOSED by administration.");
+        }
 
         // 1. Validate modules belong to Program/Specialization
         // We count how many of the requested IDs are valid for this student
