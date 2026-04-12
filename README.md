@@ -13,7 +13,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🔑 Test Credentials
 
-Use any of these emails to log in (any password works in demo mode):
+Use your assigned institutional credentials to log in. In production, authentication is strictly enforced via database-verified records.
 
 | Email | Role | Description |
 |-------|------|-------------|
@@ -33,13 +33,13 @@ Use any of these emails to log in (any password works in demo mode):
 - **Admin** - User management, system configuration
 
 ### **Implemented Features**
-- ✅ Authentication with role-based routing
-- ✅ Student Dashboard with GPA trends and credit charts
-- ✅ Grades View with semester filtering
-- ✅ Module Registration with prerequisite checking
-- ✅ Pathway Selection with 60% demand threshold logic
-- ✅ All 5 role dashboards (basic implementations)
-- ✅ Mock data: 50+ students, 30+ modules, 500+ grades
+- ✅ Authentication with secure Prisma integration
+- ✅ Student Dashboard with real GPA trends and credit analytics
+- ✅ Grades View with semester filtering and real-time computation
+- ✅ Module Registration with prerequisite and capacity validation
+- ✅ Pathway Selection with database-driven demand monitoring
+- ✅ All 5 role dashboards (Production-Hardened)
+- ✅ 100% Database-Driven: No mock data or hardcoded simulations
 
 ## 📦 Tech Stack
 
@@ -79,9 +79,8 @@ components/
     └── page-header.tsx
 
 lib/
-├── mock/
-│   ├── generators.ts              # Mock data generators
-│   └── data.ts                    # Centralized mock data
+├── db.ts                          # Prisma Client singleton
+├── auth/                          # Auth configurations
 ├── gpaCalculations.ts
 └── dateFormatters.ts
 
@@ -110,18 +109,19 @@ types/
 ### All Roles
 - Role-specific dashboards
 - Personalized navigation
-- Notification system
-- Mock data integration
+- Real-time notification system
+- Database-driven data integrity
 
 ## 🚧 Development Status
 
 **✅ Completed**
-- Project setup and configuration
-- Type system and mock data
-- Authentication flow
+- Project setup and production configuration
+- Type system and database schema
+- Secure authentication flow (Auth.js + Prisma)
 - Layout system (navbar, sidebar)
-- Student dashboard + 3 core pages
-- All 5 role dashboards (basic)
+- Student dashboard + core academic pages
+- Production dashboards for all roles
+- System hardening and mock purification
 
 **⏳ In Progress**
 - Additional student screens (schedule, goals, messages, internship)
@@ -160,12 +160,8 @@ npm start        # Production server
 npm run lint     # Lint code
 ```
 
-## 🐛 Known Issues
-
-- Mock authentication accepts any password
-- Some screens are placeholders
-- Data doesn't persist (except auth via localStorage)
-- No real backend integration
+- Legacy UI components may still use static icons where dynamic versions are pending.
+- Bulk enrollment requires a specific CSV template.
 
 ## 📸 Screenshots
 

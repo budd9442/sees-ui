@@ -68,6 +68,8 @@ model Student {
   internships             Internship[]
   module_registrations    ModuleRegistration[]
   rankings                Ranking[]
+  interventions           Intervention[]
+  meeting_requests        MeetingRequest[]
   advisor                 Advisor?             @relation(fields: [advisor_id], references: [advisor_id])
   degree_path             DegreeProgram        @relation(fields: [degree_path_id], references: [program_id])
   preference_1            DegreeProgram?       @relation("PathwayPreference1", fields: [pathway_preference_1_id], references: [program_id])
@@ -93,6 +95,8 @@ model Advisor {
   assigned_degree_path_id String?
   staff                   Staff     @relation(fields: [advisor_id], references: [staff_id], onDelete: Cascade)
   students                Student[]
+  interventions           Intervention[]
+  meeting_requests        MeetingRequest[]
 }
 
 model HOD {
@@ -355,14 +359,6 @@ model AnonymousReport {
   student    Student  @relation(fields: [student_id], references: [student_id])
 }
 
-model SystemSetting {
-  setting_id  String   @id @default(uuid())
-  key         String   @unique
-  value       String
-  description String?
-  category    String
-  updated_at  DateTime @updatedAt
-}
 
 model LectureSchedule {
   schedule_id String   @id @default(uuid())
@@ -516,4 +512,52 @@ model InternshipDocument {
   url           String
   uploaded_at   DateTime   @default(now())
   internship    Internship @relation(fields: [internship_id], references: [internship_id], onDelete: Cascade)
+}
+
+model Intervention {
+  intervention_id String   @id @default(uuid())
+  student_id       String
+  advisor_id       String
+  type             String   // e.g., "ACADEMIC_WARNING", "PROBATION"
+  title            String
+  description      String?
+  severity         String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  status           String   @default("ACTIVE") // ACTIVE, RESOLVED, DROPPED
+  suggestions      String[]
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  advisor          Advisor  @relation(fields: [advisor_id], references: [advisor_id])
+  student          Student  @relation(fields: [student_id], references: [student_id])
+
+  @@map("interventions")
+}
+
+model MeetingRequest {
+  request_id String    @id @default(uuid())
+  student_id String
+  advisor_id String
+  subject    String
+  content    String?
+  status     String    @default("PENDING") // PENDING, SCHEDULED, COMPLETED, CANCELLED
+  scheduled_at DateTime?
+  sent_at    DateTime  @default(now())
+  student    Student   @relation(fields: [student_id], references: [student_id])
+  advisor    Advisor   @relation(fields: [advisor_id], references: [advisor_id])
+
+  @@map("meeting_requests")
+}
+
+model ApprovalTask {
+  task_id      String   @id @default(uuid())
+  requester_id String
+  approver_id  String?  // Nullable if assigned to a role like HOD
+  target_role  String?  // e.g., "HOD", "ADMIN"
+  type         String   // e.g., "REGISTRATION_OVERRIDE", "PATHWAY_CHANGE"
+  description  String
+  status       String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  metadata     Json?    // Contextual data (e.g., { "target_module_id": "MOD-1" })
+  created_at   DateTime @default(now())
+  resolved_at  DateTime?
+
+  @@map("approval_tasks")
 }

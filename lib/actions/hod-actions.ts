@@ -61,28 +61,46 @@ export async function getHODDashboardData() {
 
     // Extract all unique students taking modules in this department
     const departmentStudents = new Set();
-    let totalAssignments = 0; // Simulated concept
-
-    deptModules.forEach(m => {
+    
+    deptModules.forEach((m: any) => {
         m.module_registrations.forEach((r: any) => departmentStudents.add(r.student_id));
-        totalAssignments += Math.floor(m.module_registrations.length * 0.5); // Mock representation of actual workload
     });
 
     const totalStudents = departmentStudents.size;
 
-    // Pathway Demand (Mock tracking for now until specific selection workflow is built)
-    // We can count students per program for an idea
-    const activePrograms = await prisma.degreeProgram.findMany({ where: { active: true }, include: { students: true } });
-    const pathwayDemandData = activePrograms.map(p => ({
-        name: p.name,
-        applicants: p.students.length,
-        capacity: 100 // default mock capacity
-    }));
+    // Pathway Demand (Real tracking)
+    const activePrograms = await prisma.degreeProgram.findMany({ 
+        where: { active: true }, 
+        include: { students: true } 
+    });
+    
+    // Fetch capacities from ProgramIntake (fall back to 100)
+    const intakes = await prisma.programIntake.findMany({ where: { status: 'OPEN' } });
 
-    // Build department-wide GPA summary
-    const academicPerformanceData = pathwayDemandData.map(p => ({
-        program: p.name,
-        avgGPA: 3.2 + Math.random() * 0.5 // Random avg since we don't have deep nested queries for program-level GPAs yet
+    const pathwayDemandData = activePrograms.map(p => {
+        const intake = intakes.find(i => i.program_id === p.program_id);
+        return {
+            name: p.name,
+            applicants: p.students.length,
+            capacity: intake?.max_students || 100
+        };
+    });
+
+    // Build department-wide GPA summary using real grade data
+    const academicPerformanceData = await Promise.all(activePrograms.map(async (p) => {
+        const programStudents = await prisma.student.findMany({
+            where: { degree_path_id: p.program_id },
+            select: { current_gpa: true }
+        });
+        
+        const avg = programStudents.length > 0 
+            ? programStudents.reduce((acc, s) => acc + s.current_gpa, 0) / programStudents.length 
+            : 0;
+
+        return {
+            program: p.name,
+            avgGPA: parseFloat(avg.toFixed(2))
+        };
     }));
 
     // Staff Workload tracking
@@ -91,6 +109,11 @@ export async function getHODDashboardData() {
         modules: s.assignments.length,
         students: s.assignments.reduce((acc, a) => acc + (a.module?.module_registrations?.length || 0), 0)
     }));
+
+    // Real pending approvals
+    const pendingApprovals = await prisma.approvalTask.count({
+        where: { target_role: 'HOD', status: 'PENDING' }
+    });
 
     return {
         hod: {
@@ -101,7 +124,7 @@ export async function getHODDashboardData() {
         totalStudents,
         totalStaff: await prisma.staff.count({ where: { department: deptString } }),
         totalModules: deptModules.length,
-        pendingApprovals: 5, // Requires Approval Table
+        pendingApprovals,
         pathwayDemandData,
         academicPerformanceData,
         staffWorkloadData
@@ -166,7 +189,7 @@ export async function getHODPathwaysData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
-    // Fetch same list of mock students
+    // Fetch student analytics data for the department
     const data = await getHODAnalyticsData();
     return { students: data.students };
 }
@@ -226,11 +249,34 @@ export async function getHODReportsData() {
         status: g.status
     }));
 
-    // Interventions remain mocked as the table is not in the schema yet
-    const interventions = [
-        { id: "INT1", studentId: "S2", type: "Academic Counseling", status: "Ongoing" },
-        { id: "INT2", studentId: "S5", type: "Tutoring", status: "Completed" },
-    ];
+    // Fetch actual interventions for students in this department
+    const interventionsRaw = await prisma.intervention.findMany({
+        where: {
+            student: {
+                module_registrations: {
+                    some: {
+                        module: {
+                            staff_assignments: {
+                                some: {
+                                    staff: { department: staffRecord.department }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        include: { student: { include: { user: true } } },
+        take: 50
+    });
+
+    const interventions = interventionsRaw.map(i => ({
+        id: i.intervention_id,
+        studentId: i.student_id,
+        studentName: `${i.student.user.first_name} ${i.student.user.last_name}`,
+        type: i.type,
+        status: i.status
+    }));
 
     return {
         ...data,

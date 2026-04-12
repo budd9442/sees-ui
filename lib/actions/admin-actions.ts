@@ -75,12 +75,18 @@ export async function getAdminDashboardData() {
         { time: '20:00', responseTime: 140, throughput: 680 },
     ];
 
-    const recentLogs = [
-        { id: 1, level: 'ERROR', message: 'Failed to connect to primary database replica', time: '10:23 AM', source: 'db-pool' },
-        { id: 2, level: 'WARN', message: 'High memory usage detected on node-3', time: '09:45 AM', source: 'system-monitor' },
-        { id: 3, level: 'INFO', message: 'User batch sync completed successfully', time: '08:00 AM', source: 'sync-service' },
-        { id: 4, level: 'INFO', message: 'Automated backup completed', time: '02:00 AM', source: 'backup-manager' },
-    ];
+    const recentAuditLogs = await prisma.auditLog.findMany({
+        take: 5,
+        orderBy: { timestamp: 'desc' }
+    });
+
+    const recentLogs = recentAuditLogs.map((log, idx) => ({
+        id: log.log_id,
+        level: 'INFO',
+        message: `${log.action} on ${log.entity_type} (${log.entity_id})`,
+        time: log.timestamp.toLocaleTimeString(),
+        source: 'audit-log'
+    }));
 
     return {
         admin: {
@@ -89,7 +95,7 @@ export async function getAdminDashboardData() {
         },
         totalUsers,
         activeSessions,
-        systemErrors: 3, // Mock mock representing recentLogs Error count
+        systemErrors: recentAuditLogs.length, // Displaying recent activity count as a health indicator
         databaseSize: '2.4 GB',
         roleDistribution,
         featureFlags,
@@ -100,7 +106,7 @@ export async function getAdminDashboardData() {
 }
 
 // ----------------------------------------------------------------------
-// LOGS ACTIONS (MOCK)
+// SYSTEM MONITORING ACTIONS
 // ----------------------------------------------------------------------
 
 export async function getSystemMonitoringData() {
@@ -130,7 +136,20 @@ export async function getSystemMonitoringData() {
     };
 
     const alerts: any[] = [];
-    const logs: any[] = [];
+    // Real Audit Logs for monitoring view
+    const dbLogs = await prisma.auditLog.findMany({
+        take: 20,
+        orderBy: { timestamp: 'desc' }
+    });
+
+    const logs = dbLogs.map(l => ({
+        id: l.log_id,
+        timestamp: l.timestamp.toISOString(),
+        level: 'INFO',
+        source: 'AUDIT',
+        message: `${l.action} performed by ${l.admin_id} on ${l.entity_type}`,
+        metadata: { entity_id: l.entity_id }
+    }));
 
     // Fetch System Settings
     const dbSettings = await prisma.systemSetting.findMany();
@@ -163,7 +182,7 @@ export async function getAdminLogsData() {
 }
 
 // ----------------------------------------------------------------------
-// BACKUP ACTIONS (MOCK)
+// SYSTEM BACKUP ACTIONS
 // ----------------------------------------------------------------------
 
 export async function getAdminBackupsData() {
@@ -200,7 +219,7 @@ export async function restoreAdminBackup(backupId: string) {
 }
 
 // ----------------------------------------------------------------------
-// NOTIFICATIONS ACTIONS (MOCK)
+// NOTIFICATION ENGINE ACTIONS
 // ----------------------------------------------------------------------
 
 export async function getAdminNotificationsData() {

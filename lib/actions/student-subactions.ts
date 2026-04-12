@@ -201,7 +201,7 @@ export async function getPathwayData() {
     const mitCapacity = mitIntake?.max_students || 60;
     const itCapacity = itIntake?.max_students || 60;
 
-    // Provide some mock ranking data if oversubscribed (can be replaced with real window functions if needed)
+    // Provide ranking data based on current GPA among peers
     const studentRank = await prisma.student.count({
         where: {
             current_level: 'Level 1',
@@ -376,8 +376,8 @@ export async function getInternshipData() {
 
     if (!studentRecord) throw new Error("Student profile not found");
 
-    // Mock check for L3 since our generic 'current_level' might be anything
-    const isEligible = studentRecord.current_level === 'Level 3' || studentRecord.current_level === 'Level 4' || true; // Force true for demo
+    // Internship eligibility: Level 3 or 4
+    const isEligible = studentRecord.current_level === 'Level 3' || studentRecord.current_level === 'Level 4';
 
     const internship = studentRecord.internships.length > 0 ? studentRecord.internships[0] : null;
 
@@ -585,8 +585,8 @@ export async function getStudentProfile() {
             enrollmentDate: new Date(studentRecord.admission_year, 8, 1).toISOString(),
             expectedGraduation: new Date(studentRecord.admission_year + 4, 5, 1).toISOString(),
             currentGPA: studentRecord.current_gpa,
-            cumulativeCredits: 120,
-            completedCredits: grades.length * 3
+            cumulativeCredits: grades.reduce((sum, g) => sum + (g.marks >= 50 ? 3 : 0), 0), // Use real credit weight if available
+            completedCredits: grades.filter(g => g.marks >= 50).length * 3
         }
     };
 }

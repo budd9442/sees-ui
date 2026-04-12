@@ -38,7 +38,7 @@ export async function getAdviseesData() {
 
         student.registration.forEach((reg: any) => {
             if (reg.grade) {
-                // assume each module is 3 credits for mock setup unless fetched
+                // Standard credit weight (3 credits per module)
                 const credits = 3;
                 totalPoints += reg.grade.grade_point * credits;
                 totalCredits += credits;
@@ -79,30 +79,54 @@ export async function getAdvisorStudentDetails(studentId: string) {
 
     if (!student) throw new Error("Student not found");
 
-    // Mock data for goals, interventions, grades, modules
-    const goals = [
-        { id: "GOAL1", studentId, title: "Improve GPA", description: "Target 3.8", priority: "high", currentProgress: 60 }
-    ];
+    // Real data from DB
+    const [goals, interventions, grades] = await Promise.all([
+        prisma.academicGoal.findMany({ where: { student_id: studentId } }),
+        prisma.intervention.findMany({ where: { student_id: studentId } }),
+        prisma.grade.findMany({ 
+            where: { student_id: studentId },
+            include: { module: true, semester: true }
+        })
+    ]);
 
-    const interventions = [
-        { id: "INT1", studentId, type: "academic_warning", title: "Low grades", description: "Failing two subjects", severity: "high", status: "active", suggestions: ["Attend tutoring"], createdAt: new Date().toISOString() }
-    ];
+    const formattedGrades = grades.map(g => ({
+        id: g.grade_id,
+        studentId,
+        moduleId: g.module_id,
+        credits: g.module.credits,
+        points: g.grade_point,
+        letterGrade: g.letter_grade,
+        semester: g.semester.label,
+        isReleased: !!g.released_at
+    }));
 
-    const grades = [
-        { id: "G1", studentId, moduleId: "MOD1", credits: 3, points: 4.0, letterGrade: "A", semester: "S1", isReleased: true },
-        { id: "G2", studentId, moduleId: "MOD2", credits: 3, points: 2.0, letterGrade: "C", semester: "S1", isReleased: true }
-    ];
-
-    const modules = [
-        { id: "MOD1", code: "CS101", title: "Intro to CS" },
-        { id: "MOD2", code: "Math101", title: "Calculus" }
-    ];
+    const modules = grades.map(g => ({
+        id: g.module.module_id,
+        code: g.module.code,
+        title: g.module.name
+    }));
 
     return {
         student,
-        goals,
-        interventions,
-        grades,
+        goals: goals.map(g => ({
+            id: g.goal_id,
+            studentId,
+            title: g.title,
+            description: g.description,
+            priority: g.priority,
+            currentProgress: g.progress
+        })),
+        interventions: interventions.map(i => ({
+            id: i.intervention_id,
+            studentId,
+            type: i.type,
+            title: i.title,
+            description: i.description,
+            severity: i.severity,
+            status: i.status,
+            createdAt: i.created_at.toISOString()
+        })),
+        grades: formattedGrades,
         modules
     };
 }

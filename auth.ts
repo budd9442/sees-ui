@@ -46,7 +46,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     let role = 'student';
                     const staff = (user as any).staff;
                     
-                    if (staff?.staff_type === 'ADMIN' || staff?.staff_type === 'REGISTRAR' || email.toString().toLowerCase().includes('admin')) {
+                    if (staff?.staff_type === 'ADMIN' || staff?.staff_type === 'REGISTRAR') {
                         role = 'admin';
                     } else if (staff?.hod) {
                         role = 'hod';
@@ -57,9 +57,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     } else if ((user as any).student) {
                         role = 'student';
                     }
-
-                    // Force admin role for the specific seed admin email if db relation fails/missing for some reason
-                    if (email === 'admin@sees.com' || email === 'admin@kln.ac.lk') role = 'admin';
 
                     const firstName = user.first_name || 'User';
                     const lastName = user.last_name || '';

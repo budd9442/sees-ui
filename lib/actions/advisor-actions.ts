@@ -73,18 +73,32 @@ export async function getAdvisorDashboardData() {
         { range: 'At Risk (<2.5)', students: atRiskCount, percentage: Math.round((atRiskCount / total) * 100) },
     ];
 
-    // Mock metrics needing specialized tables (Messages)
-    const pendingMessages = 0;
+    // Real pending messages count
+    const pendingMessages = await prisma.message.count({
+        where: { recipient_id: userId, read_at: null }
+    });
 
-    // Trend mock until time-series snapshots are implemented
-    const gpaTrendData = [
-        { month: 'Sep', averageGPA: 3.2 },
-        { month: 'Oct', averageGPA: 3.15 },
-        { month: 'Nov', averageGPA: 3.18 },
-        { month: 'Dec', averageGPA: 3.1 },
-        { month: 'Jan', averageGPA: 3.25 },
-        { month: 'Feb', averageGPA: 3.3 },
-    ];
+    // Real GPA Trend from GPAHistory
+    const history = await prisma.gPAHistory.findMany({
+        where: { student_id: { in: myStudents.map(s => s.studentId) } },
+        orderBy: { calculation_date: 'asc' },
+        take: 50
+    });
+
+    // Group by month and calculate average
+    const trendMap = new Map();
+    history.forEach(h => {
+        const month = h.calculation_date.toLocaleString('default', { month: 'short' });
+        if (!trendMap.has(month)) trendMap.set(month, { sum: 0, count: 0 });
+        const entry = trendMap.get(month);
+        entry.sum += h.gpa;
+        entry.count += 1;
+    });
+
+    const gpaTrendData = Array.from(trendMap.entries()).map(([month, data]) => ({
+        month,
+        averageGPA: parseFloat((data.sum / data.count).toFixed(2))
+    }));
 
     return {
         advisor: {
@@ -96,6 +110,8 @@ export async function getAdvisorDashboardData() {
         pendingMessages,
         averageGPA,
         performanceDistribution,
-        gpaTrendData
+        gpaTrendData: gpaTrendData.length ? gpaTrendData : [
+            { month: 'Current', averageGPA: parseFloat(averageGPA.toFixed(2)) }
+        ]
     };
 }
