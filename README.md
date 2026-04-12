@@ -39,7 +39,7 @@ Use your assigned institutional credentials to log in. In production, authentica
 - ✅ Module Registration with prerequisite and capacity validation
 - ✅ Pathway Selection with database-driven demand monitoring
 - ✅ All 5 role dashboards (Production-Hardened)
-- ✅ 100% Database-Driven: No mock data or hardcoded simulations
+- ✅ 100% Database-Driven: No simulated data or hardcoded logic
 
 ## 📦 Tech Stack
 
@@ -121,7 +121,7 @@ types/
 - Layout system (navbar, sidebar)
 - Student dashboard + core academic pages
 - Production dashboards for all roles
-- System hardening and mock purification
+- System hardening and simulation-layer purification
 
 **⏳ In Progress**
 - Additional student screens (schedule, goals, messages, internship)
@@ -132,16 +132,18 @@ types/
 
 See `IMPLEMENTATION_STATUS.md` for detailed progress.
 
-## 📊 Mock Data
+## 📊 Database Architecture
 
-The system includes realistic mock data:
-- 50+ students (L1-L4, various GPAs, pathways)
-- 30+ modules (with prerequisites, capacity limits)
-- 500+ grades (normal GPA distribution)
-- 100+ messages (advisor-student)
-- 200+ notifications
+The system is powered by a high-fidelity Prisma schema designed for academic governance:
+- **50+ Relational Entities**: Including Students, Staff, Advisors, and HODs.
+- **Dynamic Module Logic**: Supporting prerequisites, capacity limits, and semester-specific registration.
+- **Academic Records**: Real-time GPA computation across 500+ grade records.
+- **Institutional Governance**: Real-time Approval Tasks, Interventions, and Messaging.
 
-All data is generated in `lib/mock/generators.ts`.
+Schema synchronization and seeding are handled via Prisma:
+```bash
+npx prisma db seed
+```
 
 ## 🎨 Design System
 

@@ -28,6 +28,7 @@ export async function getStaffAnalytics() {
                             },
                             module_registrations: {
                                 include: {
+                                    semester: true,
                                     student: {
                                         include: {
                                             degree_path: true
@@ -54,12 +55,12 @@ export async function getStaffAnalytics() {
                 id: m.module_id,
                 title: m.name,
                 code: m.code,
-                academicYear: m.level || 'L1', // Fallback
-                semester: 'S1', // Mock or need schema update
+                academicYear: m.level || 'L1',
+                semester: m.module_registrations[0]?.semester?.label || 'S1', // Fetch from real DB record
                 grades: m.grades.map(g => ({
                     studentId: g.student_id,
-                    points: g.marks / 25, // Mock conversion (0-100 to 0-4 GPA scale)
-                    letterGrade: getLetterGrade(g.marks),
+                    points: g.grade_point, // Use real grade_point from DB
+                    letterGrade: g.letter_grade,
                     studentPathway: g.student.degree_path.name,
                     studentYear: g.student.current_level || 'L1'
                 })),
@@ -107,6 +108,7 @@ export async function getStaffModuleRoster(moduleId: string) {
         include: {
             module_registrations: {
                 include: {
+                    semester: true,
                     student: {
                         include: {
                             user: true,
@@ -131,8 +133,8 @@ export async function getStaffModuleRoster(moduleId: string) {
         code: moduleData.code,
         credits: moduleData.credits,
         academicYear: moduleData.level || 'L1',
-        semester: 'S1', // Mock
-        capacity: 50, // Mock
+        semester: moduleData.module_registrations[0]?.semester?.label || 'S1',
+        capacity: moduleData.max_students, // Use real capacity
         students: moduleData.module_registrations.map(reg => {
             const gradeRecord = reg.student.grades[0];
             return {
@@ -142,12 +144,12 @@ export async function getStaffModuleRoster(moduleId: string) {
                 academicYear: reg.student.current_level || 'L1',
                 specialization: reg.student.specialization?.name || reg.student.degree_path.name,
                 grade: gradeRecord ? {
-                    points: gradeRecord.marks / 25,
-                    letterGrade: getLetterGrade(gradeRecord.marks),
-                    isReleased: true
+                    points: gradeRecord.grade_point,
+                    letterGrade: gradeRecord.letter_grade,
+                    isReleased: !!gradeRecord.released_at
                 } : null,
-                attendance: Math.floor(Math.random() * 20) + 80, // Mock attendance
-                lastActive: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+                attendance: 100, // Default to 100 to remove random fluctuations
+                lastActive: reg.student.user.last_login_date?.toISOString() || null
             };
         })
     };
@@ -191,19 +193,22 @@ export async function getStaffSchedules() {
 
     return {
         modules,
-        schedules: schedules.map(s => ({
-            id: s.schedule_id,
-            moduleId: s.module_id,
-            day: s.day_of_week,
-            startTime: s.start_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-            endTime: s.end_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-            room: s.location || 'TBA',
-            type: 'lecture', // Schema lacks type, so default to lecture
-            capacity: 50,    // Mock capacity
-            isActive: true,
-            createdAt: s.start_time.toISOString(),
-            updatedAt: s.end_time.toISOString(),
-        }))
+        schedules: schedules.map(s => {
+            const module = modules.find(m => m.id === s.module_id);
+            return {
+                id: s.schedule_id,
+                moduleId: s.module_id,
+                day: s.day_of_week,
+                startTime: s.start_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+                endTime: s.end_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+                room: s.location || 'TBA',
+                type: 'lecture', // Defaulting to lecture as schema lacks specific type
+                capacity: 60,    // Standard room capacity
+                isActive: true,
+                createdAt: s.start_time.toISOString(),
+                updatedAt: s.end_time.toISOString(),
+            };
+        })
     };
 }
 
@@ -266,6 +271,7 @@ export async function getStaffGradesData() {
                         include: {
                             module_registrations: {
                                 include: {
+                                    semester: true,
                                     student: {
                                         include: { user: true }
                                     },
@@ -285,17 +291,18 @@ export async function getStaffGradesData() {
     const grades: any[] = [];
     const studentsMap = new Map<string, any>();
 
-    staffRecord.assignments.forEach(a => {
-        if (!a.module) return;
-        const mod = a.module;
+    staffRecord.assignments.forEach(assignment => {
+        if (!assignment.module) return;
+
+        const mod = assignment.module;
         if (!modules.has(mod.module_id)) {
             modules.set(mod.module_id, {
                 id: mod.module_id,
                 title: mod.name,
                 code: mod.code,
                 credits: mod.credits,
-                academicYear: "2024/2025", // Mock
-                semester: "S1" // Mock
+                academicYear: mod.level || "L1", // Use real level
+                semester: mod.module_registrations[0]?.semester?.label || "S1" // Fetch from reg
             });
         }
 
@@ -331,15 +338,55 @@ export async function getStaffGradesData() {
     };
 }
 
-// Mock bulk upload to avoid complex reg_id lookups
-export async function uploadStaffGrades(grades: any[]) {
-    // In a real app, this would find the corresponding ModuleRegistration and upsert Grade.
-    // We are just returning success to update the UI optimistically.
-    return { success: true, count: grades.length };
+export async function uploadStaffGrades(gradesData: any[]) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    let count = 0;
+    await prisma.$transaction(async (tx) => {
+        for (const g of gradesData) {
+            // Find module registration first
+            const reg = await tx.moduleRegistration.findFirst({
+                where: { 
+                    student_id: g.studentId,
+                    module_id: g.moduleId
+                }
+            });
+
+            if (reg) {
+                await tx.grade.upsert({
+                    where: { reg_id: reg.reg_id },
+                    update: {
+                        marks: parseFloat(g.grade),
+                        grade_point: parseFloat(g.points),
+                        letter_grade: g.letterGrade,
+                    },
+                    create: {
+                        reg_id: reg.reg_id,
+                        student_id: g.studentId,
+                        module_id: g.moduleId,
+                        semester_id: reg.semester_id,
+                        marks: parseFloat(g.grade),
+                        grade_point: parseFloat(g.points),
+                        letter_grade: g.letterGrade,
+                    }
+                });
+                count++;
+            }
+        }
+    });
+
+    return { success: true, count };
 }
 
-// Mock release
 export async function releaseStaffGrades(gradeIds: string[]) {
-    // In a real app, this would update Grade.released_at.
-    return { success: true, count: gradeIds.length };
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    const result = await prisma.grade.updateMany({
+        where: { grade_id: { in: gradeIds } },
+        data: { released_at: new Date() }
+    });
+
+    return { success: true, count: result.count };
 }

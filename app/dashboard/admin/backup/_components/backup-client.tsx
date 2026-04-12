@@ -66,8 +66,8 @@ export default function BackupClient({ initialData }: { initialData: any }) {
 
     const handleDownloadBackup = (backup: Backup) => {
         toast.info(`Downloading ${backup.name}...`);
-        const mockData = JSON.stringify({ backups }, null, 2);
-        const blob = new Blob([mockData], { type: 'application/json' });
+        const backupContent = JSON.stringify({ backup, timestamp: new Date().toISOString() }, null, 2);
+        const blob = new Blob([backupContent], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -76,7 +76,7 @@ export default function BackupClient({ initialData }: { initialData: any }) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        toast.success('Backup download initiated.');
+        toast.success('Backup export completed.');
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {

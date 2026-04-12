@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, TrendingUp } from 'lucide-react';
-import { calculateGPA } from '@/lib/gpaCalculations';
+import { calculateGPA } from '@/lib/gpa-utils';
 import {
     Table,
     TableBody,

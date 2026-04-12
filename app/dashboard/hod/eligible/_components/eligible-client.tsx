@@ -128,15 +128,12 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
         const creditsRequired = 120;
         const gpaRequired = 2.0;
 
-        // For mock purposes, giving them more credits so some are eligible/close
-        // We will just artificially inflate totalCredits for visualization
-        const mockCredits = totalCredits * 40;
-        const isEligible = mockCredits >= creditsRequired && gpa >= gpaRequired;
-        const creditsRemaining = Math.max(0, creditsRequired - mockCredits);
+        const isEligible = totalCredits >= creditsRequired && gpa >= gpaRequired;
+        const creditsRemaining = Math.max(0, creditsRequired - totalCredits);
 
         return {
             isEligible,
-            creditsCompleted: mockCredits,
+            creditsCompleted: totalCredits,
             creditsRequired,
             creditsRemaining,
             gpa,

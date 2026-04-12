@@ -343,6 +343,8 @@ export async function registerForModules(moduleIds: string[]) {
     // Cast to any to access dynamic fields if needed, or rely on type inference
     const record = studentRecord as any;
 
+    try {
+
         const semester = await getCurrentSemester();
         if (!semester) throw new Error("No active semester found for registration");
 

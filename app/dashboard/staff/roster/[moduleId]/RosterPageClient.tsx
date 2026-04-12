@@ -62,7 +62,7 @@ type RosterData = {
       isReleased: boolean;
     } | null;
     attendance: number;
-    lastActive: string;
+    lastActive: string | null;
   }[];
 };
 
@@ -87,7 +87,7 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
 
     const currentGrade = studentInfo.grade;
     const attendance = studentInfo.attendance;
-    const lastActive = new Date(studentInfo.lastActive);
+    const lastActive = studentInfo.lastActive ? new Date(studentInfo.lastActive) : new Date();
 
     return {
       grade: currentGrade,

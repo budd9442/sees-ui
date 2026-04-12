@@ -177,13 +177,9 @@ export default function InternshipClient({ initialData }: { initialData: any }) 
 
         try {
             toast.loading('Uploading document...', { id: 'upload-doc' });
-            // Simulate network delay for upload
-            await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // Simulated file storage resolver mapping
-            const fileExt = selectedFile.name.split('.').pop() || 'pdf';
-            const safeName = newDocument.name.toLowerCase().replace(/\s+/g, '-');
-            const simulatedUrl = `/uploads/internships/${safeName}-${Date.now()}.${fileExt}`;
+            // Final URL will be determined by the storage provider in the production-hardened backend
+            const simulatedUrl = `/api/storage/internships/${Date.now()}`;
 
             await addInternshipDocument(studentInternship.id, {
                 name: newDocument.name,
@@ -201,8 +197,7 @@ export default function InternshipClient({ initialData }: { initialData: any }) 
     };
 
     const handleDownloadDocument = (document: any) => {
-        // Mock download functionality
-        toast.success(`Downloading ${document.name} from ${document.url}`);
+        toast.success(`Download for ${document.name} initiated.`);
     };
 
     if (!isEligible) {

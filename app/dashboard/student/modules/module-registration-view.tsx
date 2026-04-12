@@ -121,7 +121,6 @@ export function ModuleRegistrationView({
             toast.error(`Maximum ${maxCredits} credits allowed`);
             return;
         }
- Broadway
 
         // Check all prerequisites
         const invalidModules = selectedModules.filter((id) => {

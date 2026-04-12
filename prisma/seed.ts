@@ -306,7 +306,7 @@ async function main() {
         });
     }
 
-    console.log("Seeding Mock Users to match AuthStore...");
+    console.log("Seeding Initial Users to match AuthStore...");
 
     // Admin (ADMIN001)
     await prisma.user.create({
@@ -438,7 +438,7 @@ async function main() {
                             student_id: 'STU001',
                             module_id: module.module_id,
                             semester_id: targetSem.semester_id,
-                            marks: 0, // Mock
+                            marks: 0, // Initial value
                             grade_point: getGradePoints(item.grade),
                             letter_grade: item.grade,
                             released_at: new Date()

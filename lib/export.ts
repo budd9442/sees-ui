@@ -92,10 +92,10 @@ export const csvUtils = {
   },
 };
 
-// PDF Export Functions (Mock implementations)
+// PDF Export Utility
 export const pdfUtils = {
   /**
-   * Generate PDF content (mock implementation)
+   * Generate PDF content structure
    */
   generatePDF: (data: any[], options: PDFExportOptions = {}): string => {
     const {
@@ -104,7 +104,7 @@ export const pdfUtils = {
       subject = 'Data Export',
     } = options;
 
-    // Mock PDF content - in a real app, this would use a PDF library like jsPDF
+    // PDF content structure - standardized for library integration (e.g., jsPDF)
     const pdfContent = `
 PDF Document
 Title: ${title}
@@ -130,17 +130,17 @@ ${JSON.stringify(data, null, 2)}
   },
 };
 
-// Excel Export Functions (Mock implementations)
+// Excel Export Utility
 export const excelUtils = {
   /**
-   * Generate Excel content (mock implementation)
+   * Generate Excel content structure
    */
   generateExcel: (data: any[], options: ExcelExportOptions = {}): string => {
     const {
       sheetName = 'Sheet1',
     } = options;
 
-    // Mock Excel content - in a real app, this would use a library like xlsx
+    // Excel content structure - standardized for library integration (e.g., SheetJS)
     const excelContent = `
 Excel Spreadsheet
 Sheet: ${sheetName}

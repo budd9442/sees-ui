@@ -41,11 +41,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Intervention, InterventionResource } from '@/types';
+import { acknowledgeIntervention } from '@/lib/actions/advisor-subactions';
 
 interface InterventionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  intervention?: Intervention;
+  intervention: Intervention;
   gpaChange?: {
     previous: number;
     current: number;
@@ -62,60 +63,15 @@ export default function InterventionModal({
   academicClass
 }: InterventionModalProps) {
   const { user } = useAuthStore();
-  const addIntervention = (data: any) => console.log('Mock add intervention:', data);
   const [acknowledged, setAcknowledged] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [notes, setNotes] = useState('');
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
 
-  // Mock intervention data if not provided
-  const interventionData = intervention || {
-    id: `INT${Date.now()}`,
-    studentId: user?.id || '',
-    advisorId: 'ADV001',
-    type: 'gpa_drop' as const,
-    title: 'Academic Performance Alert',
-    description: 'Your GPA has decreased, and we want to help you get back on track.',
-    triggerReason: 'GPA drop detected',
-    severity: 'medium' as 'low' | 'medium' | 'high',
-    suggestions: [
-      'Meet with your academic advisor to discuss study strategies',
-      'Consider joining study groups for challenging subjects',
-      'Review your time management and study schedule',
-      'Utilize campus tutoring and academic support services',
-    ],
-    resources: [
-      {
-        id: '1',
-        title: 'Academic Success Center',
-        description: 'Free tutoring and study skills workshops',
-        type: 'service' as const,
-        url: '/academic-support',
-        contact: 'academicsuccess@university.edu',
-      },
-      {
-        id: '2',
-        title: 'Time Management Workshop',
-        description: 'Learn effective study and time management techniques',
-        type: 'workshop' as const,
-        url: '/workshops/time-management',
-        contact: 'workshops@university.edu',
-      },
-      {
-        id: '3',
-        title: 'Peer Study Groups',
-        description: 'Connect with other students for collaborative learning',
-        type: 'program' as const,
-        url: '/study-groups',
-        contact: 'studygroups@university.edu',
-      },
-    ],
-    status: 'active' as const,
-    createdAt: new Date().toISOString(),
-    acknowledged: false,
-  };
+  if (!intervention) return null;
 
   const getSeverityColor = (severity: string) => {
-    switch (severity) {
+    switch (severity.toLowerCase()) {
       case 'low': return 'text-blue-600 bg-blue-50';
       case 'medium': return 'text-yellow-600 bg-yellow-50';
       case 'high': return 'text-red-600 bg-red-50';
@@ -124,7 +80,7 @@ export default function InterventionModal({
   };
 
   const getSeverityIcon = (severity: string) => {
-    switch (severity) {
+    switch (severity.toLowerCase()) {
       case 'low': return Lightbulb;
       case 'medium': return AlertTriangle;
       case 'high': return AlertTriangle;
@@ -132,18 +88,18 @@ export default function InterventionModal({
     }
   };
 
-  const handleAcknowledge = () => {
-    if (interventionData) {
-      addIntervention({
-        ...interventionData,
-        status: 'acknowledged',
-        acknowledgedAt: new Date().toISOString(),
-        studentNotes: notes,
-        selectedResources: selectedResources,
-      });
+  const handleAcknowledge = async () => {
+    setIsSubmitting(true);
+    try {
+      await acknowledgeIntervention(intervention.id, notes);
+      setAcknowledged(true);
+      toast.success('Intervention acknowledged. We\'re here to help you succeed!');
+      setTimeout(onClose, 2000);
+    } catch (error) {
+      toast.error('Failed to acknowledge intervention. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-    setAcknowledged(true);
-    toast.success('Intervention acknowledged. We\'re here to help you succeed!');
   };
 
   const toggleResource = (resourceId: string) => {
@@ -170,7 +126,7 @@ export default function InterventionModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {(() => {
-              const SeverityIcon = getSeverityIcon(interventionData.severity);
+              const SeverityIcon = getSeverityIcon(intervention.severity);
               return <SeverityIcon className="h-5 w-5" />;
             })()}
             Academic Support Alert
@@ -183,7 +139,7 @@ export default function InterventionModal({
         <div className="space-y-6">
           {/* GPA Change Alert */}
           {gpaChange && (
-            <Alert className={getSeverityColor(interventionData.severity)}>
+            <Alert className={getSeverityColor(intervention.severity)}>
               <TrendingDown className="h-4 w-4" />
               <AlertTitle>GPA Change Detected</AlertTitle>
               <AlertDescription>
@@ -197,15 +153,15 @@ export default function InterventionModal({
           {/* Intervention Details */}
           <Card>
             <CardHeader>
-              <CardTitle>{interventionData.title}</CardTitle>
-              <CardDescription>{interventionData.description}</CardDescription>
+              <CardTitle>{intervention.title}</CardTitle>
+              <CardDescription>{intervention.description}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
                   <h4 className="font-semibold mb-2">Personalized Suggestions</h4>
                   <ul className="space-y-2">
-                    {interventionData.suggestions.map((suggestion, index) => (
+                    {intervention.suggestions.map((suggestion, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                         <span className="text-sm">{suggestion}</span>
@@ -227,7 +183,7 @@ export default function InterventionModal({
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {interventionData.resources.map((resource) => {
+                {intervention.resources?.map((resource) => {
                   const ResourceIcon = getResourceIcon(resource.type);
                   const isSelected = selectedResources.includes(resource.id);
 

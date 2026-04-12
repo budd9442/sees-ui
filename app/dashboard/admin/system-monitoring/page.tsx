@@ -53,133 +53,18 @@ import {
 } from 'lucide-react';
 import type { AuditLog, SystemConfiguration } from '@/types';
 
-// Mock data for system monitoring
-const mockSystemMetrics = {
-  uptime: '99.9%',
-  responseTime: '245ms',
-  activeUsers: 1247,
-  totalRequests: 45678,
-  errorRate: '0.2%',
-  cpuUsage: '45%',
-  memoryUsage: '67%',
-  diskUsage: '78%',
-  databaseConnections: 23,
-  cacheHitRate: '94%'
-};
-
-const mockAlerts = [
-  {
-    id: 'alert-001',
-    type: 'warning',
-    title: 'High Memory Usage',
-    description: 'Memory usage has exceeded 80% threshold',
-    timestamp: '2025-12-15T14:30:00Z',
-    severity: 'medium',
-    status: 'active'
-  },
-  {
-    id: 'alert-002',
-    type: 'error',
-    title: 'Database Connection Pool Exhausted',
-    description: 'All database connections are in use',
-    timestamp: '2025-12-15T14:25:00Z',
-    severity: 'high',
-    status: 'resolved'
-  },
-  {
-    id: 'alert-003',
-    type: 'info',
-    title: 'Scheduled Maintenance',
-    description: 'System maintenance scheduled for tonight',
-    timestamp: '2025-12-15T10:00:00Z',
-    severity: 'low',
-    status: 'scheduled'
-  }
-];
-
-const mockAuditLogs: AuditLog[] = [
-  {
-    id: 'audit-001',
-    userId: 'ADMIN001',
-    userEmail: 'admin@university.edu',
-    action: 'USER_CREATED',
-    resource: 'User',
-    resourceId: 'STU123',
-    details: { email: 'newstudent@university.edu', role: 'student' },
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    timestamp: '2025-12-15T15:30:00Z',
-    status: 'success'
-  },
-  {
-    id: 'audit-002',
-    userId: 'STAFF001',
-    userEmail: 'staff@university.edu',
-    action: 'GRADE_UPLOADED',
-    resource: 'Grade',
-    resourceId: 'GRD456',
-    details: { moduleId: 'MOD001', studentCount: 45 },
-    ipAddress: '192.168.1.101',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-    timestamp: '2025-12-15T15:25:00Z',
-    status: 'success'
-  },
-  {
-    id: 'audit-003',
-    userId: 'STU001',
-    userEmail: 'student@university.edu',
-    action: 'LOGIN_FAILED',
-    resource: 'Authentication',
-    details: { reason: 'Invalid password' },
-    ipAddress: '192.168.1.102',
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15',
-    timestamp: '2025-12-15T15:20:00Z',
-    status: 'failed'
-  }
-];
-
-const mockSystemConfigs: SystemConfiguration[] = [
-  {
-    id: 'config-001',
-    category: 'academic',
-    key: 'gpa_calculation_formula',
-    value: 'weighted_average',
-    description: 'Formula used for GPA calculation',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T10:00:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-002',
-    category: 'user_management',
-    key: 'max_login_attempts',
-    value: '5',
-    description: 'Maximum login attempts before account lockout',
-    isActive: true,
-    version: 2,
-    lastModified: '2025-12-15T09:30:00Z',
-    modifiedBy: 'ADMIN001'
-  },
-  {
-    id: 'config-003',
-    category: 'system_settings',
-    key: 'session_timeout',
-    value: '3600',
-    description: 'Session timeout in seconds',
-    isActive: true,
-    version: 1,
-    lastModified: '2025-12-15T08:00:00Z',
-    modifiedBy: 'ADMIN001'
-  }
-];
+// Initial states will be populated by fetchMonitoringData
 
 export default function SystemMonitoringPage() {
   const { user } = useAuthStore();
-  const [systemMetrics, setSystemMetrics] = useState<any>(mockSystemMetrics);
-  const [alerts, setAlerts] = useState<any[]>(mockAlerts);
-  const [auditLogs, setAuditLogs] = useState<any[]>(mockAuditLogs);
-  const [systemConfigs, setSystemConfigs] = useState<any[]>(mockSystemConfigs);
+  const [systemMetrics, setSystemMetrics] = useState<any>({
+    uptime: '0%', responseTime: '0ms', activeUsers: 0, totalRequests: 0,
+    errorRate: '0%', cpuUsage: '0%', memoryUsage: '0%', diskUsage: '0%',
+    databaseConnections: 0, cacheHitRate: '0%'
+  });
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [systemConfigs, setSystemConfigs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState('24h');

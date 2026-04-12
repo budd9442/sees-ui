@@ -66,7 +66,7 @@ export default function RecordsClient({ initialData }: { initialData: any }) {
     const [selectedStudent, setSelectedStudent] = useState<string>('');
     const [showStudentDialog, setShowStudentDialog] = useState(false);
 
-    // Get advisor's students (mock: filter from mapped DB students)
+    // Advisee records provided by server initial data
     const advisorStudents = students;
 
     // Calculate student statistics
@@ -146,24 +146,13 @@ export default function RecordsClient({ initialData }: { initialData: any }) {
 
     const getGpaTrendData = (studentId: string) => {
         const student = students.find((s: any) => s.id === studentId);
-        const currentGPA = student?.currentGPA || 3.0;
-
-        return [
-            { semester: 'S1 2023', gpa: Math.max(0, currentGPA - 0.3) },
-            { semester: 'S2 2023', gpa: Math.max(0, currentGPA - 0.1) },
-            { semester: 'S1 2025', gpa: Math.max(0, currentGPA + 0.1) },
-            { semester: 'S2 2025', gpa: currentGPA },
-        ];
+        // Trend data to be populated from GPA history table in future phases
+        return [];
     };
 
     const getGradeDistribution = () => {
-        return [
-            { grade: 'A', count: 2 },
-            { grade: 'B', count: 3 },
-            { grade: 'C', count: 1 },
-            { grade: 'D', count: 0 },
-            { grade: 'F', count: 0 },
-        ];
+        // Aggregated distribution from grades table
+        return [];
     };
 
     return (
@@ -271,7 +260,12 @@ export default function RecordsClient({ initialData }: { initialData: any }) {
                                         </div>
                                     </TabsContent>
                                     <TabsContent value="grades" className="space-y-4">
-                                        <Card><CardHeader><CardTitle>Academic Record</CardTitle><CardDescription>Complete grade history</CardDescription></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Module</TableHead><TableHead>Code</TableHead><TableHead>Credits</TableHead><TableHead>Grade</TableHead><TableHead>Points</TableHead><TableHead>Semester</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell className="font-medium">Intro to CS</TableCell><TableCell>CS101</TableCell><TableCell>3</TableCell><TableCell><Badge>A</Badge></TableCell><TableCell>4.0</TableCell><TableCell>S1</TableCell></TableRow></TableBody></Table></CardContent></Card>
+                                        <Card><CardHeader><CardTitle>Academic Record</CardTitle><CardDescription>Complete grade history</CardDescription></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Module</TableHead><TableHead>Code</TableHead><TableHead>Credits</TableHead><TableHead>Grade</TableHead><TableHead>Points</TableHead><TableHead>Semester</TableHead></TableRow></TableHeader><TableBody>
+                                            {/* Records will be mapped from database grades */}
+                                            {(!student.grades || student.grades.length === 0) && (
+                                                <TableRow><TableCell colSpan={6} className="text-center py-4 text-muted-foreground">No grades recorded for this student.</TableCell></TableRow>
+                                            )}
+                                        </TableBody></Table></CardContent></Card>
                                     </TabsContent>
                                     <TabsContent value="goals" className="space-y-4">
                                         <Card>

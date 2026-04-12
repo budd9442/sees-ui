@@ -811,7 +811,6 @@ export function GoalsClient({ initialGoals }: GoalsClientProps) {
                                                             <h5 className="text-sm font-medium mb-2">Milestones</h5>
                                                             <div className="grid gap-2 sm:grid-cols-2">
                                                                 {goal.milestones.map((milestone: string, index: number) => {
-                                                                    // Mock milestone progress calculation
                                                                     const requiredProgressForMilestone = ((index + 1) / goal.milestones.length) * 100;
                                                                     const isMilestoneCompleted = goal.progress >= requiredProgressForMilestone;
 

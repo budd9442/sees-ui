@@ -86,7 +86,6 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
         { subject: 'Technical', A: aiAdvice.skill_vector.Technical, fullMark: 100 },
         { subject: 'Strategic', A: aiAdvice.skill_vector.Strategic, fullMark: 100 },
         { subject: 'Operations', A: aiAdvice.skill_vector.Operations, fullMark: 100 },
-        { subject: 'Process', A: 85, fullMark: 100 }, // Mock extra axes for better shape
         { subject: 'Analytics', A: 90, fullMark: 100 }
     ] : [
         { subject: 'Technical', A: 60, fullMark: 100 },

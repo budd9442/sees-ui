@@ -51,12 +51,8 @@ export function HodDashboardView({
     staffWorkloadData
 }: HodDashboardViewProps) {
 
-    // Department alerts Mocked
-    const departmentAlerts = [
-        { id: 1, type: 'warning', message: 'CS301 has a failure rate > 15%', action: 'Review Grades' },
-        { id: 2, type: 'info', message: 'Pathway selection deadline approaching', action: 'Send Reminder' },
-        { id: 3, type: 'critical', message: '2 staff members on unexpected leave', action: 'Manage Coverage' },
-    ];
+    // Department alerts will be populated by real-time monitoring in future phases
+    const departmentAlerts: any[] = [];
 
     return (
         <div className="space-y-6">
@@ -179,30 +175,6 @@ export function HodDashboardView({
                             </CardContent>
                         </Card>
 
-                        {/* Overall Trends */}
-                        <Card className="col-span-1">
-                            <CardHeader>
-                                <CardTitle>Department GPA Trend</CardTitle>
-                                <CardDescription>Historical performance over 5 semesters</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <LineChart data={[
-                                        { sem: 'Fall 23', gpa: 3.1 },
-                                        { sem: 'Spr 24', gpa: 3.15 },
-                                        { sem: 'Fall 24', gpa: 3.2 },
-                                        { sem: 'Spr 25', gpa: 3.18 },
-                                        { sem: 'Fall 25', gpa: 3.25 },
-                                    ]}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                        <XAxis dataKey="sem" />
-                                        <YAxis domain={[2.5, 3.5]} />
-                                        <Tooltip />
-                                        <Line type="monotone" dataKey="gpa" stroke="#10b981" strokeWidth={3} />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
                     </div>
                 </TabsContent>
 

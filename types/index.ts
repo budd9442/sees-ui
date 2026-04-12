@@ -226,7 +226,7 @@ export interface InternshipDocument {
   name: string;
   type: 'report' | 'certificate' | 'evaluation' | 'other';
   uploadedAt: string;
-  url?: string; // Mock file URL
+  url?: string; // Document resource URL
 }
 
 export interface AnonymousReport {
@@ -253,7 +253,7 @@ export interface ReportAttachment {
   fileName: string;
   fileType: string;
   fileSize: number;
-  url?: string; // Mock file URL
+  url?: string; // Attachment resource URL
   uploadedAt: string;
 }
 
@@ -340,7 +340,7 @@ export interface Backup {
   size: number; // bytes
   createdAt: string;
   completedAt?: string;
-  downloadUrl?: string; // Mock download URL
+  downloadUrl?: string; // Asset download URL
   checksum?: string;
 }
 

@@ -33,12 +33,10 @@ export async function getAdviseesData() {
         // Calculate GPA based on registration/grades
         let totalPoints = 0;
         let totalCredits = 0;
-
         let totalGrades = 0;
 
         student.registration.forEach((reg: any) => {
             if (reg.grade) {
-                // Standard credit weight (3 credits per module)
                 const credits = 3;
                 totalPoints += reg.grade.grade_point * credits;
                 totalCredits += credits;
@@ -54,9 +52,9 @@ export async function getAdviseesData() {
             firstName: student.user.first_name,
             lastName: student.user.last_name,
             email: student.user.email,
-            academicYear: "2024", // Mock
-            specialization: student.specialization_rel?.name || "Undeclared",
-            currentGPA: currentGPA || 3.5, // Mock default if no grades
+            academicYear: student.current_level || "L1", // Real level
+            specialization: student.specialization?.name || "Undeclared",
+            currentGPA: currentGPA || student.current_gpa || 0.0, // Real GPA
             totalCredits,
             totalGrades,
             avatar: student.user.avatar_url || null,
@@ -132,8 +130,23 @@ export async function getAdvisorStudentDetails(studentId: string) {
 }
 
 export async function createStudentIntervention(data: any) {
-    // Mock save intervention
-    return { success: true, intervention: { id: `INT_${Date.now()}`, ...data, createdAt: new Date().toISOString() } };
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    const intervention = await prisma.intervention.create({
+        data: {
+            student_id: data.studentId,
+            advisor_id: session.user.id,
+            type: data.type,
+            title: data.title,
+            description: data.description,
+            severity: data.severity,
+            status: 'ACTIVE',
+            suggestions: data.suggestions || []
+        }
+    });
+
+    return { success: true, intervention };
 }
 
 // ----------------------------------------------------------------------
@@ -144,32 +157,68 @@ export async function getAdvisorMessagesData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
-    const adviseesResponse = await getAdviseesData();
-    const myStudents = adviseesResponse.students.slice(0, 24);
+    const [adviseesResponse, dbMessages] = await Promise.all([
+        getAdviseesData(),
+        prisma.message.findMany({
+            where: {
+                OR: [
+                    { sender_id: session.user.id },
+                    { recipient_id: session.user.id }
+                ]
+            },
+            orderBy: { sent_at: 'desc' },
+            take: 50
+        })
+    ]);
 
-    // Mock messages for testing
-    const messages = [
-        {
-            id: `MSG1`,
-            senderId: session.user.id,
-            senderName: session.user.name || 'Advisor',
-            senderRole: 'advisor',
-            receiverId: myStudents[0]?.id || 'STU1',
-            receiverName: myStudents[0]?.firstName || 'Student',
-            subject: 'Meeting Setup',
-            content: 'Hello, please schedule a meeting with me.',
-            isRead: true,
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-        }
-    ];
+    const messages = dbMessages.map(m => ({
+        id: m.message_id,
+        senderId: m.sender_id,
+        senderName: m.sender_id === session.user.id ? (session.user.name || 'Advisor') : 'Student', 
+        senderRole: m.sender_id === session.user.id ? 'advisor' : 'student',
+        receiverId: m.recipient_id,
+        receiverName: m.recipient_id === session.user.id ? (session.user.name || 'Advisor') : 'Student',
+        subject: m.subject,
+        content: m.content,
+        isRead: !!m.read_at,
+        createdAt: m.sent_at.toISOString(),
+    }));
 
     return {
-        students: myStudents,
+        students: adviseesResponse.students,
         messages
     };
 }
 
 export async function sendAdvisorMessage(data: any) {
-    // Mock send message
-    return { success: true, message: { id: `MSG_${Date.now()}`, ...data, isRead: false, createdAt: new Date().toISOString() } };
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    const message = await prisma.message.create({
+        data: {
+            sender_id: session.user.id,
+            recipient_id: data.receiverId,
+            subject: data.subject,
+            content: data.content,
+        }
+    });
+
+    return { success: true, message };
+}
+
+export async function acknowledgeIntervention(interventionId: string, notes?: string) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    const result = await prisma.intervention.update({
+        where: { intervention_id: interventionId },
+        data: {
+            status: 'RESOLVED',
+            suggestions: {
+                push: notes ? [`Student Acknowledgment: ${notes}`] : ['Student Acknowledged']
+            }
+        }
+    });
+
+    return { success: true, intervention: result };
 }

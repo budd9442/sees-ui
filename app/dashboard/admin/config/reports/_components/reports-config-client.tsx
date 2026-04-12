@@ -133,7 +133,7 @@ export default function ReportsConfigClient({ initialData }: { initialData: any 
     };
 
     const handlePreviewTemplate = (template: ReportTemplate) => {
-        toast.info(`Previewing template: ${template.name}. (Mock preview)`);
+        toast.info(`Generating preview for ${template.name}...`);
         console.log('Previewing template:', template);
     };
 

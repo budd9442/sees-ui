@@ -295,7 +295,6 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                     </CardContent>
                 </Card>
 
-                {/* Upcoming Events - Mocked as we didn't transform real schedules yet */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Upcoming Events</CardTitle>

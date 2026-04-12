@@ -55,7 +55,7 @@ export async function getAdvisorDashboardData() {
     const totalGPA = myStudents.reduce((sum, s) => sum + s.currentGPA, 0);
     const averageGPA = myStudents.length > 0 ? totalGPA / myStudents.length : 0;
 
-    // Build performance distribution dynamically instead of mocked ranges
+    // Calculate performance distribution from actual student GPAs
     let excellent = 0; let good = 0; let satisfactory = 0; let atRiskCount = 0;
 
     myStudents.forEach(s => {

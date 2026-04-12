@@ -121,6 +121,15 @@ export class AcademicEngine {
     }
 
     /**
+     * Determines if GPA-based allocation is required based on dynamic threshold.
+     */
+    static async shouldUseGPABasedAllocation(demandPercentage: number): Promise<boolean> {
+        const setting = await prisma.systemSetting.findUnique({ where: { key: 'threshold_pathway_priority' } });
+        const threshold = parseFloat(setting?.value || '60');
+        return demandPercentage >= threshold;
+    }
+
+    /**
      * Production-Grade GPA Calculation (Best Attempt Policy)
      * Fetches all released grades for a student and calculates cumulative GPA using 
      * the highest score per module.
@@ -141,19 +150,6 @@ export class AcademicEngine {
         if (grades.length === 0) {
             return { gpa: 0, totalCredits: 0, academicClass: 'Unassigned' };
         }
-
-    /**
-     * Determines if GPA-based allocation is required based on dynamic threshold.
-     */
-    static async shouldUseGPABasedAllocation(demandPercentage: number): Promise<boolean> {
-        const setting = await prisma.systemSetting.findUnique({ where: { key: 'threshold_pathway_priority' } });
-        const threshold = parseFloat(setting?.value || '60');
-        return demandPercentage >= threshold;
-    }
-
-    /**
-     * Production-Grade GPA Calculation (Best Attempt Policy)
-
         const moduleMap = new Map<string, { points: number, credits: number }>();
         
         grades.forEach(g => {

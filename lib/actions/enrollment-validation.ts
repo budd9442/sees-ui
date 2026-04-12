@@ -23,7 +23,7 @@ export async function validateEnrollmentCSV(csvContent: string): Promise<Validat
     const emails = new Set<string>();
 
     for (let i = 0; i < records.length; i++) {
-        const record = records[i];
+        const record = records[i] as any;
         const rowNum = i + 1;
 
         // 1. Basic Format Validation

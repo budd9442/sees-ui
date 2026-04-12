@@ -169,7 +169,7 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                 id: `GRADE_${Date.now()}_${Math.random()}`,
                 studentId: g.studentId,
                 moduleId: g.moduleId,
-                grade: 85, // Mock number
+                grade: g.points,
                 letterGrade: g.grade,
                 points: g.points,
                 credits: g.credits,

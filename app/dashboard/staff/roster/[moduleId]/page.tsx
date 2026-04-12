@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getStaffModuleRoster } from '@/lib/actions/staff-subactions';
+import { getStaffModuleRoster } from '@/lib/actions/staff-actions';
 import RosterPageClient from './RosterPageClient';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';

@@ -53,14 +53,8 @@ export function StaffDashboardView({
     performanceData
 }: StaffDashboardViewProps) {
 
-    // Recent activities (Retaining simple mocks until activity log table is built specifically for users/staff)
-    const recentActivities = [
-        { id: 1, type: 'grade', description: 'Graded CS301 midterm exams', time: '2 hours ago' },
-        { id: 2, type: 'upload', description: 'Uploaded lecture materials for SE302', time: '5 hours ago' },
-        { id: 3, type: 'meeting', description: 'Department meeting scheduled', time: '1 day ago' },
-        { id: 4, type: 'assignment', description: 'Created new assignment for DB303', time: '2 days ago' },
-        { id: 5, type: 'feedback', description: 'Received student feedback for CS301', time: '3 days ago' },
-    ];
+    // Activity log stream to be populated by the audit system
+    const recentActivities: any[] = [];
 
     return (
         <div className="space-y-6">
@@ -278,35 +272,10 @@ export function StaffDashboardView({
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 rounded-lg border">
-                            <div className="flex items-center gap-3">
-                                <AlertCircle className="h-5 w-5 text-red-600" />
-                                <div>
-                                    <p className="font-medium">CS301 Final Grades</p>
-                                    <p className="text-sm text-muted-foreground">Submit final grades for review</p>
-                                </div>
-                            </div>
-                            <Badge variant="destructive">2 days left</Badge>
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg border">
-                            <div className="flex items-center gap-3">
-                                <Clock className="h-5 w-5 text-orange-600" />
-                                <div>
-                                    <p className="font-medium">SE302 Project Reviews</p>
-                                    <p className="text-sm text-muted-foreground">Complete project evaluations</p>
-                                </div>
-                            </div>
-                            <Badge variant="outline">5 days left</Badge>
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg border">
-                            <div className="flex items-center gap-3">
-                                <Calendar className="h-5 w-5 text-blue-600" />
-                                <div>
-                                    <p className="font-medium">Department Meeting</p>
-                                    <p className="text-sm text-muted-foreground">Monthly faculty meeting</p>
-                                </div>
-                            </div>
-                            <Badge variant="secondary">Next week</Badge>
+                        {/* Deadlines to be populated by real module assignments */}
+                        <div className="text-center py-6 text-muted-foreground">
+                            <Clock className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                            <p>No immediate deadlines recorded.</p>
                         </div>
                     </div>
                 </CardContent>

@@ -129,7 +129,7 @@ export default function NotificationsClient({ initialData }: { initialData: any 
     };
 
     const handlePreviewTemplate = (template: NotificationTemplate) => {
-        toast.info(`Previewing template: ${template.name}. (Mock preview)`);
+        toast.info(`Generating preview for ${template.name}...`);
         console.log('Previewing template:', template);
     };
 

@@ -60,53 +60,7 @@ import {
 } from 'lucide-react';
 import type { Backup } from '@/types';
 
-// Mock data for backups
-const mockBackups: Backup[] = [
-  {
-    id: 'backup-001',
-    name: 'Full System Backup - December 2025',
-    description: 'Complete system backup including all databases, files, and configurations',
-    type: 'manual',
-    status: 'completed',
-    size: 2147483648, // 2GB
-    createdAt: '2025-12-15T02:00:00Z',
-    completedAt: '2025-12-15T02:15:00Z',
-    downloadUrl: '/backups/backup-001.zip',
-    checksum: 'sha256:a1b2c3d4e5f6...'
-  },
-  {
-    id: 'backup-002',
-    name: 'Daily Incremental Backup',
-    description: 'Incremental backup of changed data since last full backup',
-    type: 'scheduled',
-    status: 'completed',
-    size: 536870912, // 512MB
-    createdAt: '2025-12-15T01:00:00Z',
-    completedAt: '2025-12-15T01:05:00Z',
-    downloadUrl: '/backups/backup-002.zip',
-    checksum: 'sha256:b2c3d4e5f6a7...'
-  },
-  {
-    id: 'backup-003',
-    name: 'Emergency Backup',
-    description: 'Emergency backup created before system maintenance',
-    type: 'system',
-    status: 'in_progress',
-    size: 0,
-    createdAt: '2025-12-15T15:30:00Z',
-    downloadUrl: '/backups/backup-003.zip'
-  },
-  {
-    id: 'backup-004',
-    name: 'Weekly Full Backup',
-    description: 'Weekly scheduled full system backup',
-    type: 'scheduled',
-    status: 'failed',
-    size: 0,
-    createdAt: '2025-12-14T02:00:00Z',
-    downloadUrl: '/backups/backup-004.zip'
-  }
-];
+// Backup types for selection
 
 const backupTypes = [
   { value: 'full', label: 'Full System Backup', description: 'Complete backup of all data and configurations' },
@@ -122,9 +76,12 @@ const restoreOptions = [
   { value: 'config', label: 'Configuration Only', description: 'Restore only system configuration' }
 ];
 
+import { getAdminBackupsData, createAdminBackup as performCreateBackup, deleteAdminBackup as performDeleteBackup, restoreAdminBackup as performRestoreBackup } from '@/lib/actions/admin-actions';
+import { toast } from 'sonner';
+
 export default function BackupRestorePage() {
   const { user } = useAuthStore();
-  const [backups, setBackups] = useState<Backup[]>(mockBackups);
+  const [backups, setBackups] = useState<Backup[]>([]);
   const [selectedBackup, setSelectedBackup] = useState<Backup | null>(null);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -132,6 +89,7 @@ export default function BackupRestorePage() {
   const [restoreProgress, setRestoreProgress] = useState(0);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [backupForm, setBackupForm] = useState({
     name: '',
     description: '',
@@ -143,6 +101,23 @@ export default function BackupRestorePage() {
     restoreType: 'full',
     confirmRestore: false
   });
+
+  const fetchBackups = async () => {
+    try {
+      const data = await getAdminBackupsData();
+      setBackups(data.backups);
+    } catch (err) {
+      toast.error('Failed to load backups');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetchBackups();
+    }
+  }, [user]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -183,58 +158,51 @@ export default function BackupRestorePage() {
 
   const createBackup = async () => {
     setIsCreatingBackup(true);
-    setBackupProgress(0);
-    
-    // Simulate backup progress
-    const interval = setInterval(() => {
-      setBackupProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsCreatingBackup(false);
-          setShowCreateDialog(false);
-          
-          // Add new backup to list
-          const newBackup: Backup = {
-            id: `backup-${Date.now()}`,
-            name: backupForm.name,
-            description: backupForm.description,
-            type: backupForm.type as 'manual' | 'scheduled' | 'system',
-            status: 'completed',
-            size: Math.floor(Math.random() * 2000000000) + 500000000, // Random size between 500MB-2.5GB
-            createdAt: new Date().toISOString(),
-            completedAt: new Date().toISOString(),
-            downloadUrl: `/backups/backup-${Date.now()}.zip`,
-            checksum: `sha256:${Math.random().toString(36).substring(2, 15)}...`
-          };
-          
-          setBackups(prev => [newBackup, ...prev]);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 500);
+    setBackupProgress(10);
+    try {
+      const result = await performCreateBackup();
+      if (result.success) {
+        setBackupProgress(100);
+        toast.success('Backup created successfully');
+        await fetchBackups();
+        setShowCreateDialog(false);
+      }
+    } catch (err) {
+      toast.error('Backup creation failed');
+    } finally {
+      setIsCreatingBackup(false);
+    }
   };
 
   const restoreBackup = async () => {
     setIsRestoring(true);
-    setRestoreProgress(0);
-    
-    // Simulate restore progress
-    const interval = setInterval(() => {
-      setRestoreProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsRestoring(false);
+    setRestoreProgress(20);
+    try {
+      if (selectedBackup) {
+        const result = await performRestoreBackup(selectedBackup.id);
+        if (result.success) {
+          setRestoreProgress(100);
+          toast.success('System restored successfully');
           setShowRestoreDialog(false);
-          return 100;
         }
-        return prev + 15;
-      });
-    }, 300);
+      }
+    } catch (err) {
+      toast.error('System restore failed');
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
-  const deleteBackup = (backupId: string) => {
-    setBackups(prev => prev.filter(backup => backup.id !== backupId));
+  const deleteBackup = async (backupId: string) => {
+    try {
+      const result = await performDeleteBackup(backupId);
+      if (result.success) {
+        toast.success('Backup deleted');
+        await fetchBackups();
+      }
+    } catch (err) {
+      toast.error('Delete failed');
+    }
   };
 
   return (

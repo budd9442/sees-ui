@@ -44,92 +44,6 @@ import {
 } from 'lucide-react';
 import type { Intervention, InterventionResource, Student } from '@/types';
 
-// Mock data for interventions
-const _mockInterventions: Intervention[] = [
-  {
-    id: 'int-001',
-    studentId: 'STU001',
-    advisorId: 'ADV001',
-    type: 'gpa_drop',
-    title: 'GPA Decrease Detected',
-    description: 'Your GPA has decreased from 3.65 to 3.45 this semester. Let\'s work together to identify the causes and create a plan for improvement.',
-    triggerReason: 'GPA dropped by 0.20 points in current semester',
-    severity: 'medium',
-    suggestions: [
-      'Review your study schedule and time management',
-      'Consider meeting with your academic advisor',
-      'Identify specific modules where performance declined',
-      'Develop a study plan for upcoming assessments'
-    ],
-    resources: [
-      {
-        id: 'res-001',
-        title: 'Study Skills Workshop',
-        description: 'Learn effective study techniques and time management strategies',
-        type: 'workshop',
-        url: '/workshops/study-skills'
-      },
-      {
-        id: 'res-002',
-        title: 'Academic Support Center',
-        description: 'Get one-on-one tutoring and academic support',
-        type: 'service',
-        contactInfo: 'support@university.edu'
-      },
-      {
-        id: 'res-003',
-        title: 'Time Management Guide',
-        description: 'Comprehensive guide to managing your academic workload',
-        type: 'resource_link',
-        url: '/resources/time-management'
-      }
-    ],
-    status: 'active',
-    createdAt: '2025-12-15T10:30:00Z',
-    studentNotes: '',
-    advisorNotes: '',
-    acknowledged: false,
-    selectedResources: []
-  },
-  {
-    id: 'int-002',
-    studentId: 'STU001',
-    advisorId: 'ADV001',
-    type: 'class_decline',
-    title: 'Academic Class Change',
-    description: 'Your academic class has changed from "Second Class Upper" to "Second Class Lower". This is a significant change that requires attention.',
-    triggerReason: 'Academic class downgraded due to GPA threshold',
-    severity: 'high',
-    suggestions: [
-      'Schedule an immediate meeting with your academic advisor',
-      'Review your current module performance',
-      'Consider reducing course load if necessary',
-      'Develop a recovery plan for next semester'
-    ],
-    resources: [
-      {
-        id: 'res-004',
-        title: 'Academic Support Center',
-        description: 'Drop-in tutoring and study skills workshops',
-        type: 'service',
-        contactInfo: 'academicsupport@university.edu'
-      },
-      {
-        id: 'res-005',
-        title: 'Stress Management Counseling',
-        description: 'Professional counseling services for academic stress',
-        type: 'service',
-        contactInfo: 'counseling@university.edu'
-      }
-    ],
-    status: 'active',
-    createdAt: '2025-12-15T10:30:00Z',
-    studentNotes: '',
-    advisorNotes: '',
-    acknowledged: false,
-    selectedResources: []
-  }
-];
 
 const resourceIcons = {
   study_tip: BookOpen,
@@ -291,7 +205,7 @@ export default function PersonalizedFeedbackPage() {
               Available
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              Dr. Michael Smith (Academic Advisor)
+              Contact your assigned advisor for support
             </p>
           </CardContent>
         </Card>
@@ -478,16 +392,16 @@ export default function PersonalizedFeedbackPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Dr. Michael Smith</h4>
-              <p className="text-sm text-gray-600 mb-2">Academic Advisor - MIT Program</p>
+            <h4 className="font-medium mb-2">Academic Advisor</h4>
+            <p className="text-sm text-gray-600 mb-2">Departmental Academic Support</p>
               <div className="space-y-1 text-sm">
                 <p className="flex items-center gap-2">
                   <Mail className="h-4 w-4" />
-                  michael.smith@university.edu
+                  advisor@university.edu
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone className="h-4 w-4" />
-                  +1 (555) 123-4567
+                  University Academic Extension
                 </p>
               </div>
             </div>
@@ -502,9 +416,9 @@ export default function PersonalizedFeedbackPage() {
             </div>
 
             <div className="bg-blue-50 p-3 rounded-lg">
-              <h5 className="font-medium text-blue-800 mb-1">Available Meeting Times</h5>
+              <h5 className="font-medium text-blue-800 mb-1">Standard Office Hours</h5>
               <p className="text-sm text-blue-700">
-                Dr. Smith is available for meetings on Tuesdays and Thursdays from 2:00 PM to 4:00 PM.
+                Advisors are available for meetings during set departmental office hours.
               </p>
             </div>
           </div>

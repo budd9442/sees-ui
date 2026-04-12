@@ -131,9 +131,7 @@ export async function getHODDashboardData() {
     };
 }
 
-// ----------------------------------------------------------------------
-// ANALYTICS DATA (MOCK - Aggregated from DB where possible)
-// ----------------------------------------------------------------------
+// ANALYTICS DATA (Aggregated from DB)
 
 export async function getHODAnalyticsData() {
     const session = await auth();
@@ -163,12 +161,12 @@ export async function getHODAnalyticsData() {
         title: m.name
     }));
 
-    const allGrades = await prisma.grade.findMany();
+    const allGrades = await prisma.grade.findMany({ include: { module: true } });
     const grades = allGrades.map(g => ({
         id: g.grade_id,
         studentId: g.student_id,
         moduleId: g.module_id,
-        credits: 3, // Simplification
+        credits: g.module.credits, // Real credits
         points: g.grade_point,
         letterGrade: g.letter_grade,
         isReleased: !!g.released_at
@@ -195,7 +193,23 @@ export async function getHODPathwaysData() {
 }
 
 export async function allocatePathway(studentIds: string[], pathway: string, reason: string) {
-    // Mock save allocation
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    // Creating actual approval tasks for each student allocation
+    await prisma.$transaction(
+        studentIds.map(sId => prisma.approvalTask.create({
+            data: {
+                requester_id: session.user.id,
+                target_role: 'ADMIN',
+                type: 'PATHWAY_ALLOCATION',
+                status: 'PENDING',
+                description: `Manual pathway allocation to ${pathway}: ${reason}`,
+                metadata: { student_id: sId, target_pathway: pathway }
+            }
+        }))
+    );
+
     return { success: true, allocated: studentIds.length, pathway };
 }
 
