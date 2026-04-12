@@ -11,6 +11,7 @@ model User {
   email               String               @unique
   username            String               @unique
   password_hash       String
+  role                String               @default("student")
   status              String               @default("ACTIVE")
   created_at          DateTime             @default(now())
   last_login_date     DateTime?
@@ -48,19 +49,19 @@ model RegistrationToken {
 }
 
 model Student {
-  student_id             String               @id
-  admission_year         Int
-  current_gpa            Float                @default(0.0)
-  academic_class         String?
-  degree_path_id         String
-  specialization_id      String?
-  advisor_id             String?
-  current_level          String?
-  enrollment_status      String               @default("ENROLLED")
+  student_id              String               @id
+  admission_year          Int
+  current_gpa             Float                @default(0.0)
+  academic_class          String?
+  degree_path_id          String
+  specialization_id       String?
+  advisor_id              String?
+  current_level           String?
+  enrollment_status       String               @default("ENROLLED")
   pathway_locked          Boolean              @default(false)
-  pathway_selection_date  DateTime?
   pathway_preference_1_id String?
   pathway_preference_2_id String?
+  pathway_selection_date  DateTime?
   academic_goals          AcademicGoal[]
   anonymous_reports       AnonymousReport[]
   gpa_history             GPAHistory[]
@@ -68,8 +69,6 @@ model Student {
   internships             Internship[]
   module_registrations    ModuleRegistration[]
   rankings                Ranking[]
-  interventions           Intervention[]
-  meeting_requests        MeetingRequest[]
   advisor                 Advisor?             @relation(fields: [advisor_id], references: [advisor_id])
   degree_path             DegreeProgram        @relation(fields: [degree_path_id], references: [program_id])
   preference_1            DegreeProgram?       @relation("PathwayPreference1", fields: [pathway_preference_1_id], references: [program_id])
@@ -95,8 +94,6 @@ model Advisor {
   assigned_degree_path_id String?
   staff                   Staff     @relation(fields: [advisor_id], references: [staff_id], onDelete: Cascade)
   students                Student[]
-  interventions           Intervention[]
-  meeting_requests        MeetingRequest[]
 }
 
 model HOD {
@@ -153,7 +150,6 @@ model Module {
   level                String
   description          String?
   active               Boolean              @default(true)
-  max_students         Int                  @default(60)
   grades               Grade[]
   lecture_schedules    LectureSchedule[]
   module_registrations ModuleRegistration[]
@@ -302,30 +298,6 @@ model Ranking {
   student          Student  @relation(fields: [student_id], references: [student_id])
 }
 
-model SystemSetting {
-  setting_id  String   @id @default(uuid())
-  category    String   @default("GENERAL") // ACADEMIC, SYSTEM, SECURITY, BRANDING
-  key         String   @unique
-  value       String
-  description String?
-  updated_at  DateTime @updatedAt
-
-  @@map("system_settings")
-}
-
-model AuditLog {
-  log_id      String   @id @default(uuid())
-  admin_id    String
-  action      String   // e.g., "UPDATE_SETTING"
-  entity_type String   // e.g., "SYSTEM_SETTING"
-  entity_id   String
-  old_value   String?
-  new_value   String?
-  timestamp   DateTime @default(now())
-  
-  @@map("audit_logs")
-}
-
 model Message {
   message_id   String    @id @default(uuid())
   sender_id    String
@@ -358,7 +330,6 @@ model AnonymousReport {
   created_at DateTime @default(now())
   student    Student  @relation(fields: [student_id], references: [student_id])
 }
-
 
 model LectureSchedule {
   schedule_id String   @id @default(uuid())
@@ -514,50 +485,26 @@ model InternshipDocument {
   internship    Internship @relation(fields: [internship_id], references: [internship_id], onDelete: Cascade)
 }
 
-model Intervention {
-  intervention_id String   @id @default(uuid())
-  student_id       String
-  advisor_id       String
-  type             String   // e.g., "ACADEMIC_WARNING", "PROBATION"
-  title            String
-  description      String?
-  severity         String   @default("MEDIUM") // LOW, MEDIUM, HIGH
-  status           String   @default("ACTIVE") // ACTIVE, RESOLVED, DROPPED
-  suggestions      String[]
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
-  advisor          Advisor  @relation(fields: [advisor_id], references: [advisor_id])
-  student          Student  @relation(fields: [student_id], references: [student_id])
-
-  @@map("interventions")
+model SystemSetting {
+  setting_id  String   @id
+  key         String   @unique
+  value       String
+  description String?
+  category    String
+  updated_at  DateTime
 }
 
-model MeetingRequest {
-  request_id String    @id @default(uuid())
-  student_id String
-  advisor_id String
-  subject    String
-  content    String?
-  status     String    @default("PENDING") // PENDING, SCHEDULED, COMPLETED, CANCELLED
-  scheduled_at DateTime?
-  sent_at    DateTime  @default(now())
-  student    Student   @relation(fields: [student_id], references: [student_id])
-  advisor    Advisor   @relation(fields: [advisor_id], references: [advisor_id])
+model AuditLog {
+  log_id      String   @id @default(uuid())
+  admin_id    String
+  action      String
+  entity_type String
+  entity_id   String
+  old_value   String?
+  new_value   String?
+  timestamp   DateTime @default(now())
 
-  @@map("meeting_requests")
-}
-
-model ApprovalTask {
-  task_id      String   @id @default(uuid())
-  requester_id String
-  approver_id  String?  // Nullable if assigned to a role like HOD
-  target_role  String?  // e.g., "HOD", "ADMIN"
-  type         String   // e.g., "REGISTRATION_OVERRIDE", "PATHWAY_CHANGE"
-  description  String
-  status       String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  metadata     Json?    // Contextual data (e.g., { "target_module_id": "MOD-1" })
-  created_at   DateTime @default(now())
-  resolved_at  DateTime?
-
-  @@map("approval_tasks")
+  @@index([timestamp])
+  @@index([admin_id])
+  @@map("audit_logs")
 }
