@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { FeatureFlag } from '@prisma/client';
 
+/* Standardized Feature Flag Actions */
+
 export async function getFeatureFlags() {
     try {
         const flags = await prisma.featureFlag.findMany({
@@ -37,7 +39,7 @@ export async function createFeatureFlag(data: {
                 endDate: data.endDate
             },
         });
-        revalidatePath('/dashboard/admin/academic-calendar');
+        revalidatePath('/');
         return { success: true, data: flag };
     } catch (error) {
         console.error('Error creating feature flag:', error);
@@ -54,7 +56,7 @@ export async function updateFeatureFlag(id: string, data: Partial<FeatureFlag>) 
             where: { id },
             data: updateData,
         });
-        revalidatePath('/dashboard/admin/academic-calendar');
+        revalidatePath('/');
         return { success: true, data: flag };
     } catch (error) {
         console.error('Error updating feature flag:', error);
@@ -67,11 +69,22 @@ export async function toggleFeatureFlag(id: string) {
         const flag = await prisma.featureFlag.findUnique({ where: { id } });
         if (!flag) throw new Error('Feature flag not found');
 
+        const isEnabling = !flag.isEnabled;
+        const data: any = { isEnabled: isEnabling };
+
+        // If enabling and no dates are set, default to 14 days
+        if (isEnabling && !flag.startDate && !flag.endDate) {
+            const now = new Date();
+            const twoWeeksLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+            data.startDate = now;
+            data.endDate = twoWeeksLater;
+        }
+
         const updatedFlag = await prisma.featureFlag.update({
             where: { id },
-            data: { isEnabled: !flag.isEnabled },
+            data,
         });
-        revalidatePath('/dashboard/admin/academic-calendar');
+        revalidatePath('/');
         return { success: true, data: updatedFlag };
     } catch (error) {
         console.error('Error toggling feature flag:', error);
@@ -82,7 +95,7 @@ export async function toggleFeatureFlag(id: string) {
 export async function deleteFeatureFlag(id: string) {
     try {
         await prisma.featureFlag.delete({ where: { id } });
-        revalidatePath('/dashboard/admin/academic-calendar');
+        revalidatePath('/');
         return { success: true };
     } catch (error) {
         console.error('Error deleting feature flag:', error);

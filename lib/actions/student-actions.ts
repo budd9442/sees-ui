@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { Student, Grade, AcademicGoal, Notification, Module } from '@/types';
 import { revalidatePath } from 'next/cache';
+import { checkFeatureFlag } from '@/app/actions/feature-flags';
+import { FEATURE_FLAGS } from '@/lib/constants/feature-flags';
 
 import { AcademicEngine } from '@/lib/services/academic-engine'; 
 
@@ -75,9 +77,9 @@ export async function getStudentDashboardData() {
     const student: Student = {
         id: record.user.user_id,
         email: record.user.email,
-        firstName: record.user.first_name || '', // Corrected case
-        lastName: record.user.last_name || '',   // Corrected case
-        name: `${record.user.first_name || ''} ${record.user.last_name || ''}`,
+        firstName: record.user.firstName || '', // Corrected case
+        lastName: record.user.lastName || '',   // Corrected case
+        name: `${record.user.firstName || ''} ${record.user.lastName || ''}`,
         role: 'student',
         isActive: record.user.status === 'ACTIVE',
         studentId: record.student_id,
@@ -176,18 +178,26 @@ async function getCurrentSemester() {
     return currentSemester;
 }
 
+/**
+ * Fetch Semesters for the Active Academic Year
+ */
+async function getAnnualSemesters() {
+    const activeYear = await prisma.academicYear.findFirst({
+        where: { active: true },
+        include: { semesters: { orderBy: { label: 'asc' } } }
+    });
+
+    if (!activeYear) return [];
+    return activeYear.semesters;
+}
+
 export async function getModuleRegistrationData() {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
 
     let userId = session.user.id;
-
-    // Robust User Lookup
     let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
-    if (!u && session.user.email) {
-        u = await prisma.user.findUnique({ where: { email: session.user.email } });
-    }
-
+    if (!u && session.user.email) u = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!u) throw new Error("User not found");
     userId = u.user_id;
 
@@ -195,7 +205,7 @@ export async function getModuleRegistrationData() {
         where: { student_id: userId },
         include: {
             user: true,
-            degree_path: true, // Relation to DegreeProgram
+            degree_path: true,
             specialization: true,
             grades: { include: { module: true } } as any,
             module_registrations: true
@@ -205,93 +215,66 @@ export async function getModuleRegistrationData() {
     if (!studentRecord) throw new Error("Student profile not found");
     const record = studentRecord as any;
 
-    // Dynamic Academic Settings
-    const semester = await getCurrentSemester();
-    if (!semester) throw new Error("Current semester not determined");
+    // 1. Get semesters for the active gear
+    const semesters = await getAnnualSemesters();
+    if (semesters.length === 0) throw new Error("No active semesters found for registration");
 
-    const currentYear = (semester as any).label || (semester as any).name || "Semester 1";
-    const currentSemester = (semester as any).label || (semester as any).name || "Semester 1";
-
-    // Determine current level (e.g., L1, L2)
+    // 2. Determine current level (e.g., L1, L2)
     const studentYear = 'L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1));
 
-    // Fetch Program Structure instead of just modules
-    // This respects the new configurable hierarchy
+    // 3. Fetch Program Structure for this level
     const whereClause: any = {
         program_id: record.degree_path_id,
         academic_level: studentYear,
     };
-
     if (record.specialization_id) {
-        whereClause.OR = [
-            { specialization_id: null },
-            { specialization_id: record.specialization_id }
-        ];
+        whereClause.OR = [{ specialization_id: null }, { specialization_id: record.specialization_id }];
     }
-    // If no specialization, we fetch ALL modules for this level (and dedupe later) to ensure they see options.
 
     const structures = await prisma.programStructure.findMany({
         where: whereClause,
         include: {
             module: {
                 include: {
-                    Module_A: true // Include prerequisites
+                    Module_A: true,
+                    module_registrations: true // Need this for the count below
                 }
             }
         }
     });
 
-    // Deduplicate modules if no specialization (prioritize CORE)
-    const uniqueStructures = new Map();
-    for (const s of structures) {
-        if (!uniqueStructures.has(s.module_id)) {
-            uniqueStructures.set(s.module_id, s);
-        } else {
-            // If existing is not CORE but current is, swap?
-            // Or just keep first found. 
-            // If we want to show the specific requirement for a potential spec, it's ambiguous.
-            // For now, simple dedupe.
-            const existing = uniqueStructures.get(s.module_id);
-            if (existing.module_type !== 'CORE' && s.module_type === 'CORE') {
-                uniqueStructures.set(s.module_id, s);
-            }
-        }
-    }
-    const dedupedStructures = Array.from(uniqueStructures.values());
-
-    // Fetch enrollment counts for these modules
-    const enrollmentCounts = await prisma.moduleRegistration.groupBy({
-        by: ['module_id'],
-        where: {
-            module_id: { in: dedupedStructures.map((s: any) => s.module_id) },
-            status: 'REGISTERED'
-        },
-        _count: {
-            student_id: true
-        }
+    // 4. Fetch Credit Rules for both semesters
+    const creditRules = await prisma.academicCreditRule.findMany({
+        where: { level: studentYear }
     });
 
-    const countMap = new Map(enrollmentCounts.map(c => [c.module_id, c._count.student_id]));
-
-    // Cast to ensure isCompulsory is treated as required boolean for these specific actions
-    const availableModules = dedupedStructures.map((s: any) => ({
-        id: s.module.module_id,
-        code: s.module.code,
-        title: s.module.name,
-        credits: s.module.credits,
-        description: s.module.description,
-        prerequisites: s.module.Module_A.map((p: any) => p.code), // Map to codes for the UI check
-        academicYear: s.academicLevel,
-        semester: currentSemester,
-        isActive: s.module.active,
-        capacity: s.module.max_students || 60,
-        enrolled: countMap.get(s.module.module_id) || 0,
-        lecturer: 'TBD',
-        schedule: 'TBD',
-        degreeProgram: record.degree_path?.code,
-        specialization: s.specialization_id ? record.specialization?.code : undefined,
-        isCompulsory: !!(s.module_type === 'CORE')
-    })) as (Module & { isCompulsory: boolean })[];
+    // 5. Build Available Modules grouped by Semester Number
+    const semestersData = semesters.map(sem => {
+        // Find modules belonging to this semester number (heuristic: labels like "Semester 1")
+        const semNum = sem.label.includes('1') ? 1 : 2;
+        
+        const semStructures = structures.filter(s => s.semester_number === semNum);
+        
+        return {
+            semesterId: sem.semester_id,
+            label: sem.label,
+            semesterNumber: semNum,
+            rule: creditRules.find(r => r.semester_number === semNum) || { min_credits: 12, max_credits: 24 },
+            modules: semStructures.map(s => ({
+                id: s.module.module_id,
+                code: s.module.code,
+                title: s.module.name,
+                credits: s.module.credits,
+                description: s.module.description,
+                prerequisites: s.module.Module_A.map((p: any) => p.code),
+                academicYear: s.academicLevel,
+                semester: sem.label,
+                capacity: s.module.max_students || 60,
+                enrolled: s.module.module_registrations.filter((r: any) => r.semester_id === sem.semester_id && r.status !== 'DROPPED').length,
+                isCompulsory: !!(s.module_type === 'CORE')
+            }))
+        };
+    });
 
     const registeredModuleIds = record.module_registrations
         .filter((mr: any) => mr.status !== 'DROPPED')
@@ -301,21 +284,15 @@ export async function getModuleRegistrationData() {
         .filter((g: any) => g.marks >= 50)
         .map((g: any) => g.module.code);
 
-    const compulsoryModuleIds = availableModules
-        .filter(m => m.isCompulsory)
-        .map(m => m.id);
-
     return {
         student: {
             academicYear: studentYear,
             degreeProgram: record.degree_path?.code,
             specialization: record.specialization?.code,
         },
-        currentSemester,
-        availableModules: availableModules,
+        semesters: semestersData,
         registeredModuleIds,
-        completedModuleCodes,
-        compulsoryModuleIds
+        completedModuleCodes
     };
 }
 
@@ -325,142 +302,98 @@ export async function registerForModules(moduleIds: string[]) {
     if (!session?.user?.email) throw new Error("Unauthorized");
 
     let userId = session.user.id;
-
-    // Robust User Lookup
     let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
-    if (!u && session.user.email) {
-        u = await prisma.user.findUnique({ where: { email: session.user.email } });
-    }
-
+    if (!u && session.user.email) u = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!u) throw new Error("User not found");
     userId = u.user_id;
 
     const studentRecord = await prisma.student.findUnique({
         where: { student_id: userId },
     });
-
-    if (!studentRecord) throw new Error("Student not found");
-    // Cast to any to access dynamic fields if needed, or rely on type inference
+    if (!studentRecord) throw new Error("Student profile not found");
     const record = studentRecord as any;
 
     try {
-
-        const semester = await getCurrentSemester();
-        if (!semester) throw new Error("No active semester found for registration");
-
-        // [GOVERNANCE] Check if registration window is open
-        const regSetting = await prisma.systemSetting.findUnique({ where: { key: 'is_registration_open' } });
-        if (regSetting?.value !== 'true') {
-            throw new Error("Module registration is currently CLOSED by administration.");
+        // [GOVERNANCE] Check if registration window is open using centralized feature flag
+        const isRegistrationOpen = await checkFeatureFlag(FEATURE_FLAGS.ENABLE_MODULE_REGISTRATION, 'student');
+        if (!isRegistrationOpen) {
+            throw new Error("Module registration is currently CLOSED. Please check the active window in the academic calendar.");
         }
 
-        // 1. Validate modules belong to Program/Specialization
-        // We count how many of the requested IDs are valid for this student
-        const validCount = await prisma.programStructure.count({
+        // 1. Resolve Active Year and Semesters
+        const semesters = await getAnnualSemesters();
+        if (semesters.length === 0) throw new Error("No active academic year found for registration.");
+
+        const studentYear = 'L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1));
+
+        // 2. Fetch Program Structure and Modules for validation
+        const structures = await prisma.programStructure.findMany({
             where: {
-                program_id: record.degree_path_id, // Correct FK
-                OR: [
-                    { specialization_id: null },
-                    { specialization_id: record.specialization_id }
-                ],
+                program_id: record.degree_path_id,
                 module_id: { in: moduleIds }
-            }
-        });
-
-        if (validCount !== moduleIds.length) {
-            // Ideally we identify which ones, but simple error for now
-            throw new Error("One or more selected modules are not part of your assigned program structure.");
-        }
-
-        // 2. Fetch modules for details (Credits, Prerequisites)
-        const modules = await prisma.module.findMany({
-            where: { module_id: { in: moduleIds } }
-        });
-
-        // 3. Validate Credits
-        const totalCredits = modules.reduce((sum, m) => sum + m.credits, 0);
-        // if (totalCredits > 24) { // Removed min 12 for flexibility during add/drop? Or keep? Keeping upper bound.
-        //     throw new Error(`Total credits (${totalCredits}) exceeds maximum allowed (24).`);
-        // }
-
-        // 4. Validate Prerequisites
-        // Simulated missing prereqs logic
-        const missingPrereqs: string[] = [];
-        for (const mod of modules) {
-            const hasPrereqData = (mod as any).prerequisites && (mod as any).prerequisites.length > 0;
-            if (hasPrereqData) {
-                // ...
-            }
-        }
-
-        if (missingPrereqs.length > 0) {
-            throw new Error(`Missing prerequisites: ${missingPrereqs.join(', ')}`);
-        }
-
-        // 5. Differential Sync: Add/Remove instead of Wipe/Replace
-        // We must fetch existing registrations to avoid FK violations (deleting a reg with a grade)
-        const existingRegistrations = await prisma.moduleRegistration.findMany({
-            where: {
-                student_id: record.student_id,
-                semester_id: semester.semester_id,
-                status: 'REGISTERED' // Only managing active registrations
             },
-            include: {
-                grade: true // Check for grades
-            }
+            include: { module: true }
         });
 
-        const existingModuleIds = existingRegistrations.map(r => r.module_id);
+        if (structures.length !== moduleIds.length) {
+            throw new Error("One or more modules do not belong to your academic program.");
+        }
 
-        // Determine what to add and what to remove
-        const toAdd = moduleIds.filter(id => !existingModuleIds.includes(id));
-        const toRemove = existingModuleIds.filter(id => !moduleIds.includes(id));
+        // 3. Fetch Credit Rules
+        const creditRules = await prisma.academicCreditRule.findMany({
+            where: { level: studentYear }
+        });
 
-        // Validation: Cannot remove modules that have associated grades
-        // instead of throwing an error, we simply REMOVE them from the 'toRemove' list.
-        // This handles cases where the frontend filtered them out (e.g. historical modules)
-        // and we shouldn't attempt to delete them anyway.
-        const lockedModules = existingRegistrations.filter(r =>
-            toRemove.includes(r.module_id) && (r.grade || r.status === 'COMPLETED')
-        );
+        // 4. Validate Per Semester
+        const semesterMapping = semesters.map(sem => {
+            const semNum = sem.label.includes('1') ? 1 : 2;
+            const semMods = structures.filter(s => s.semester_number === semNum);
+            const totalCredits = semMods.reduce((sum, s) => sum + (s.module.credits || 0), 0);
+            
+            const rule = creditRules.find(r => r.semester_number === semNum) || { min_credits: 12, max_credits: 24 };
 
-        const lockedModuleIds = lockedModules.map(r => r.module_id);
-        const safeToRemove = toRemove.filter(id => !lockedModuleIds.includes(id));
+            if (totalCredits < rule.min_credits) throw new Error(`${sem.label}: Minimum ${rule.min_credits} credits required (current: ${totalCredits})`);
+            if (totalCredits > rule.max_credits) throw new Error(`${sem.label}: Maximum ${rule.max_credits} credits exceeded (current: ${totalCredits})`);
 
+            return {
+                semesterId: sem.semester_id,
+                moduleIds: semMods.map(s => s.module_id)
+            };
+        });
+
+        // 5. Transactional Sync for both semesters
         await prisma.$transaction(async (tx) => {
-            // 1. Remove deselected modules (that are safe to remove)
-            if (safeToRemove.length > 0) {
+            for (const map of semesterMapping) {
+                // Remove existing registrations for this specific semester (registered status only)
                 await tx.moduleRegistration.deleteMany({
                     where: {
                         student_id: record.student_id,
-                        semester_id: semester.semester_id,
-                        module_id: { in: safeToRemove },
-                        status: 'REGISTERED'
+                        semester_id: map.semesterId,
+                        status: 'REGISTERED' 
                     }
                 });
-            }
 
-            // 2. Add new modules
-            if (toAdd.length > 0) {
-                // Use createMany for efficiency if supported, or loop
-                // createMany is supported in most SQL providers now (Postgres/MySQL)
-                await tx.moduleRegistration.createMany({
-                    data: toAdd.map(moduleId => ({
-                        student_id: record.student_id,
-                        module_id: moduleId,
-                        semester_id: semester.semester_id,
-                        status: 'REGISTERED',
-                        registration_date: new Date(),
-                    }))
-                });
+                // Batch insert new registrations
+                if (map.moduleIds.length > 0) {
+                    await tx.moduleRegistration.createMany({
+                        data: map.moduleIds.map(mid => ({
+                            student_id: record.student_id,
+                            module_id: mid,
+                            semester_id: map.semesterId,
+                            status: 'REGISTERED',
+                            registration_date: new Date()
+                        }))
+                    });
+                }
             }
         });
 
         revalidatePath('/dashboard/student/modules');
         return { success: true };
+
     } catch (e: any) {
-        console.error("Registration failed", e);
-        throw new Error(e.message || "Registration failed");
+        console.error("Annual Registration Failed:", e);
+        throw new Error(e.message || "Submission failed");
     }
 }
 

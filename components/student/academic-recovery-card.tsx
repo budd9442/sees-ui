@@ -142,7 +142,7 @@ export function AcademicRecoveryCard() {
                                     </div>
                                     <div>
                                         <p className="text-xs font-bold text-primary uppercase">Your Advisor</p>
-                                        <p className="text-sm font-medium">{advisor.first_name} {advisor.last_name}</p>
+                                        <p className="text-sm font-medium">{advisor.firstName} {advisor.lastName}</p>
                                     </div>
                                 </div>
                                 <Button className="w-full bg-primary" onClick={handleMessageAdvisor}>

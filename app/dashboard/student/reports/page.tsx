@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { FEATURE_FLAGS } from '@/lib/services/feature-flags';
+import { FEATURE_FLAGS } from '@/lib/constants/feature-flags';
 import FeatureGuard from '@/components/feature-guard';
 import ReportsClient from './_components/reports-client';
 

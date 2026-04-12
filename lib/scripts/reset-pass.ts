@@ -17,8 +17,8 @@ async function main() {
                 username: 'admin_sees',
                 password_hash: passwordHash,
                 status: 'ACTIVE',
-                first_name: 'Super',
-                last_name: 'Admin',
+                firstName: 'Super',
+                lastName: 'Admin',
                 staff: {
                     create: {
                         staff_number: 'ADM_SEES',

@@ -1,0 +1,174 @@
+'use server';
+
+import { prisma } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
+
+/**
+ * Fetch all academic years with impact statistics for Admin
+ */
+export async function getAdminAcademicYears() {
+    try {
+        const years = await prisma.academicYear.findMany({
+            orderBy: {
+                start_date: 'desc'
+            },
+            include: {
+                _count: {
+                    select: {
+                        staff_assignments: true,
+                        semesters: true,
+                        intakes: true
+                    }
+                }
+            }
+        });
+
+        return {
+            success: true,
+            data: years.map(y => ({
+                id: y.academic_year_id,
+                label: y.label,
+                startDate: y.start_date,
+                endDate: y.end_date,
+                isActive: y.active,
+                stats: {
+                    staffCount: y._count.staff_assignments,
+                    semesterCount: y._count.semesters,
+                    intakeCount: y._count.intakes
+                }
+            }))
+        };
+    } catch (error) {
+        console.error("Failed to fetch admin academic years:", error);
+        return { success: false, error: "Database lookup failed" };
+    }
+}
+
+/**
+ * Create a new Academic Year and auto-provision semeters
+ */
+export async function createAcademicYear(data: {
+    label: string,
+    startDate: Date,
+    endDate: Date
+}) {
+    try {
+        // Validation: Unique label
+        const existing = await prisma.academicYear.findUnique({
+            where: { label: data.label }
+        });
+        if (existing) throw new Error("An academic year with this label already exists.");
+
+        // Create Year and Auto-Provision 2 Semesters in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            const year = await tx.academicYear.create({
+                data: {
+                    label: data.label,
+                    start_date: data.startDate,
+                    end_date: data.endDate,
+                    active: false // New years are not active by default
+                }
+            });
+
+            // Calculate mid-point for semester split
+            const midTime = data.startDate.getTime() + (data.endDate.getTime() - data.startDate.getTime()) / 2;
+            const midDate = new Date(midTime);
+
+            // Create Semesters
+            await tx.semester.createMany({
+                data: [
+                    {
+                        label: "Semester 1",
+                        academic_year_id: year.academic_year_id,
+                        start_date: data.startDate,
+                        end_date: midDate,
+                        credits_limit: 24,
+                        is_active: false
+                    },
+                    {
+                        label: "Semester 2",
+                        academic_year_id: year.academic_year_id,
+                        start_date: new Date(midTime + 1000 * 60 * 60 * 24), // Day after mid
+                        end_date: data.endDate,
+                        credits_limit: 24,
+                        is_active: false
+                    }
+                ]
+            });
+
+            return year;
+        });
+
+        revalidatePath('/dashboard/admin/config/academic');
+        return { success: true, data: result };
+    } catch (error: any) {
+        console.error("Failed to create academic year:", error);
+        return { success: false, error: error.message || "Failed to create record" };
+    }
+}
+
+/**
+ * Set a specific year as the system's "Current/Active" cycle
+ */
+export async function setActiveAcademicYear(id: string) {
+    try {
+        await prisma.$transaction([
+            // 1. Deactivate all others
+            prisma.academicYear.updateMany({
+                where: { active: true },
+                data: { active: false }
+            }),
+            // 2. Activate target
+            prisma.academicYear.update({
+                where: { academic_year_id: id },
+                data: { active: true }
+            })
+        ]);
+
+        revalidatePath('/dashboard/admin/config/academic');
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to set active year:", error);
+        return { success: false, error: "Lifecycle transition failed" };
+    }
+}
+
+/**
+ * Delete an academic year (only if it has no critical links)
+ */
+export async function deleteAcademicYear(id: string) {
+    try {
+        const year = await prisma.academicYear.findUnique({
+            where: { academic_year_id: id },
+            include: {
+                _count: {
+                    select: {
+                        staff_assignments: true,
+                        intakes: true
+                    }
+                }
+            }
+        });
+
+        if (!year) throw new Error("Year not found");
+        
+        if (year.active) {
+            throw new Error("Cannot delete the active academic cycle. Please switch to another year first.");
+        }
+
+        if (year._count.staff_assignments > 0 || year._count.intakes > 0) {
+            throw new Error("This year has active staff assignments or student intakes. Please migrate or delete those records first.");
+        }
+
+        // Delete semesters and year
+        await prisma.$transaction([
+            prisma.semester.deleteMany({ where: { academic_year_id: id } }),
+            prisma.academicYear.delete({ where: { academic_year_id: id } })
+        ]);
+
+        revalidatePath('/dashboard/admin/config/academic');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}

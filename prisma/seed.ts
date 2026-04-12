@@ -251,8 +251,8 @@ async function main() {
             email: 'admin@sees.com',
             username: 'admin',
             password_hash: adminPassword,
-            first_name: 'Super',
-            last_name: 'Admin',
+            firstName: 'Super',
+            lastName: 'Admin',
             status: 'ACTIVE',
             staff: {
                 create: {
@@ -270,8 +270,8 @@ async function main() {
             email: 'lecturer@sees.com',
             username: 'lecturer',
             password_hash: staffPassword,
-            first_name: 'Dr. Alan',
-            last_name: 'Turing',
+            firstName: 'Dr. Alan',
+            lastName: 'Turing',
             status: 'ACTIVE',
             staff: {
                 create: {
@@ -291,8 +291,8 @@ async function main() {
                 email: 'student@sees.com',
                 username: 'student',
                 password_hash: studentPassword,
-                first_name: 'John',
-                last_name: 'Student',
+                firstName: 'John',
+                lastName: 'Student',
                 status: 'ACTIVE',
                 student: {
                     create: {
@@ -315,8 +315,8 @@ async function main() {
             email: 'admin@kln.ac.lk',
             username: 'admin_kln',
             password_hash: adminPassword,
-            first_name: 'System',
-            last_name: 'Administrator',
+            firstName: 'System',
+            lastName: 'Administrator',
             status: 'ACTIVE',
             staff: {
                 create: {
@@ -336,8 +336,8 @@ async function main() {
                 email: 'bandara-im22053@stu.kln.ac.lk',
                 username: 'bandara',
                 password_hash: studentPassword,
-                first_name: 'buddhika',
-                last_name: 'Bandara',
+                firstName: 'buddhika',
+                lastName: 'Bandara',
                 status: 'ACTIVE',
                 student: {
                     create: {

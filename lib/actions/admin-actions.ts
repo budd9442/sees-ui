@@ -90,8 +90,8 @@ export async function getAdminDashboardData() {
 
     return {
         admin: {
-            firstName: userRecord.first_name,
-            lastName: userRecord.last_name,
+            firstName: userRecord.firstName,
+            lastName: userRecord.lastName,
         },
         totalUsers,
         activeSessions,

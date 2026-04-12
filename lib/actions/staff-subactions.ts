@@ -139,7 +139,7 @@ export async function getStaffModuleRoster(moduleId: string) {
             const gradeRecord = reg.student.grades[0];
             return {
                 id: reg.student.student_id,
-                name: `${reg.student.user.first_name} ${reg.student.user.last_name}`,
+                name: `${reg.student.user.firstName} ${reg.student.user.lastName}`,
                 email: reg.student.user.email,
                 academicYear: reg.student.current_level || 'L1',
                 specialization: reg.student.specialization?.name || reg.student.degree_path.name,
@@ -198,12 +198,19 @@ export async function getStaffSchedules() {
             return {
                 id: s.schedule_id,
                 moduleId: s.module_id,
+                module: module ? {
+                    id: module.id,
+                    name: module.title,
+                    code: module.code
+                } : null,
                 day: s.day_of_week,
                 startTime: s.start_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
                 endTime: s.end_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+                start_time: s.start_time.toISOString(),
+                end_time: s.end_time.toISOString(),
                 room: s.location || 'TBA',
-                type: 'lecture', // Defaulting to lecture as schema lacks specific type
-                capacity: 60,    // Standard room capacity
+                type: 'lecture',
+                capacity: 60,
                 isActive: true,
                 createdAt: s.start_time.toISOString(),
                 updatedAt: s.end_time.toISOString(),
@@ -310,7 +317,7 @@ export async function getStaffGradesData() {
             if (!studentsMap.has(reg.student_id)) {
                 studentsMap.set(reg.student_id, {
                     id: reg.student_id,
-                    name: reg.student.user.first_name + " " + reg.student.user.last_name,
+                    name: reg.student.user.firstName + " " + reg.student.user.lastName,
                     email: reg.student.user.email
                 });
             }

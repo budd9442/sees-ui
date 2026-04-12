@@ -320,7 +320,7 @@ export default function ScheduleClient({ initialData }: { initialData: any }) {
                                                                 <div className="space-y-1 text-sm text-muted-foreground mt-1">
                                                                     <div className="flex items-center gap-2">
                                                                         <Clock className="h-4 w-4" />
-                                                                        {schedule.startTime || format(new Date(schedule.start_time), 'HH:mm')} - {schedule.endTime || format(new Date(schedule.end_time), 'HH:mm')}
+                                                                        {schedule.startTime || (schedule.start_time ? format(new Date(schedule.start_time), 'HH:mm') : '09:00')} - {schedule.endTime || (schedule.end_time ? format(new Date(schedule.end_time), 'HH:mm') : '10:30')}
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                         <MapPin className="h-4 w-4" />

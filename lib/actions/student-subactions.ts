@@ -566,8 +566,8 @@ export async function getStudentProfile() {
     });
 
     return {
-        firstName: user.first_name || '',
-        lastName: user.last_name || '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
         email: user.email,
         phone: user.phone || '',
         address: user.address || '',
@@ -581,7 +581,7 @@ export async function getStudentProfile() {
             level: studentRecord.current_level || 'Level 1',
             pathway: studentRecord.degree_path.name,
             specialization: studentRecord.specialization?.name || 'None',
-            advisor: studentRecord.advisor ? `${studentRecord.advisor.staff.user.first_name} ${studentRecord.advisor.staff.user.last_name}` : 'Unassigned',
+            advisor: studentRecord.advisor ? `${studentRecord.advisor.staff.user.firstName} ${studentRecord.advisor.staff.user.lastName}` : 'Unassigned',
             enrollmentDate: new Date(studentRecord.admission_year, 8, 1).toISOString(),
             expectedGraduation: new Date(studentRecord.admission_year + 4, 5, 1).toISOString(),
             currentGPA: studentRecord.current_gpa,
@@ -607,8 +607,8 @@ export async function updateStudentProfile(data: {
     await prisma.user.update({
         where: { user_id: session.user.id },
         data: {
-            first_name: data.firstName,
-            last_name: data.lastName,
+            firstName: data.firstName,
+            lastName: data.lastName,
             phone: data.phone,
             address: data.address,
             bio: data.bio,
@@ -669,7 +669,7 @@ export async function getRankingsData() {
         return {
             id: student.student_id,
             studentId: student.student_id,
-            studentName: `${student.user.first_name} ${student.user.last_name}`,
+            studentName: `${student.user.firstName} ${student.user.lastName}`,
             academicYear: student.current_level || 'L1',
             pathway: student.degree_path.name,
             specialization: student.specialization?.name || null,
@@ -703,16 +703,16 @@ export async function getStudentMessages() {
             sender: {
                 select: {
                     user_id: true,
-                    first_name: true,
-                    last_name: true,
+                    firstName: true,
+                    lastName: true,
                     staff: true
                 }
             },
             recipient: {
                 select: {
                     user_id: true,
-                    first_name: true,
-                    last_name: true,
+                    firstName: true,
+                    lastName: true,
                     staff: true
                 }
             }
@@ -731,9 +731,9 @@ export async function getStudentMessages() {
         createdAt: msg.sent_at.toISOString(),
         isRead: !!msg.read_at,
         senderRole: msg.sender.staff ? msg.sender.staff.staff_type : 'student',
-        senderName: `${msg.sender.first_name || ''} ${msg.sender.last_name || ''}`.trim(),
+        senderName: `${msg.sender.firstName || ''} ${msg.sender.lastName || ''}`.trim(),
         receiverRole: msg.recipient.staff ? msg.recipient.staff.staff_type : 'student',
-        receiverName: `${msg.recipient.first_name || ''} ${msg.recipient.last_name || ''}`.trim()
+        receiverName: `${msg.recipient.firstName || ''} ${msg.recipient.lastName || ''}`.trim()
     }));
 
     return formattedMessages;

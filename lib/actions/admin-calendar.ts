@@ -3,24 +3,6 @@
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
-import { getAllFeatureFlags, setFeatureFlag } from '@/lib/services/feature-flags';
-
-// --- Feature Flags ---
-
-export async function getSystemFeatureFlags() {
-    const session = await auth();
-    if (session?.user?.role !== 'admin') throw new Error("Unauthorized");
-    return await getAllFeatureFlags();
-}
-
-export async function updateSystemFeatureFlag(key: string, value: boolean) {
-    const session = await auth();
-    if (session?.user?.role !== 'admin') throw new Error("Unauthorized");
-
-    await setFeatureFlag(key, value);
-    revalidatePath('/dashboard/admin/academic-calendar');
-    revalidatePath('/dashboard/student'); // To update student guards
-}
 
 // --- Academic Years ---
 

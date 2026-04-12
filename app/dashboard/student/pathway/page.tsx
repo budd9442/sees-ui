@@ -1,20 +1,15 @@
-import { Suspense } from 'react';
-import FeatureGuard from '@/components/feature-guard';
-import { FEATURE_FLAGS } from '@/lib/services/feature-flags';
-import PathwayClient from './_components/pathway-client';
-import { getPathwayData } from '@/lib/actions/student-subactions';
-import Loading from '../loading';
+import { PathwaySelectionClient } from './_components/pathway-selection-client';
+import { Metadata } from 'next';
 
-export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+    title: 'Pathway Selection | SEES Platform',
+    description: 'Select your specialized degree pathway for Level 2 and beyond.',
+};
 
-export default async function PathwaySelectionPage() {
-  const data = await getPathwayData();
-
-  return (
-    <FeatureGuard featureKey={FEATURE_FLAGS.ENABLE_PATHWAY_SELECTION} userRole="STUDENT">
-      <Suspense fallback={<Loading />}>
-        <PathwayClient initialData={data} />
-      </Suspense>
-    </FeatureGuard>
-  );
+export default function PathwaySelectionPage() {
+    return (
+        <div className="container py-8 px-4 md:px-6">
+            <PathwaySelectionClient />
+        </div>
+    );
 }

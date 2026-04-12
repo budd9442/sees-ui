@@ -28,18 +28,31 @@ import { format } from 'date-fns';
 export function ScheduleEditModal({ schedule }: { schedule: any }) {
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    // Safe formatting utility
+    const safeFormat = (dateInput: any, formatStr: string) => {
+        try {
+            if (!dateInput) return "09:00"; // Default fallback
+            const date = new Date(dateInput);
+            if (isNaN(date.getTime())) return "09:00";
+            return format(date, formatStr);
+        } catch (e) {
+            return "09:00";
+        }
+    };
+
     const [formData, setFormData] = useState({
-        dayOfWeek: schedule.day_of_week,
-        location: schedule.location || '',
-        startTime: format(new Date(schedule.start_time), 'HH:mm'),
-        endTime: format(new Date(schedule.end_time), 'HH:mm'),
+        dayOfWeek: schedule.day_of_week || schedule.day || 'Monday',
+        location: schedule.location || schedule.room || '',
+        startTime: schedule.startTime || safeFormat(schedule.start_time, 'HH:mm'),
+        endTime: schedule.endTime || safeFormat(schedule.end_time, 'HH:mm'),
     });
 
     const handleSave = async () => {
         setSaving(true);
         try {
             await updateLectureSchedule({
-                scheduleId: schedule.schedule_id,
+                scheduleId: schedule.id,
                 ...formData
             });
             toast.success("Schedule updated successfully.");
@@ -62,7 +75,7 @@ export function ScheduleEditModal({ schedule }: { schedule: any }) {
                 <DialogHeader>
                     <DialogTitle>Modify Class Schedule</DialogTitle>
                     <DialogDescription>
-                        Update the room and timing for {schedule.module.name}.
+                        Update the room and timing for {schedule.module?.name || 'this module'}.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">

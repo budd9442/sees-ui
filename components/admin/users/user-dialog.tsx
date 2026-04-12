@@ -100,8 +100,8 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
         if (open) {
             if (user) {
                 reset({
-                    firstName: user.first_name || '',
-                    lastName: user.last_name || '',
+                    firstName: user.firstName || '',
+                    lastName: user.lastName || '',
                     email: user.email || '',
                     role: (['student', 'staff', 'admin'].includes(user.role) ? user.role : 'student') as any,
                     studentId: user.studentId || '',

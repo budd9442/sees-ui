@@ -104,6 +104,7 @@ export async function getStaffAssignedModules() {
             active: true 
         },
         include: {
+            academic_year: true,
             module: {
                 include: {
                     _count: {
@@ -118,8 +119,10 @@ export async function getStaffAssignedModules() {
         .filter(a => !!a.module)
         .map(a => ({
             module_id: a.module!.module_id,
+            assignment_id: a.assignment_id,
             code: a.module!.code,
             name: a.module!.name,
+            academicYear: a.academic_year?.label || 'Legacy',
             description: a.module!.description,
             enrolledCount: a.module!._count.module_registrations
         }));
@@ -137,15 +140,16 @@ export async function getStaffDashboardData() {
     // 1. Fetch Staff Information
     const staff = await prisma.user.findUnique({
         where: { user_id: userId },
-        select: { first_name: true, last_name: true, email: true }
+        select: { firstName: true, lastName: true, email: true }
     });
 
     if (!staff) return null;
 
-    // 2. Fetch Assigned Modules with Counts
+    // 2. Fetch Assigned Modules with Year Context
     const assignments = await prisma.staffAssignment.findMany({
         where: { staff_id: userId, active: true },
         include: {
+            academic_year: true,
             module: {
                 include: {
                     _count: {
@@ -160,8 +164,10 @@ export async function getStaffDashboardData() {
         .filter(a => !!a.module)
         .map(a => ({
             id: a.module!.module_id,
+            assignmentId: a.assignment_id,
             name: a.module!.name,
             code: a.module!.code,
+            academicYear: a.academic_year?.label || 'Legacy',
             enrolledCount: a.module!._count.module_registrations
         }));
 
@@ -224,7 +230,7 @@ export async function getStaffDashboardData() {
     ];
 
     return {
-        staff: { firstName: staff.first_name, lastName: staff.last_name, email: staff.email },
+        staff: { firstName: staff.firstName, lastName: staff.lastName, email: staff.email },
         myModules,
         totalStudents,
         assignmentsToGrade,
@@ -255,7 +261,7 @@ export async function getEnrolledStudents(moduleId: string) {
     return registrations.map(reg => ({
         registrationId: reg.reg_id,
         studentNumber: reg.student.student_id,
-        studentName: `${reg.student.user.first_name || ''} ${reg.student.user.last_name || ''}`.trim(),
+        studentName: `${reg.student.user.firstName || ''} ${reg.student.user.lastName || ''}`.trim(),
         grade: reg.grade ? {
             grade: reg.grade.letter_grade,
             marks: reg.grade.marks

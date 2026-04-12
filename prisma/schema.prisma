@@ -15,8 +15,8 @@ model User {
   status              String               @default("ACTIVE")
   created_at          DateTime             @default(now())
   last_login_date     DateTime?
-  first_name          String?
-  last_name           String?
+  firstName           String
+  lastName            String
   address             String?
   avatar              String?
   bio                 String?
@@ -108,6 +108,7 @@ model DegreeProgram {
   name              String
   description       String?
   active            Boolean            @default(true)
+  is_common         Boolean            @default(false)
   intakes           ProgramIntake[]
   structure         ProgramStructure[]
   specializations   Specialization[]
@@ -115,6 +116,9 @@ model DegreeProgram {
   students          Student[]
   preferenced_by_1  Student[]          @relation("PathwayPreference1")
   preferenced_by_2  Student[]          @relation("PathwayPreference2")
+  
+  source_of_transitions AcademicPathTransition[] @relation("SourceProgram")
+  target_of_transitions AcademicPathTransition[] @relation("TargetProgram")
 }
 
 model Specialization {
@@ -165,6 +169,7 @@ model ProgramStructure {
   specialization_id String?
   module_id         String
   semester_id       String?
+  academic_year_id  String?
   academic_level    String
   semester_number   Int
   module_type       String
@@ -172,31 +177,38 @@ model ProgramStructure {
   module            Module          @relation(fields: [module_id], references: [module_id])
   degree_program    DegreeProgram   @relation(fields: [program_id], references: [program_id])
   specialization    Specialization? @relation(fields: [specialization_id], references: [specialization_id])
+  academic_year     AcademicYear?   @relation(fields: [academic_year_id], references: [academic_year_id])
 
-  @@unique([program_id, specialization_id, module_id])
+  @@unique([program_id, specialization_id, module_id, academic_year_id])
 }
 
 model StaffAssignment {
-  assignment_id  String         @id @default(uuid())
-  staff_id       String
-  program_id     String?
-  module_id      String?
-  role           String
-  assigned_at    DateTime       @default(now())
-  active         Boolean        @default(true)
-  module         Module?        @relation(fields: [module_id], references: [module_id])
-  degree_program DegreeProgram? @relation(fields: [program_id], references: [program_id])
-  staff          Staff          @relation(fields: [staff_id], references: [staff_id])
+  assignment_id    String         @id @default(uuid())
+  staff_id         String
+  program_id       String?
+  module_id        String?
+  academic_year_id String?
+  role             String
+  assigned_at      DateTime       @default(now())
+  active           Boolean        @default(true)
+  module           Module?        @relation(fields: [module_id], references: [module_id])
+  degree_program   DegreeProgram? @relation(fields: [program_id], references: [program_id])
+  staff            Staff          @relation(fields: [staff_id], references: [staff_id])
+  academic_year    AcademicYear?  @relation(fields: [academic_year_id], references: [academic_year_id])
+
+  @@unique([staff_id, module_id, academic_year_id])
 }
 
 model AcademicYear {
-  academic_year_id String          @id @default(uuid())
-  label            String          @unique
+  academic_year_id String            @id @default(uuid())
+  label            String            @unique
   start_date       DateTime
   end_date         DateTime
-  active           Boolean         @default(true)
+  active           Boolean           @default(true)
   intakes          ProgramIntake[]
   semesters        Semester[]
+  staff_assignments StaffAssignment[]
+  structures       ProgramStructure[]
 }
 
 model Semester {
@@ -208,6 +220,20 @@ model Semester {
   grades               Grade[]
   module_registrations ModuleRegistration[]
   academic_year        AcademicYear         @relation(fields: [academic_year_id], references: [academic_year_id])
+}
+
+model AcademicPathTransition {
+  id                String        @id @default(uuid())
+  source_program_id String
+  target_program_id String
+  level             String        @default("L2")
+  created_at        DateTime      @default(now())
+  
+  source_program    DegreeProgram @relation("SourceProgram", fields: [source_program_id], references: [program_id])
+  target_program    DegreeProgram @relation("TargetProgram", fields: [target_program_id], references: [program_id])
+
+  @@unique([source_program_id, target_program_id, level])
+  @@map("academic_path_transitions")
 }
 
 model ModuleRegistration {
@@ -257,6 +283,19 @@ model GradingBand {
   grade_point    Float
   letter_grade   String
   grading_scheme GradingScheme @relation(fields: [scheme_id], references: [scheme_id])
+}
+
+model AcademicCreditRule {
+  id              String   @id @default(uuid())
+  level           String   // e.g., 'L1', 'L2'
+  semester_number Int      // 1 or 2
+  min_credits     Int      @default(12)
+  max_credits     Int      @default(24)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@unique([level, semester_number])
+  @@map("academic_credit_rules")
 }
 
 model GPAHistory {
@@ -425,8 +464,8 @@ model BulkEnrollmentRecord {
   record_id          String              @id @default(uuid())
   batch_id           String
   email              String
-  first_name         String
-  last_name          String
+  firstName          String
+  lastName           String
   role               String              @default("student")
   user_id            String?
   status             String              @default("PENDING")
@@ -452,7 +491,7 @@ model Internship {
   start_date       DateTime
   end_date         DateTime
   status           String                @default("applied")
-  supervisor_name  String?
+  supervisorName  String?
   supervisor_email String?
   supervisor_phone String?
   description      String?

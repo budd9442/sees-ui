@@ -167,8 +167,8 @@ flowchart TD
 jwt({ token, user }) {
   if (user) {
     token.role = (user as any).role;
-    token.firstName = (user as any).first_name;
-    token.lastName = (user as any).last_name;
+    token.firstName = (user as any).firstName;
+    token.lastName = (user as any).lastName;
   }
   return token;
 }

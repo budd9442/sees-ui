@@ -58,8 +58,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                         role = 'student';
                     }
 
-                    const firstName = user.first_name || 'User';
-                    const lastName = user.last_name || '';
+                    const firstName = user.firstName || 'User';
+                    const lastName = user.lastName || '';
 
                     return {
                         ...user,
@@ -68,8 +68,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                         firstName,
                         lastName,
                         name: `${firstName} ${lastName}`.trim(),
-                        first_name: user.first_name || undefined,
-                        last_name: user.last_name || undefined
                     };
                 }
 

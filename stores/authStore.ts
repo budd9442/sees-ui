@@ -6,9 +6,11 @@ import type { User, Student } from '@/types';
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
+  selectedYearId: string | null;
   logout: () => void;
   hasRole: (roles: User['role'][]) => boolean;
   setUser: (user: User | null) => void;
+  setSelectedYearId: (id: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -16,9 +18,10 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
+      selectedYearId: null,
 
       logout: () => {
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false, selectedYearId: null });
       },
 
       hasRole: (roles: User['role'][]) => {
@@ -28,6 +31,10 @@ export const useAuthStore = create<AuthState>()(
 
       setUser: (user: User | null) => {
         set({ user, isAuthenticated: !!user });
+      },
+
+      setSelectedYearId: (id: string | null) => {
+        set({ selectedYearId: id });
       },
     }),
     {

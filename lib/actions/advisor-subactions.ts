@@ -49,8 +49,8 @@ export async function getAdviseesData() {
         return {
             id: student.student_id,
             studentId: student.student_id,
-            firstName: student.user.first_name,
-            lastName: student.user.last_name,
+            firstName: student.user.firstName,
+            lastName: student.user.lastName,
             email: student.user.email,
             academicYear: student.current_level || "L1", // Real level
             specialization: student.specialization?.name || "Undeclared",

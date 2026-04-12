@@ -43,8 +43,8 @@ export async function getAdvisorDashboardData() {
     const myStudents = advisorRecord.students.filter(s => s && s.user).map(s => ({
         id: s.student_id,
         studentId: s.student_id,
-        firstName: s.user.first_name,
-        lastName: s.user.last_name,
+        firstName: s.user.firstName,
+        lastName: s.user.lastName,
         currentGPA: s.current_gpa || 0,
         email: s.user.email
     }));
@@ -102,8 +102,8 @@ export async function getAdvisorDashboardData() {
 
     return {
         advisor: {
-            firstName: staffRecord.user.first_name,
-            lastName: staffRecord.user.last_name,
+            firstName: staffRecord.user.firstName,
+            lastName: staffRecord.user.lastName,
         },
         myStudents,
         atRiskStudents,

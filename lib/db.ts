@@ -12,5 +12,14 @@ const adapter = new PrismaPg(pool);
 
 export const prisma = globalForPrisma.prisma || new PrismaClient({ adapter });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-// Force reload: 2
+if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = prisma;
+    
+    // Force reload for new schema models: AcademicCreditRule
+    // Auto-start RabbitMQ Worker in background for development
+    import('@/lib/queue/email-worker').then(worker => {
+        worker.startEmailWorker().catch(err => {
+            console.error('[QUEUE] Failed to auto-start worker:', err);
+        });
+    });
+}

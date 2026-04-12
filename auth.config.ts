@@ -35,8 +35,8 @@ export const authConfig = {
             if (user) {
                 // Add role and profile info to token
                 token.role = (user as any).role;
-                token.firstName = (user as any).first_name;
-                token.lastName = (user as any).last_name;
+                token.firstName = (user as any).firstName;
+                token.lastName = (user as any).lastName;
             }
             return token;
         }

@@ -1,0 +1,511 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  user_id             String               @id @default(uuid())
+  email               String               @unique
+  username            String               @unique
+  password_hash       String
+  role                String               @default("student")
+  status              String               @default("ACTIVE")
+  created_at          DateTime             @default(now())
+  last_login_date     DateTime?
+  first_name          String?
+  last_name           String?
+  address             String?
+  avatar              String?
+  bio                 String?
+  emergency_contact   String?
+  github              String?
+  linkedin            String?
+  phone               String?
+  received_messages   Message[]            @relation("Recipient")
+  sent_messages       Message[]            @relation("Sender")
+  notifications       Notification[]
+  staff               Staff?
+  student             Student?
+  passwordResetTokens PasswordResetToken[]
+  registrationTokens  RegistrationToken[]
+}
+
+model RegistrationToken {
+  id         String    @id @default(cuid())
+  user_id    String
+  token      String    @unique
+  expires_at DateTime
+  created_at DateTime  @default(now())
+  used       Boolean   @default(false)
+  used_at    DateTime?
+  user       User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([user_id])
+  @@map("registration_tokens")
+}
+
+model Student {
+  student_id              String               @id
+  admission_year          Int
+  current_gpa             Float                @default(0.0)
+  academic_class          String?
+  degree_path_id          String
+  specialization_id       String?
+  advisor_id              String?
+  current_level           String?
+  enrollment_status       String               @default("ENROLLED")
+  pathway_locked          Boolean              @default(false)
+  pathway_preference_1_id String?
+  pathway_preference_2_id String?
+  pathway_selection_date  DateTime?
+  academic_goals          AcademicGoal[]
+  anonymous_reports       AnonymousReport[]
+  gpa_history             GPAHistory[]
+  grades                  Grade[]
+  internships             Internship[]
+  module_registrations    ModuleRegistration[]
+  rankings                Ranking[]
+  advisor                 Advisor?             @relation(fields: [advisor_id], references: [advisor_id])
+  degree_path             DegreeProgram        @relation(fields: [degree_path_id], references: [program_id])
+  preference_1            DegreeProgram?       @relation("PathwayPreference1", fields: [pathway_preference_1_id], references: [program_id])
+  preference_2            DegreeProgram?       @relation("PathwayPreference2", fields: [pathway_preference_2_id], references: [program_id])
+  specialization          Specialization?      @relation(fields: [specialization_id], references: [specialization_id])
+  user                    User                 @relation(fields: [student_id], references: [user_id], onDelete: Cascade)
+}
+
+model Staff {
+  staff_id          String            @id
+  staff_number      String            @unique
+  staff_type        String
+  department        String
+  advisor           Advisor?
+  hod               HOD?
+  lecture_schedules LectureSchedule[]
+  user              User              @relation(fields: [staff_id], references: [user_id], onDelete: Cascade)
+  assignments       StaffAssignment[]
+}
+
+model Advisor {
+  advisor_id              String    @id
+  assigned_degree_path_id String?
+  staff                   Staff     @relation(fields: [advisor_id], references: [staff_id], onDelete: Cascade)
+  students                Student[]
+}
+
+model HOD {
+  hod_id     String @id
+  department String
+  staff      Staff  @relation(fields: [hod_id], references: [staff_id], onDelete: Cascade)
+}
+
+model DegreeProgram {
+  program_id        String             @id @default(uuid())
+  code              String             @unique
+  name              String
+  description       String?
+  active            Boolean            @default(true)
+  intakes           ProgramIntake[]
+  structure         ProgramStructure[]
+  specializations   Specialization[]
+  staff_assignments StaffAssignment[]
+  students          Student[]
+  preferenced_by_1  Student[]          @relation("PathwayPreference1")
+  preferenced_by_2  Student[]          @relation("PathwayPreference2")
+}
+
+model Specialization {
+  specialization_id String             @id @default(uuid())
+  code              String             @unique
+  name              String
+  active            Boolean            @default(true)
+  description       String?
+  program_id        String
+  structure         ProgramStructure[]
+  degree_program    DegreeProgram      @relation(fields: [program_id], references: [program_id])
+  students          Student[]
+}
+
+model ProgramIntake {
+  intake_id        String        @id @default(uuid())
+  program_id       String
+  academic_year_id String
+  min_students     Int           @default(0)
+  max_students     Int           @default(100)
+  status           String        @default("OPEN")
+  academic_year    AcademicYear  @relation(fields: [academic_year_id], references: [academic_year_id])
+  degree_program   DegreeProgram @relation(fields: [program_id], references: [program_id])
+
+  @@unique([program_id, academic_year_id])
+}
+
+model Module {
+  module_id            String               @id @default(uuid())
+  code                 String               @unique
+  name                 String
+  credits              Int
+  level                String
+  description          String?
+  active               Boolean              @default(true)
+  grades               Grade[]
+  lecture_schedules    LectureSchedule[]
+  module_registrations ModuleRegistration[]
+  in_programs          ProgramStructure[]
+  staff_assignments    StaffAssignment[]
+  Module_A             Module[]             @relation("ModulePrerequisites")
+  Module_B             Module[]             @relation("ModulePrerequisites")
+}
+
+model ProgramStructure {
+  structure_id      String          @id @default(uuid())
+  program_id        String
+  specialization_id String?
+  module_id         String
+  semester_id       String?
+  academic_level    String
+  semester_number   Int
+  module_type       String
+  credits           Int?
+  module            Module          @relation(fields: [module_id], references: [module_id])
+  degree_program    DegreeProgram   @relation(fields: [program_id], references: [program_id])
+  specialization    Specialization? @relation(fields: [specialization_id], references: [specialization_id])
+
+  @@unique([program_id, specialization_id, module_id])
+}
+
+model StaffAssignment {
+  assignment_id  String         @id @default(uuid())
+  staff_id       String
+  program_id     String?
+  module_id      String?
+  role           String
+  assigned_at    DateTime       @default(now())
+  active         Boolean        @default(true)
+  module         Module?        @relation(fields: [module_id], references: [module_id])
+  degree_program DegreeProgram? @relation(fields: [program_id], references: [program_id])
+  staff          Staff          @relation(fields: [staff_id], references: [staff_id])
+}
+
+model AcademicYear {
+  academic_year_id String          @id @default(uuid())
+  label            String          @unique
+  start_date       DateTime
+  end_date         DateTime
+  active           Boolean         @default(true)
+  intakes          ProgramIntake[]
+  semesters        Semester[]
+}
+
+model Semester {
+  semester_id          String               @id @default(uuid())
+  academic_year_id     String
+  label                String
+  start_date           DateTime
+  end_date             DateTime
+  grades               Grade[]
+  module_registrations ModuleRegistration[]
+  academic_year        AcademicYear         @relation(fields: [academic_year_id], references: [academic_year_id])
+}
+
+model ModuleRegistration {
+  reg_id            String   @id @default(uuid())
+  student_id        String
+  module_id         String
+  semester_id       String
+  term              String?
+  registration_date DateTime @default(now())
+  status            String   @default("REGISTERED")
+  grade             Grade?
+  module            Module   @relation(fields: [module_id], references: [module_id])
+  semester          Semester @relation(fields: [semester_id], references: [semester_id])
+  student           Student  @relation(fields: [student_id], references: [student_id])
+}
+
+model Grade {
+  grade_id            String             @id @default(uuid())
+  reg_id              String             @unique
+  student_id          String
+  module_id           String
+  semester_id         String
+  marks               Float
+  grade_point         Float
+  letter_grade        String
+  attempt_no          Int                @default(1)
+  released_at         DateTime?
+  module              Module             @relation(fields: [module_id], references: [module_id])
+  module_registration ModuleRegistration @relation(fields: [reg_id], references: [reg_id])
+  semester            Semester           @relation(fields: [semester_id], references: [semester_id])
+  student             Student            @relation(fields: [student_id], references: [student_id])
+}
+
+model GradingScheme {
+  scheme_id String        @id @default(uuid())
+  name      String
+  version   String
+  active    Boolean       @default(true)
+  bands     GradingBand[]
+}
+
+model GradingBand {
+  band_id        String        @id @default(uuid())
+  scheme_id      String
+  min_marks      Float
+  max_marks      Float
+  grade_point    Float
+  letter_grade   String
+  grading_scheme GradingScheme @relation(fields: [scheme_id], references: [scheme_id])
+}
+
+model GPAHistory {
+  gpa_history_id   String   @id @default(uuid())
+  student_id       String
+  calculation_date DateTime @default(now())
+  gpa              Float
+  academic_class   String?
+  student          Student  @relation(fields: [student_id], references: [student_id])
+}
+
+model AcademicGoal {
+  goal_id      String    @id @default(uuid())
+  student_id   String
+  target_gpa   Float?
+  target_class String?
+  created_at   DateTime  @default(now())
+  achieved_at  DateTime?
+  category     String    @default("academic")
+  deadline     DateTime?
+  description  String?
+  milestones   String[]
+  priority     String    @default("medium")
+  progress     Int       @default(0)
+  status       String    @default("IN_PROGRESS")
+  target_value String?
+  title        String    @default("Academic Goal")
+  student      Student   @relation(fields: [student_id], references: [student_id])
+}
+
+model Ranking {
+  ranking_id       String   @id @default(uuid())
+  student_id       String
+  degree_path_id   String
+  rank             Int
+  gpa              Float
+  weighted_average Float
+  created_at       DateTime @default(now())
+  student          Student  @relation(fields: [student_id], references: [student_id])
+}
+
+model Message {
+  message_id   String    @id @default(uuid())
+  sender_id    String
+  recipient_id String
+  subject      String
+  content      String
+  sent_at      DateTime  @default(now())
+  read_at      DateTime?
+  recipient    User      @relation("Recipient", fields: [recipient_id], references: [user_id])
+  sender       User      @relation("Sender", fields: [sender_id], references: [user_id])
+}
+
+model Notification {
+  notification_id String    @id @default(uuid())
+  user_id         String
+  type            String
+  title           String
+  content         String
+  sent_at         DateTime  @default(now())
+  read_at         DateTime?
+  user            User      @relation(fields: [user_id], references: [user_id])
+}
+
+model AnonymousReport {
+  report_id  String   @id @default(uuid())
+  student_id String
+  content    String
+  priority   String
+  status     String   @default("PENDING")
+  created_at DateTime @default(now())
+  student    Student  @relation(fields: [student_id], references: [student_id])
+}
+
+model LectureSchedule {
+  schedule_id String   @id @default(uuid())
+  module_id   String
+  staff_id    String
+  day_of_week String
+  start_time  DateTime
+  end_time    DateTime
+  location    String?
+  module      Module   @relation(fields: [module_id], references: [module_id])
+  staff       Staff    @relation(fields: [staff_id], references: [staff_id])
+}
+
+model SystemMetric {
+  id              String   @id @default(cuid())
+  timestamp       DateTime @default(now()) @db.Timestamptz(6)
+  cpu             Int
+  cores           Int
+  memory          Int
+  storage_used    Float
+  storage_total   Float
+  storage_percent Int
+  uptime          Float
+  health          Int
+  active_users    Int
+
+  @@index([timestamp])
+  @@map("system_metrics")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  user_id    String
+  token      String    @unique
+  expires_at DateTime
+  created_at DateTime  @default(now())
+  used       Boolean   @default(false)
+  used_at    DateTime?
+  user       User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([user_id])
+  @@map("password_reset_tokens")
+}
+
+model FeatureFlag {
+  id          String    @id @default(uuid())
+  key         String    @unique
+  name        String
+  description String?
+  isEnabled   Boolean   @default(false)
+  startDate   DateTime?
+  endDate     DateTime?
+  targetRoles String[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("feature_flags")
+}
+
+model CalendarEvent {
+  id                String   @id @default(uuid())
+  title             String
+  description       String?
+  startDate         DateTime
+  endDate           DateTime
+  type              String
+  isRecurring       Boolean  @default(false)
+  recurrencePattern String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("calendar_events")
+}
+
+model BulkEnrollmentBatch {
+  batch_id           String                 @id @default(uuid())
+  uploaded_by        String
+  filename           String
+  program_id         String?
+  level              String?
+  total_records      Int                    @default(0)
+  successful_records Int                    @default(0)
+  failed_records     Int                    @default(0)
+  status             String                 @default("PROCESSING")
+  created_at         DateTime               @default(now())
+  records            BulkEnrollmentRecord[]
+
+  @@map("bulk_enrollment_batches")
+}
+
+model BulkEnrollmentRecord {
+  record_id          String              @id @default(uuid())
+  batch_id           String
+  email              String
+  first_name         String
+  last_name          String
+  role               String              @default("student")
+  user_id            String?
+  status             String              @default("PENDING")
+  error_message      String?
+  email_sent         Boolean             @default(false)
+  email_sent_at      DateTime?
+  email_resend_count Int                 @default(0)
+  last_email_sent_at DateTime?
+  created_at         DateTime            @default(now())
+  batch              BulkEnrollmentBatch @relation(fields: [batch_id], references: [batch_id], onDelete: Cascade)
+
+  @@index([batch_id])
+  @@index([email])
+  @@index([status])
+  @@map("bulk_enrollment_records")
+}
+
+model Internship {
+  internship_id    String                @id @default(uuid())
+  student_id       String
+  company          String
+  role             String
+  start_date       DateTime
+  end_date         DateTime
+  status           String                @default("applied")
+  supervisor_name  String?
+  supervisor_email String?
+  supervisor_phone String?
+  description      String?
+  progress         Int                   @default(0)
+  created_at       DateTime              @default(now())
+  updated_at       DateTime              @updatedAt
+  student          Student               @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+  documents        InternshipDocument[]
+  milestones       InternshipMilestone[]
+}
+
+model InternshipMilestone {
+  milestone_id   String     @id @default(uuid())
+  internship_id  String
+  title          String
+  description    String?
+  due_date       DateTime
+  completed      Boolean    @default(false)
+  completed_date DateTime?
+  internship     Internship @relation(fields: [internship_id], references: [internship_id], onDelete: Cascade)
+}
+
+model InternshipDocument {
+  document_id   String     @id @default(uuid())
+  internship_id String
+  name          String
+  type          String
+  url           String
+  uploaded_at   DateTime   @default(now())
+  internship    Internship @relation(fields: [internship_id], references: [internship_id], onDelete: Cascade)
+}
+
+model SystemSetting {
+  setting_id  String   @id
+  key         String   @unique
+  value       String
+  description String?
+  category    String
+  updated_at  DateTime
+}
+
+model AuditLog {
+  log_id      String   @id @default(uuid())
+  admin_id    String
+  action      String
+  entity_type String
+  entity_id   String
+  old_value   String?
+  new_value   String?
+  timestamp   DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([admin_id])
+  @@map("audit_logs")
+}

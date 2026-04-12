@@ -63,14 +63,14 @@ export async function POST(req: Request) {
         // Send registration email
         try {
             const emailTemplate = getWelcomeEmail(
-                record.first_name,
+                record.firstName,
                 user.username,
                 tempPassword
             );
 
             await sendEmail({
                 to: record.email,
-                toName: record.first_name,
+                toName: record.firstName,
                 subject: emailTemplate.subject,
                 htmlContent: emailTemplate.htmlContent
             });

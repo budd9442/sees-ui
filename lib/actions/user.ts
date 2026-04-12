@@ -30,8 +30,8 @@ export async function createUserWithEmail(params: CreateUserParams) {
             data: {
                 email: email.toLowerCase(),
                 username: username.toLowerCase(),
-                first_name: firstName,
-                last_name: lastName,
+                firstName: firstName,
+                lastName: lastName,
                 password_hash: passwordHash,
                 status: 'ACTIVE'
             }

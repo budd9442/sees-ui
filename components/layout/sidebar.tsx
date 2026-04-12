@@ -39,6 +39,8 @@ import {
   FileSpreadsheet,
   Archive,
   Search,
+  ShieldCheck,
+  Settings2,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -268,6 +270,18 @@ const navigationItems: NavItem[] = [
     title: 'GPA Config',
     href: '/dashboard/admin/config/gpa',
     icon: Award,
+    roles: ['admin'],
+  },
+  {
+    title: 'Credit Rules',
+    href: '/dashboard/admin/config/credits',
+    icon: ShieldCheck,
+    roles: ['admin'],
+  },
+  {
+    title: 'Feature Governance',
+    href: '/dashboard/admin/config/features',
+    icon: Settings2,
     roles: ['admin'],
   },
   {

@@ -30,8 +30,8 @@ export async function validateEnrollmentCSV(csvContent: string): Promise<Validat
         if (!record.email || !record.email.includes('@')) {
             errors.push({ row: rowNum, field: 'email', message: 'Invalid or missing email format.' });
         }
-        if (!record.first_name || record.first_name.length < 2) {
-            errors.push({ row: rowNum, field: 'first_name', message: 'First name is too short or missing.' });
+        if (!record.firstName || record.firstName.length < 2) {
+            errors.push({ row: rowNum, field: 'firstName', message: 'First name is too short or missing.' });
         }
 
         // 2. Duplicate Check within CSV

@@ -5,8 +5,8 @@ async function main() {
         const users = await prisma.user.findMany({
             select: {
                 email: true,
-                first_name: true,
-                last_name: true,
+                firstName: true,
+                lastName: true,
                 staff: { select: { staff_type: true } },
                 student: { select: { student_id: true } }
             }

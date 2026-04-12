@@ -32,8 +32,8 @@ interface UserData {
     user_id: string;
     email: string;
     username: string;
-    first_name?: string | null;
-    last_name?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
     status: string;
     created_at: Date;
     last_login_date: Date | null;
@@ -191,8 +191,8 @@ export function UserTable({ initialUsers, totalPages, degreePrograms, role, curr
                                 <TableCell>
                                     <div className="flex flex-col">
                                         <span className="font-medium">
-                                            {user.first_name && user.last_name
-                                                ? `${user.first_name} ${user.last_name}`
+                                            {user.firstName && user.lastName
+                                                ? `${user.firstName} ${user.lastName}`
                                                 : user.username}
                                         </span>
                                         <span className="text-xs text-muted-foreground">{user.email}</span>

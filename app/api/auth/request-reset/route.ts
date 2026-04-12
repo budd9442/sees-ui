@@ -28,7 +28,7 @@ export async function POST(req: Request) {
             select: {
                 user_id: true,
                 email: true,
-                first_name: true
+                firstName: true
             }
         });
 
@@ -65,10 +65,10 @@ export async function POST(req: Request) {
 
         // Send reset email
         try {
-            const emailTemplate = getPasswordResetEmail(user.first_name || 'User', token);
+            const emailTemplate = getPasswordResetEmail(user.firstName || 'User', token);
             await sendEmail({
                 to: user.email,
-                toName: user.first_name || undefined,
+                toName: user.firstName || undefined,
                 subject: emailTemplate.subject,
                 htmlContent: emailTemplate.htmlContent
             });

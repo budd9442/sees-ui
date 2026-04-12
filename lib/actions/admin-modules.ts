@@ -93,8 +93,8 @@ export async function getAllStaffList() {
         include: {
             user: {
                 select: {
-                    first_name: true,
-                    last_name: true,
+                    firstName: true,
+                    lastName: true,
                     email: true
                 }
             }
@@ -103,7 +103,7 @@ export async function getAllStaffList() {
 
     return staff.map(s => ({
         staffId: s.staff_id,
-        name: `${s.user.first_name} ${s.user.last_name}`,
+        name: `${s.user.firstName} ${s.user.lastName}`,
         email: s.user.email,
         staffNumber: s.staff_number
     }));
@@ -116,6 +116,7 @@ export async function getModuleAssignments(moduleId: string) {
     const assignments = await prisma.staffAssignment.findMany({
         where: { module_id: moduleId, active: true },
         include: {
+            academic_year: true,
             staff: {
                 include: {
                     user: true
@@ -127,26 +128,35 @@ export async function getModuleAssignments(moduleId: string) {
     return assignments.map(a => ({
         assignmentId: a.assignment_id,
         staffId: a.staff_id,
-        name: `${a.staff.user.first_name} ${a.staff.user.last_name}`,
-        role: a.role
+        name: `${a.staff.user.firstName} ${a.staff.user.lastName}`,
+        role: a.role,
+        academicYear: a.academic_year?.label || 'Legacy'
     }));
 }
 
-export async function assignStaffToModule(moduleId: string, staffId: string, role: string) {
+export async function assignStaffToModule(moduleId: string, staffId: string, role: string, yearId?: string) {
     const session = await auth();
     if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
-    // Check if already assigned
+    // 1. Resolve target Academic Year (default to active)
+    let targetYearId = yearId;
+    if (!targetYearId) {
+        const activeYear = await prisma.academicYear.findFirst({ where: { active: true } });
+        if (!activeYear) throw new Error("No active academic year found to bind assignment.");
+        targetYearId = activeYear.academic_year_id;
+    }
+
+    // 2. Check if already assigned for THIS specific year
     const existing = await prisma.staffAssignment.findFirst({
         where: {
             module_id: moduleId,
             staff_id: staffId,
+            academic_year_id: targetYearId,
             active: true
         }
     });
 
     if (existing) {
-        // Update role if different?
         if (existing.role !== role) {
             await prisma.staffAssignment.update({
                 where: { assignment_id: existing.assignment_id },
@@ -160,7 +170,8 @@ export async function assignStaffToModule(moduleId: string, staffId: string, rol
         data: {
             module_id: moduleId,
             staff_id: staffId,
-            role: role
+            role: role,
+            academic_year_id: targetYearId
         }
     });
     revalidatePath('/dashboard/admin/modules');

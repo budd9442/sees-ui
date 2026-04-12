@@ -21,8 +21,8 @@ import { toast } from 'sonner';
 interface Record {
     record_id: string;
     email: string;
-    first_name: string;
-    last_name: string;
+    firstName: string;
+    lastName: string;
     status: string;
     error_message: string | null;
     email_sent: boolean;
@@ -239,7 +239,7 @@ export default function BatchDetailsPage({ params }: { params: Promise<{ batchId
                                 {batch.records.map((record) => (
                                     <TableRow key={record.record_id}>
                                         <TableCell className="font-medium">{record.email}</TableCell>
-                                        <TableCell>{record.first_name} {record.last_name}</TableCell>
+                                        <TableCell>{record.firstName} {record.lastName}</TableCell>
                                         <TableCell>{getStatusBadge(record.status)}</TableCell>
                                         <TableCell>
                                             {record.email_sent ? (
@@ -324,7 +324,7 @@ export default function BatchDetailsPage({ params }: { params: Promise<{ batchId
                             </div>
                             <div className="space-y-2">
                                 <p className="text-sm"><strong>Email:</strong> {resendDialog.record.email}</p>
-                                <p className="text-sm"><strong>Name:</strong> {resendDialog.record.first_name} {resendDialog.record.last_name}</p>
+                                <p className="text-sm"><strong>Name:</strong> {resendDialog.record.firstName} {resendDialog.record.lastName}</p>
                                 {resendDialog.record.email_resend_count > 0 && (
                                     <p className="text-sm text-muted-foreground">
                                         This email has been resent {resendDialog.record.email_resend_count} time(s) before.

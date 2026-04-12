@@ -23,9 +23,14 @@ export default async function StaffModulesPage() {
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <Badge variant="outline" className="mb-2">
-                    {module.code}
-                  </Badge>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline">
+                      {module.code}
+                    </Badge>
+                    <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border-blue-100 text-[10px] px-2 py-0">
+                      {module.academicYear}
+                    </Badge>
+                  </div>
                   <CardTitle className="line-clamp-1">{module.name}</CardTitle>
                 </div>
               </div>

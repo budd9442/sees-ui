@@ -29,8 +29,8 @@ export async function getUsers({
 
     if (search) {
         where.OR = [
-            { first_name: { contains: search, mode: 'insensitive' } },
-            { last_name: { contains: search, mode: 'insensitive' } },
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
             { email: { contains: search, mode: 'insensitive' } },
         ];
     }
@@ -193,8 +193,8 @@ export async function createUser(data: CreateUserSchema) {
                 data: {
                     email,
                     username,
-                    first_name: firstName,
-                    last_name: finalLastName,
+                    firstName: firstName,
+                    lastName: finalLastName,
                     password_hash: passwordHash,
                     status: 'ACTIVE',
                     registrationTokens: {
@@ -284,8 +284,8 @@ export async function updateUser(updatedData: UpdateUserSchema) {
             await tx.user.update({
                 where: { user_id: id },
                 data: {
-                    first_name: firstName,
-                    last_name: lastName,
+                    firstName: firstName,
+                    lastName: lastName,
                 },
             });
 
@@ -374,7 +374,7 @@ export async function validateRegistrationToken(token: string) {
             data: {
                 username: registrationToken.user.username,
                 email: registrationToken.user.email,
-                firstName: registrationToken.user.first_name,
+                firstName: registrationToken.user.firstName,
                 userId: registrationToken.user.user_id
             }
         };
@@ -489,8 +489,8 @@ export async function updateProfile(userId: string, data: { firstName: string; l
         await prisma.user.update({
             where: { user_id: targetId },
             data: {
-                first_name: data.firstName,
-                last_name: data.lastName,
+                firstName: data.firstName,
+                lastName: data.lastName,
             },
         });
 

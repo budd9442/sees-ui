@@ -105,7 +105,7 @@ export async function getHODDashboardData() {
 
     // Staff Workload tracking
     const staffWorkloadData = deptStaff.map(s => ({
-        name: `${s.user.first_name} ${s.user.last_name}`,
+        name: `${s.user.firstName} ${s.user.lastName}`,
         modules: s.assignments.length,
         students: s.assignments.reduce((acc, a) => acc + (a.module?.module_registrations?.length || 0), 0)
     }));
@@ -117,8 +117,8 @@ export async function getHODDashboardData() {
 
     return {
         hod: {
-            firstName: staffRecord.user.first_name,
-            lastName: staffRecord.user.last_name,
+            firstName: staffRecord.user.firstName,
+            lastName: staffRecord.user.lastName,
             department: deptString
         },
         totalStudents,
@@ -148,7 +148,7 @@ export async function getHODAnalyticsData() {
 
     const students = allStudents.map(s => ({
         id: s.student_id,
-        name: `${s.user.first_name} ${s.user.last_name}`,
+        name: `${s.user.firstName} ${s.user.lastName}`,
         currentGPA: s.gpa_history[0]?.gpa || 0,
         specialization: s.degree_path?.name || "Unassigned",
         academicYear: s.current_level
@@ -258,7 +258,7 @@ export async function getHODReportsData() {
     const academicGoals = academicGoalsRaw.map(g => ({
         id: g.goal_id,
         studentId: g.student_id,
-        studentName: `${g.student.user.first_name} ${g.student.user.last_name}`,
+        studentName: `${g.student.user.firstName} ${g.student.user.lastName}`,
         title: g.title,
         status: g.status
     }));
@@ -287,7 +287,7 @@ export async function getHODReportsData() {
     const interventions = interventionsRaw.map(i => ({
         id: i.intervention_id,
         studentId: i.student_id,
-        studentName: `${i.student.user.first_name} ${i.student.user.last_name}`,
+        studentName: `${i.student.user.firstName} ${i.student.user.lastName}`,
         type: i.type,
         status: i.status
     }));

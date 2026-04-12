@@ -30,9 +30,9 @@ export default async function DashboardLayout({
   const user: User = {
     id: dbUser?.user_id || session.user.id || '',
     email: dbUser?.email || session.user.email || '',
-    firstName: dbUser?.first_name || (session.user as any).firstName || session.user.name?.split(' ')[0] || 'User',
-    lastName: dbUser?.last_name || (session.user as any).lastName || session.user.name?.split(' ').slice(1).join(' ') || '',
-    name: dbUser ? `${dbUser.first_name || ''} ${dbUser.last_name || ''}`.trim() : session.user.name || '',
+    firstName: dbUser?.firstName || (session.user as any).firstName || session.user.name?.split(' ')[0] || 'User',
+    lastName: dbUser?.lastName || (session.user as any).lastName || session.user.name?.split(' ').slice(1).join(' ') || '',
+    name: dbUser ? `${dbUser.firstName || ''} ${dbUser.lastName || ''}`.trim() : session.user.name || '',
     // Determine role from DB record if possible
     role: (dbUser as any)?.student
       ? 'student'

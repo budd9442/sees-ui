@@ -42,7 +42,8 @@ export async function POST(req: Request) {
             columns: true,
             skip_empty_lines: true,
             trim: true,
-        });
+            bom: true,
+        }).filter((r: any) => r.email && (r.firstName || r.lastName));
 
         // Calculate admission year based on level
         const currentYear = new Date().getFullYear();
@@ -97,8 +98,8 @@ export async function POST(req: Request) {
                     data: {
                         batch_id: batch.batch_id,
                         email: email || 'unknown',
-                        first_name: firstName || '',
-                        last_name: lastName || '',
+                        firstName: firstName || '',
+                        lastName: lastName || '',
                         status: 'FAILED',
                         error_message: 'Missing required fields'
                     }
@@ -117,8 +118,8 @@ export async function POST(req: Request) {
                         data: {
                             email: email.toLowerCase(),
                             username: username.toLowerCase(),
-                            first_name: firstName,
-                            last_name: lastName,
+                            firstName: firstName,
+                            lastName: lastName,
                             password_hash: passwordHash,
                             status: 'ACTIVE',
                         },
@@ -160,8 +161,8 @@ export async function POST(req: Request) {
                     data: {
                         batch_id: batch.batch_id,
                         email: email,
-                        first_name: firstName,
-                        last_name: lastName,
+                        firstName: firstName,
+                        lastName: lastName,
                         user_id: user.user_id,
                         status: 'SUCCESS',
                         email_sent: emailSent,
@@ -182,8 +183,8 @@ export async function POST(req: Request) {
                     data: {
                         batch_id: batch.batch_id,
                         email: email,
-                        first_name: firstName,
-                        last_name: lastName,
+                        firstName: firstName,
+                        lastName: lastName,
                         status: 'FAILED',
                         error_message: error.message
                     }

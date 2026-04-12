@@ -12,6 +12,15 @@ import { uploadBulkEnrollment, processEnrollmentBatch, dispatchEnrollmentInvites
 import { validateEnrollmentCSV, ValidationResult } from '@/lib/actions/enrollment-validation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface BulkEnrollmentClientProps {
     initialBatches: any[];
@@ -23,6 +32,7 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [validation, setValidation] = useState<ValidationResult | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [confirmingBatch, setConfirmingBatch] = useState<any | null>(null);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -68,6 +78,7 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
     };
 
     const handleProcess = async (batchId: string) => {
+        setConfirmingBatch(null);
         setProcessingId(batchId);
         toast.info("Processing enrollment batch... this takes a few seconds.");
         try {
@@ -84,7 +95,7 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
     };
 
     const handleSendInvites = async (batchId: string) => {
-        toast.loading("Sending activation emails...");
+        toast.loading("Dispatching activation emails...");
         try {
             await dispatchEnrollmentInvites(batchId);
             toast.success("Account activation invites dispatched.");
@@ -105,7 +116,7 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
                     <div className="space-y-1">
                         <h3 className="text-lg font-semibold tracking-tight">Bulk Student Intake</h3>
                         <p className="text-sm text-muted-foreground max-w-sm">
-                            Upload a CSV with <code>first_name, last_name, email</code> to enroll students and invite them to setup their account.
+                            Upload a CSV with <code>firstName, lastName, email</code> to enroll students and invite them to setup their account.
                         </p>
                     </div>
                     <div className="flex flex-col items-center gap-4 w-full">
@@ -207,7 +218,7 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
                                 {batch.status === 'PENDING' && (
                                     <Button 
                                         size="sm" 
-                                        onClick={() => handleProcess(batch.batch_id)}
+                                        onClick={() => setConfirmingBatch(batch)}
                                         disabled={processingId === batch.batch_id}
                                         className="bg-blue-600 hover:bg-blue-700"
                                     >
@@ -223,7 +234,7 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
                                         className="text-primary hover:bg-primary/5"
                                     >
                                         <Send className="h-3 w-3 mr-1" />
-                                        Blast Invites
+                                        Send Invitations
                                     </Button>
                                 )}
                                 {batch.status === 'COMPLETED' && (
@@ -243,6 +254,52 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
                     </Card>
                 ))}
             </div>
+
+            {/* Confirmation Modal */}
+            <Dialog open={!!confirmingBatch} onOpenChange={(open) => !open && setConfirmingBatch(null)}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Verify Enrollment Data</DialogTitle>
+                        <DialogDescription>
+                            Review the extracted records from <b>{confirmingBatch?.filename}</b> before finalizing enrollment.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <ScrollArea className="h-[300px] mt-4 rounded-md border">
+                        <Table>
+                            <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                <TableRow>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>First Name</TableHead>
+                                    <TableHead>Last Name</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {confirmingBatch?.records?.map((record: any, idx: number) => (
+                                    <TableRow key={idx}>
+                                        <TableCell className="font-medium">{record.email}</TableCell>
+                                        <TableCell>{record.firstName}</TableCell>
+                                        <TableCell>{record.lastName}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+
+                    <DialogFooter className="mt-6">
+                        <Button variant="ghost" onClick={() => setConfirmingBatch(null)}>
+                            Cancel
+                        </Button>
+                        <Button 
+                            className="bg-blue-600 hover:bg-blue-700"
+                            onClick={() => handleProcess(confirmingBatch.batch_id)}
+                        >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Confirm & Enroll
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

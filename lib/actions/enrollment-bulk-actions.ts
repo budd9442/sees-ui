@@ -23,8 +23,9 @@ export async function uploadBulkEnrollment(formData: FormData) {
     const records = parse(csvContent, {
         columns: true,
         skip_empty_lines: true,
-        trim: true
-    });
+        trim: true,
+        bom: true
+    }).filter((r: any) => r.email && (r.firstName || r.lastName));
 
     // 1. Create Batch Entry
     const batch = await prisma.bulkEnrollmentBatch.create({
@@ -41,8 +42,8 @@ export async function uploadBulkEnrollment(formData: FormData) {
         data: records.map((r: any) => ({
             batch_id: batch.batch_id,
             email: r.email,
-            first_name: r.first_name,
-            last_name: r.last_name,
+            firstName: r.firstName,
+            lastName: r.lastName,
             status: 'PENDING'
         }))
     });
@@ -83,8 +84,8 @@ export async function processEnrollmentBatch(batchId: string) {
                         email: record.email,
                         username: record.email.split('@')[0] + Math.floor(Math.random() * 1000), // Random username fallback
                         password_hash: 'PENDING_INVITE', // Placeholder
-                        first_name: record.first_name,
-                        last_name: record.last_name,
+                        firstName: record.firstName,
+                        lastName: record.lastName,
                         status: 'PENDING_SETUP'
                     }
                 });
@@ -150,6 +151,8 @@ export async function dispatchEnrollmentInvites(batchId: string) {
         include: { batch: true }
     });
 
+    const { pushToQueue } = await import('@/lib/queue/queue-service');
+
     for (const record of records) {
         const tokenData = await prisma.registrationToken.findFirst({
             where: { user_id: record.user_id as string, used: false }
@@ -158,31 +161,16 @@ export async function dispatchEnrollmentInvites(batchId: string) {
         if (tokenData) {
             const setupLink = `${process.env.NEXTAUTH_URL}/auth/setup-password?token=${tokenData.token}`;
             
-            try {
-                await sendEmail({
-                    to: record.email,
-                    toName: `${record.first_name} ${record.last_name}`,
-                    subject: "Welcome to SEES! Setup your academic account",
-                    htmlContent: `
-                        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-                            <h1 style="color: #1e3a8a;">Welcome to SEES Platform</h1>
-                            <p>Hi ${record.first_name},</p>
-                            <p>An academic account has been created for you at SEES. Please click the button below to set your password and activate your profile.</p>
-                            <div style="text-align: center; margin: 30px 0;">
-                                <a href="${setupLink}" style="display: inline-block; padding: 14px 28px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Setup My Account</a>
-                            </div>
-                            <p style="color: #64748b; font-size: 0.875rem;">This link will expire in 7 days. If you did not expect this email, please ignore it.</p>
-                        </div>
-                    `
-                });
-
-                await prisma.bulkEnrollmentRecord.update({
-                    where: { record_id: record.record_id },
-                    data: { email_sent: true, email_sent_at: new Date() }
-                });
-            } catch (err) {
-                console.error(`Failed to send invite to ${record.email}`, err);
-            }
+            // Push to RabbitMQ Queue
+            console.log(`[QUEUE] Queueing invitation for ${record.email}...`);
+            await pushToQueue('enrollment_invites', {
+                recordId: record.record_id,
+                email: record.email,
+                firstName: record.firstName,
+                lastName: record.lastName,
+                setupLink
+            });
+            console.log(`[QUEUE] ${record.email} successfully queued.`);
         }
     }
 
