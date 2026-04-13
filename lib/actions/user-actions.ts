@@ -72,7 +72,11 @@ export async function getUsers({
                             degree_path: true
                         }
                     },
-                    staff: true,
+                    staff: {
+                        include: {
+                            hod: true
+                        }
+                    },
                 },
             }),
             prisma.user.count({ where }),
@@ -99,7 +103,8 @@ export async function getUsers({
                 details = {
                     staffNumber: u.staff.staff_number,
                     department: u.staff.department,
-                    type: u.staff.staff_type
+                    type: u.staff.staff_type,
+                    isHOD: !!u.staff.hod
                 };
             }
             else if (u.email.includes('admin')) role = 'admin';
@@ -499,5 +504,51 @@ export async function updateProfile(userId: string, data: { firstName: string; l
     } catch (error) {
         console.error('Failed to update profile:', error);
         return { success: false, error: 'Failed to update user profile' };
+    }
+}
+export async function toggleHODStatus(staffId: string) {
+    try {
+        const staff = await prisma.staff.findUnique({
+            where: { staff_id: staffId },
+            include: { hod: true }
+        });
+
+        if (!staff) throw new Error("Staff record not found");
+
+        if (staff.hod) {
+            // Remove HOD status
+            await prisma.hOD.delete({
+                where: { hod_id: staffId }
+            });
+        } else {
+            // Set as HOD
+            // 1. Check if there is already an HOD for this department
+            const existingHOD = await prisma.hOD.findFirst({
+                where: { department: staff.department }
+            });
+
+            await prisma.$transaction(async (tx) => {
+                if (existingHOD) {
+                    // Automatically remove previous HOD
+                    await tx.hOD.delete({
+                        where: { hod_id: existingHOD.hod_id }
+                    });
+                }
+
+                // Create new HOD record
+                await tx.hOD.create({
+                    data: {
+                        hod_id: staffId,
+                        department: staff.department
+                    }
+                });
+            });
+        }
+
+        revalidatePath('/dashboard/admin/users');
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to toggle HOD status:', error);
+        return { success: false, error: 'Failed to update HOD status' };
     }
 }

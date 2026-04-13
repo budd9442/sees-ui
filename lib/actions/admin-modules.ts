@@ -14,26 +14,46 @@ const ModuleSchema = z.object({
     level: z.string().default("L1")
 });
 
-export async function getModules(query?: string) {
+export async function getModules(query?: string, academicYearId?: string) {
     const session = await auth();
     if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
+    // If academicYearId is 'all', we don't filter by year
+    // If not provided, we default to the currently active year
+    let targetYearId = academicYearId;
+    if (!targetYearId || targetYearId === 'active') {
+        const activeYear = await prisma.academicYear.findFirst({ where: { active: true } });
+        targetYearId = activeYear?.academic_year_id;
+    }
+
     return await prisma.module.findMany({
         where: {
-            OR: query ? [
-                { code: { contains: query, mode: 'insensitive' } },
-                { name: { contains: query, mode: 'insensitive' } }
-            ] : undefined
+            AND: [
+                academicYearId === 'all' ? {} : { academic_year_id: targetYearId || null },
+                query ? {
+                    OR: [
+                        { code: { contains: query, mode: 'insensitive' } },
+                        { name: { contains: query, mode: 'insensitive' } }
+                    ]
+                } : {}
+            ]
         },
-        orderBy: { code: 'asc' }
+        orderBy: { code: 'asc' },
+        include: { academic_year: true }
     });
 }
 
-export async function upsertModule(data: z.infer<typeof ModuleSchema> & { moduleId?: string }) {
+export async function upsertModule(data: z.infer<typeof ModuleSchema> & { moduleId?: string, academicYearId?: string }) {
     const session = await auth();
     if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     const validated = ModuleSchema.parse(data);
+    let targetYearId = data.academicYearId;
+
+    if (!targetYearId && !data.moduleId) {
+        const activeYear = await prisma.academicYear.findFirst({ where: { active: true } });
+        targetYearId = activeYear?.academic_year_id;
+    }
 
     if (data.moduleId) {
         await prisma.module.update({
@@ -44,15 +64,21 @@ export async function upsertModule(data: z.infer<typeof ModuleSchema> & { module
                 credits: validated.credits,
                 description: validated.description,
                 active: validated.active,
-                level: validated.level
+                level: validated.level,
+                academic_year_id: targetYearId // Allow moving years if explicitly passed
             }
         });
     } else {
-        // Check uniqueness of code
+        // Check uniqueness of [code, academic_year_id]
         const existing = await prisma.module.findUnique({
-            where: { code: validated.code }
+            where: {
+                code_academic_year_id: {
+                    code: validated.code,
+                    academic_year_id: targetYearId || null as any
+                }
+            }
         });
-        if (existing) throw new Error("Module with this code already exists");
+        if (existing) throw new Error("Module with this code already exists in this academic year");
 
         await prisma.module.create({
             data: {
@@ -61,7 +87,8 @@ export async function upsertModule(data: z.infer<typeof ModuleSchema> & { module
                 credits: validated.credits,
                 description: validated.description,
                 active: validated.active,
-                level: validated.level
+                level: validated.level,
+                academic_year_id: targetYearId
             }
         });
     }

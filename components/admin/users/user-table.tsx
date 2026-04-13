@@ -24,7 +24,7 @@ import { Badge } from '@/components/ui/badge';
 
 import { MoreHorizontal, Search, UserPlus } from 'lucide-react';
 import { UserDialog } from './user-dialog';
-import { toggleUserStatus, deleteUser } from '@/lib/actions/user-actions';
+import { toggleUserStatus, deleteUser, toggleHODStatus } from '@/lib/actions/user-actions';
 import { toast } from 'sonner';
 
 // Extended UserData interface to include potential flattened properties
@@ -48,6 +48,7 @@ interface UserData {
     staffNumber?: string;
     department?: string;
     type?: string;
+    isHOD?: boolean;
 }
 
 interface UserTableProps {
@@ -123,6 +124,20 @@ export function UserTable({ initialUsers, totalPages, degreePrograms, role, curr
         }
     };
 
+    const handleToggleHOD = async (user: UserData) => {
+        try {
+            const result = await toggleHODStatus(user.user_id);
+            if (result.success) {
+                toast.success(`HOD status updated successfully`);
+                router.refresh(); // Refresh to update the whole list in case another HOD was removed
+            } else {
+                toast.error("Failed to update HOD status");
+            }
+        } catch (error) {
+            toast.error("An error occurred");
+        }
+    };
+
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -190,11 +205,18 @@ export function UserTable({ initialUsers, totalPages, degreePrograms, role, curr
                             <TableRow key={user.user_id}>
                                 <TableCell>
                                     <div className="flex flex-col">
-                                        <span className="font-medium">
-                                            {user.firstName && user.lastName
-                                                ? `${user.firstName} ${user.lastName}`
-                                                : user.username}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium">
+                                                {user.firstName && user.lastName
+                                                    ? `${user.firstName} ${user.lastName}`
+                                                    : user.username}
+                                            </span>
+                                            {user.isHOD && (
+                                                <Badge variant="outline" className="text-[10px] py-0 px-1 bg-amber-50 text-amber-700 border-amber-200">
+                                                    HOD
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <span className="text-xs text-muted-foreground">{user.email}</span>
                                     </div>
                                 </TableCell>
@@ -247,6 +269,11 @@ export function UserTable({ initialUsers, totalPages, degreePrograms, role, curr
                                             >
                                                 {user.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                                             </DropdownMenuItem>
+                                            {role === 'staff' && (
+                                                <DropdownMenuItem onClick={() => handleToggleHOD(user)}>
+                                                    {user.isHOD ? 'Remove HOD Status' : 'Set as HOD'}
+                                                </DropdownMenuItem>
+                                            )}
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
                                                 onClick={async () => {

@@ -14,7 +14,7 @@ export async function getAdviseesData() {
                 include: {
                     user: true,
                     specialization: true,
-                    registration: {
+                    module_registrations: {
                         include: {
                             grade: true
                         }
@@ -35,7 +35,7 @@ export async function getAdviseesData() {
         let totalCredits = 0;
         let totalGrades = 0;
 
-        student.registration.forEach((reg: any) => {
+        student.module_registrations.forEach((reg: any) => {
             if (reg.grade) {
                 const credits = 3;
                 totalPoints += reg.grade.grade_point * credits;

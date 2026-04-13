@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getAdminAcademicYears } from '@/lib/actions/academic-year-admin';
 import { AcademicGovernanceClient } from './_components/academic-governance-client';
-import Loading from '../../loading';
+import Loading from '@/app/dashboard/loading';
 
 export const metadata = {
   title: 'Academic Governance | Admin',

@@ -15,14 +15,14 @@ export async function getAdminAcademicYears() {
             include: {
                 _count: {
                     select: {
-                        staff_assignments: true,
                         semesters: true,
-                        intakes: true
+                        programs: true
                     }
                 }
             }
         });
 
+        const now = new Date();
         return {
             success: true,
             data: years.map(y => ({
@@ -30,11 +30,10 @@ export async function getAdminAcademicYears() {
                 label: y.label,
                 startDate: y.start_date,
                 endDate: y.end_date,
-                isActive: y.active,
+                isActive: now >= y.start_date && now <= y.end_date,
                 stats: {
-                    staffCount: y._count.staff_assignments,
                     semesterCount: y._count.semesters,
-                    intakeCount: y._count.intakes
+                    intakeCount: y._count.programs
                 }
             }))
         };
@@ -170,5 +169,70 @@ export async function deleteAcademicYear(id: string) {
         return { success: true };
     } catch (error: any) {
         return { success: false, error: error.message };
+    }
+}
+/**
+ * Update an existing Academic Year
+ */
+export async function updateAcademicYear(id: string, data: {
+    label: string,
+    startDate: Date,
+    endDate: Date
+}) {
+    try {
+        // Validation: Unique label (excluding current)
+        const duplicate = await prisma.academicYear.findFirst({
+            where: { 
+                label: data.label,
+                NOT: { academic_year_id: id }
+            }
+        });
+        if (duplicate) throw new Error("Another academic year with this label already exists.");
+
+        const result = await prisma.$transaction(async (tx) => {
+            const year = await tx.academicYear.update({
+                where: { academic_year_id: id },
+                data: {
+                    label: data.label,
+                    start_date: data.startDate,
+                    end_date: data.endDate
+                }
+            });
+
+            // Re-sync Semesters if they are the default 2
+            const semesters = await tx.semester.findMany({
+                where: { academic_year_id: id },
+                orderBy: { start_date: 'asc' }
+            });
+
+            if (semesters.length === 2) {
+                const midTime = data.startDate.getTime() + (data.endDate.getTime() - data.startDate.getTime()) / 2;
+                const midDate = new Date(midTime);
+
+                await tx.semester.update({
+                    where: { semester_id: semesters[0].semester_id },
+                    data: {
+                        start_date: data.startDate,
+                        end_date: midDate
+                    }
+                });
+
+                await tx.semester.update({
+                    where: { semester_id: semesters[1].semester_id },
+                    data: {
+                        start_date: new Date(midTime + 1000 * 60 * 60 * 24),
+                        end_date: data.endDate
+                    }
+                });
+            }
+
+            return year;
+        });
+
+        revalidatePath('/dashboard/admin/config/academic');
+        return { success: true, data: result };
+    } catch (error: any) {
+        console.error("Failed to update academic year:", error);
+        return { success: false, error: error.message || "Failed to update record" };
     }
 }

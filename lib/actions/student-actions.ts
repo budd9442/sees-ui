@@ -83,7 +83,7 @@ export async function getStudentDashboardData() {
         role: 'student',
         isActive: record.user.status === 'ACTIVE',
         studentId: record.student_id,
-        academicYear: 'L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1)) as any,
+        academicYear: record.current_level || ('L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1))) as any,
         degreeProgram: record.degree_path?.code as any,
         specialization: record.specialization?.code as any,
         currentGPA,
@@ -220,7 +220,7 @@ export async function getModuleRegistrationData() {
     if (semesters.length === 0) throw new Error("No active semesters found for registration");
 
     // 2. Determine current level (e.g., L1, L2)
-    const studentYear = 'L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1));
+    const studentYear = record.current_level || ('L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1)));
 
     // 3. Fetch Program Structure for this level
     const whereClause: any = {
@@ -324,7 +324,7 @@ export async function registerForModules(moduleIds: string[]) {
         const semesters = await getAnnualSemesters();
         if (semesters.length === 0) throw new Error("No active academic year found for registration.");
 
-        const studentYear = 'L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1));
+        const studentYear = record.current_level || ('L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1)));
 
         // 2. Fetch Program Structure and Modules for validation
         const structures = await prisma.programStructure.findMany({

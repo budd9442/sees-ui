@@ -23,7 +23,7 @@ interface ModuleDialogProps {
     trigger?: React.ReactNode;
 }
 
-export function ModuleDialog({ module, trigger }: ModuleDialogProps) {
+export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogProps & { academicYearId?: string }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -69,8 +69,8 @@ export function ModuleDialog({ module, trigger }: ModuleDialogProps) {
                 credits: Number(formData.credits),
                 description: formData.description,
                 active: true,
-                // @ts-ignore - Schema update needed if passing level, but action handles it if updated
-                level: formData.level
+                level: formData.level,
+                academicYearId: academicYearId || module?.academic_year_id
             });
             setOpen(false);
         } catch (err: any) {

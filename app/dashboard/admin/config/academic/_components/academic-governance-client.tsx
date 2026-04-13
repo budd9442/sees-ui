@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -19,11 +20,13 @@ import {
     Copy,
     GraduationCap,
     ArrowUpCircle,
-    Loader2
+    Loader2,
+    Pencil
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
     createAcademicYear, 
+    updateAcademicYear,
     setActiveAcademicYear, 
     deleteAcademicYear 
 } from '@/lib/actions/academic-year-admin';
@@ -58,7 +61,6 @@ interface AcademicYear {
     endDate: Date;
     isActive: boolean;
     stats: {
-        staffCount: number;
         semesterCount: number;
         intakeCount: number;
     };
@@ -90,6 +92,11 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
         cloneStaff: false
     });
     const [isProvisioning, setIsProvisioning] = useState(false);
+
+    // Edit State
+    const [editingYear, setEditingYear] = useState<AcademicYear | null>(null);
+    const [editData, setEditData] = useState({ label: '', startDate: '', endDate: '' });
+    const [isUpdating, setIsUpdating] = useState(false);
 
     // Transition State
     const [batchStats, setBatchStats] = useState<BatchStats[]>([]);
@@ -126,7 +133,8 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                         { modules: newYear.cloneModules, staff: newYear.cloneStaff }
                     );
                     if (cloneRes.success) {
-                        toast.success(`Continuity established: ${cloneRes.data?.modulesCloned} modules copied.`);
+                        const { modulesCloned, structuresCloned, programsCloned, specializationsCloned } = cloneRes.data || {};
+                        toast.success(`Continuity established: ${modulesCloned} modules, ${programsCloned} programs, and ${structuresCloned} curriculum structures copied.`);
                     }
                 } else {
                     toast.success("Academic year created successfully.");
@@ -139,6 +147,33 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
             toast.error("An unexpected error occurred during provisioning.");
         } finally {
             setIsProvisioning(false);
+        }
+    };
+
+    const handleUpdate = async () => {
+        if (!editingYear || !editData.label || !editData.startDate || !editData.endDate) {
+            toast.error("Please fill in all mandatory fields.");
+            return;
+        }
+
+        setIsUpdating(true);
+        try {
+            const res = await updateAcademicYear(editingYear.id, {
+                label: editData.label,
+                startDate: new Date(editData.startDate),
+                endDate: new Date(editData.endDate)
+            });
+
+            if (res.success) {
+                toast.success("Academic year updated successfully.");
+                window.location.reload();
+            } else {
+                toast.error(res.error || "Failed to update year.");
+            }
+        } catch (error) {
+            toast.error("An error occurred during update.");
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -186,9 +221,9 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                     </DialogTrigger>
                     <DialogContent className="rounded-3xl max-w-2xl border-none shadow-2xl">
                         <DialogHeader>
-                            <DialogTitle className="text-2xl font-black italic tracking-tighter">Cycle Provisioning Wizard</DialogTitle>
+                            <DialogTitle className="text-2xl font-black italic tracking-tighter">Create Academic Year</DialogTitle>
                             <DialogDescription className="font-medium">
-                                Configure the temporal boundaries and institutional continuity for the new session.
+                                Configure the dates and data migration for the new academic session.
                             </DialogDescription>
                         </DialogHeader>
                         
@@ -233,7 +268,7 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                             <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10 space-y-4">
                                 <div className="flex items-center gap-2">
                                     <Copy className="h-4 w-4 text-primary" />
-                                    <h4 className="font-black text-sm tracking-tight text-primary uppercase">Institutional Continuity Engine</h4>
+                                    <h4 className="font-black text-sm tracking-tight text-primary uppercase">Data Continuity</h4>
                                 </div>
                                 
                                 <div className="space-y-4">
@@ -323,11 +358,7 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-3">
                                                     <h3 className="text-xl font-black tracking-tight">{year.label}</h3>
-                                                    {year.isActive && (
-                                                        <Badge className="bg-green-500 hover:bg-green-500 font-bold px-3 py-1 rounded-full uppercase text-[10px] tracking-widest">
-                                                            Primary Heartbeat
-                                                        </Badge>
-                                                    )}
+                                                    {/* Removed redundant Active badge */}
                                                 </div>
                                                 <div className="flex items-center gap-4 text-sm text-muted-foreground font-medium">
                                                     <div className="flex items-center gap-1.5">
@@ -339,14 +370,10 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-3 gap-6 px-8 py-4 bg-muted/20 rounded-2xl border border-muted/5">
+                                            <div className="grid grid-cols-2 gap-6 px-8 py-4 bg-muted/20 rounded-2xl border border-muted/5">
                                                 <div className="text-center">
                                                     <p className="text-[10px] uppercase font-black text-muted-foreground tracking-tighter mb-1 opacity-70">Semesters</p>
                                                     <span className="font-bold text-lg">{year.stats.semesterCount}</span>
-                                                </div>
-                                                <div className="text-center">
-                                                    <p className="text-[10px] uppercase font-black text-muted-foreground tracking-tighter mb-1 opacity-70">Assignments</p>
-                                                    <span className="font-bold text-lg">{year.stats.staffCount}</span>
                                                 </div>
                                                 <div className="text-center">
                                                     <p className="text-[10px] uppercase font-black text-muted-foreground tracking-tighter mb-1 opacity-70">Programs</p>
@@ -365,11 +392,26 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                                                         Activate Cycle
                                                     </Button>
                                                 ) : (
-                                                    <div className="flex items-center gap-2 text-green-600 bg-green-50 px-5 py-2.5 rounded-xl border border-green-100 font-bold text-sm">
+                                                    <div className="flex items-center gap-2 text-green-600 bg-green-50 px-5 py-2.5 rounded-xl border border-green-100 font-bold text-sm shadow-sm ring-1 ring-green-200/50">
                                                         <CheckCircle2 className="h-4 w-4" />
-                                                        System Locked
+                                                        Active Session
                                                     </div>
                                                 )}
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-11 w-11 hover:text-primary hover:bg-primary/5 rounded-xl"
+                                                    onClick={() => {
+                                                        setEditingYear(year);
+                                                        setEditData({
+                                                            label: year.label,
+                                                            startDate: format(year.startDate, 'yyyy-MM-dd'),
+                                                            endDate: format(year.endDate, 'yyyy-MM-dd')
+                                                        });
+                                                    }}
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon" 
@@ -444,16 +486,75 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
                             <Layers className="h-5 w-5 text-primary" />
-                            <h3 className="text-xl font-black italic">Institutional Continuity Engine</h3>
+                            <h3 className="text-xl font-black italic">Academic Session Management</h3>
                         </div>
                         <p className="text-sm text-zinc-400 max-w-xl font-medium">
-                            Academic continuity allows for parallel management of multiple annual cycles. Use the cycles tab to rotate the institution pulse and the transitions tab to elevate batches vertically.
+                            Manage your institution's academic timeline. Use the cycles tab to control active sessions and the transitions tab to handle student promotions.
                         </p>
                     </div>
                 </div>
                 {/* Decorative Pattern */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] pointer-events-none" />
             </div>
+
+            {/* Edit Dialog */}
+            <Dialog open={!!editingYear} onOpenChange={(open) => !open && setEditingYear(null)}>
+                <DialogContent className="rounded-3xl max-w-lg border-none shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black italic tracking-tighter">Edit Academic Cycle</DialogTitle>
+                        <DialogDescription className="font-medium">
+                            Modify the configuration for {editingYear?.label}.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-6 py-4">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-label" className="font-bold text-xs uppercase tracking-widest text-muted-foreground/70">Academic Identifier</Label>
+                                <Input 
+                                    id="edit-label" 
+                                    className="h-12 rounded-xl bg-muted/30 border-none font-bold placeholder:font-medium"
+                                    value={editData.label}
+                                    onChange={(e) => setEditData({...editData, label: e.target.value})}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-start" className="font-bold text-xs uppercase tracking-widest text-muted-foreground/70">Session Start</Label>
+                                    <Input 
+                                        id="edit-start" 
+                                        type="date" 
+                                        className="h-12 rounded-xl bg-muted/30 border-none font-bold"
+                                        value={editData.startDate}
+                                        onChange={(e) => setEditData({...editData, startDate: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-end" className="font-bold text-xs uppercase tracking-widest text-muted-foreground/70">Session End</Label>
+                                    <Input 
+                                        id="edit-end" 
+                                        type="date" 
+                                        className="h-12 rounded-xl bg-muted/30 border-none font-bold"
+                                        value={editData.endDate}
+                                        onChange={(e) => setEditData({...editData, endDate: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-3">
+                        <Button variant="ghost" onClick={() => setEditingYear(null)} className="rounded-xl font-bold h-12">Cancel</Button>
+                        <Button 
+                            onClick={handleUpdate} 
+                            className="rounded-xl font-black px-12 h-12 shadow-lg shadow-primary/20"
+                            disabled={isUpdating}
+                        >
+                            {isUpdating ? <Loader2 className="animate-spin h-4 w-4" /> : "Save Changes"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -19,15 +19,18 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { getPublicSystemInfo } from '@/lib/actions/system-settings-actions';
 import { getAcademicYears } from '@/lib/actions/academic-years';
 import { useEffect, useState } from 'react';
 
 export function Navbar() {
-  const { user, logout, selectedYearId, setSelectedYearId } = useAuthStore();
+  const { user, logout, selectedYearId, setSelectedYearId, activeRole, setActiveRole } = useAuthStore();
   const [systemInfo, setSystemInfo] = useState({ institutionName: 'SEES Platform', maintenanceMode: false });
   const [academicYears, setAcademicYears] = useState<any[]>([]);
   const notifications: any[] = [];
@@ -103,6 +106,55 @@ export function Navbar() {
                             ))}
                         </SelectContent>
                     </Select>
+                </div>
+            )}
+            {/* HOD Perspective Toggle - Premium Pill Design */}
+            {user.isHOD && (
+                <div className="hidden xl:flex items-center ml-4 relative bg-muted/20 backdrop-blur-md p-0.5 rounded-full border border-white/10 shadow-inner">
+                    <div className="relative flex">
+                        <button
+                            onClick={() => {
+                                setActiveRole('staff');
+                                router.push('/dashboard/staff');
+                            }}
+                            className={cn(
+                                "relative z-10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors duration-300 flex items-center gap-2",
+                                activeRole === 'staff' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <LayoutDashboard className="h-3 w-3" />
+                            Academic View
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveRole('hod');
+                                router.push('/dashboard/hod');
+                            }}
+                            className={cn(
+                                "relative z-10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors duration-300 flex items-center gap-2",
+                                activeRole === 'hod' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <ShieldCheck className="h-3 w-3" />
+                            Dept. Head View
+                        </button>
+
+                        <AnimatePresence>
+                            <motion.div
+                                layoutId="perspective-indicator"
+                                className={cn(
+                                    "absolute inset-y-0 rounded-full shadow-lg",
+                                    activeRole === 'hod' ? "bg-amber-500 shadow-amber-500/30" : "bg-primary shadow-primary/30"
+                                )}
+                                initial={false}
+                                animate={{
+                                    x: activeRole === 'hod' ? '100%' : '0%',
+                                    width: '50%'
+                                }}
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            />
+                        </AnimatePresence>
+                    </div>
                 </div>
             )}
           </div>

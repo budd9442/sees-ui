@@ -40,6 +40,8 @@ interface StaffDashboardViewProps {
     gradeDistribution: any[];
     moduleWorkload: any[];
     performanceData: any[];
+    recentActivities: any[];
+    upcomingDeadlines: any[];
 }
 
 export function StaffDashboardView({
@@ -50,11 +52,11 @@ export function StaffDashboardView({
     upcomingClasses,
     gradeDistribution,
     moduleWorkload,
-    performanceData
+    performanceData,
+    recentActivities,
+    upcomingDeadlines
 }: StaffDashboardViewProps) {
 
-    // Activity log stream to be populated by the audit system
-    const recentActivities: any[] = [];
 
     return (
         <div className="space-y-6">
@@ -264,19 +266,42 @@ export function StaffDashboardView({
                 </CardContent>
             </Card>
 
-            {/* Upcoming Deadlines */}
-            <Card>
+            {/* Upcoming Deadlines / Sessions - Premium List */}
+            <Card className="rounded-3xl border-none shadow-xl shadow-muted/20">
                 <CardHeader>
-                    <CardTitle>Upcoming Deadlines</CardTitle>
-                    <CardDescription>Important dates to remember</CardDescription>
+                    <CardTitle className="text-lg font-black flex items-center gap-2">
+                        <Clock className="h-5 w-5 text-primary" />
+                        Upcoming Sessions
+                    </CardTitle>
+                    <CardDescription className="text-xs font-bold uppercase tracking-tight">Scheduled lectures and tutorials for this week</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-3">
-                        {/* Deadlines to be populated by real module assignments */}
-                        <div className="text-center py-6 text-muted-foreground">
-                            <Clock className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                            <p>No immediate deadlines recorded.</p>
-                        </div>
+                    <div className="space-y-4">
+                        {upcomingDeadlines.length > 0 ? (
+                            upcomingDeadlines.map((deadline) => (
+                                <div key={deadline.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-muted-foreground/5 hover:bg-muted/50 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                            <Calendar className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-sm">{deadline.title}</p>
+                                            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">
+                                                {deadline.date} • {deadline.type}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="sm" className="rounded-xl text-[10px] font-black uppercase tracking-tighter">
+                                        Prepare
+                                    </Button>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-12 text-muted-foreground">
+                                <Clock className="h-12 w-12 mx-auto mb-3 opacity-10" />
+                                <p className="text-sm font-medium">No sessions recorded for this timeframe.</p>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>

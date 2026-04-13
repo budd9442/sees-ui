@@ -30,6 +30,7 @@ export interface User {
   role: UserRole;
   avatar?: string;
   isActive: boolean;
+  isHOD?: boolean;
 }
 
 export interface Student extends User {

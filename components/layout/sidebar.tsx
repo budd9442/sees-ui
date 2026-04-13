@@ -261,6 +261,12 @@ const navigationItems: NavItem[] = [
     roles: ['admin'],
   },
   {
+    title: 'Academic Governance',
+    href: '/dashboard/admin/config/academic',
+    icon: Shield,
+    roles: ['admin'],
+  },
+  {
     title: 'Module Management',
     href: '/dashboard/admin/modules',
     icon: BookOpen,
@@ -324,7 +330,7 @@ const navigationItems: NavItem[] = [
 
 export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolean> }) {
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const { user, activeRole } = useAuthStore();
 
   if (!user) return null;
 
@@ -337,8 +343,23 @@ export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolea
   };
 
   const filteredItems = navigationItems.filter((item) => {
-    // 1. Role Check
-    if (item.roles && !item.roles.includes(user.role)) return false;
+    const currentPerspective = activeRole || user.role;
+
+    // 1. Perspective/Role Check
+    if (item.roles && !item.roles.includes(currentPerspective)) return false;
+
+    // 2. Strict Perspective Isolation (URL-Prefix Based)
+    // Ensure we only show items belonging to the current perspective's path
+    const perspectivePath = `/dashboard/${currentPerspective}`;
+    
+    // Most items should start with their role path
+    // Special case: 'staff' also includes 'advisor' items in their view
+    if (currentPerspective === 'staff' || currentPerspective === 'advisor') {
+        if (!item.href.startsWith('/dashboard/staff') && !item.href.startsWith('/dashboard/advisor')) return false;
+    } else {
+        // For HOD/Student/Admin, be strict
+        if (!item.href.startsWith(perspectivePath)) return false;
+    }
 
     // 2. Feature Flag Check
     const featureKey = FEATURE_KEYS[item.href];

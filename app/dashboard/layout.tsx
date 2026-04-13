@@ -22,7 +22,7 @@ export default async function DashboardLayout({
     const { prisma } = await import('@/lib/db');
     dbUser = await prisma.user.findUnique({
       where: { email: session.user.email },
-      include: { student: true, staff: true }
+      include: { student: true, staff: { include: { hod: true } } }
     });
   }
 
@@ -42,6 +42,7 @@ export default async function DashboardLayout({
           ? 'staff'
           : (session.user as any).role || 'student',
     isActive: dbUser ? dbUser.status === 'ACTIVE' : true,
+    isHOD: !!dbUser?.staff?.hod,
     avatar: undefined // Explicitly undefined if not present
   };
 

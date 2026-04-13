@@ -23,32 +23,50 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ToggleModuleStatusButton } from './_components/ToggleModuleStatusButton';
 import { AssignStaffDialog } from './_components/AssignStaffDialog';
+import { ModuleYearSelector } from './_components/ModuleYearSelector';
 
-export default async function AdminModulesPage(props: { searchParams: Promise<{ q?: string }> }) {
+import { prisma } from '@/lib/db';
+
+export default async function AdminModulesPage(props: { searchParams: Promise<{ q?: string, year?: string }> }) {
     const searchParams = await props.searchParams;
     const query = searchParams.q || '';
-    const modules = await getModules(query);
+    
+    const academicYears = await prisma.academicYear.findMany({ 
+        orderBy: { start_date: 'desc' } 
+    });
+    const now = new Date();
+    const activeYear = academicYears.find(y => now >= y.start_date && now <= y.end_date) || academicYears.find(y => y.active);
+    const yearId = searchParams.year || activeYear?.academic_year_id || 'active';
+    
+    const modules = await getModules(query, yearId);
+
+    const selectedYear = yearId === 'all' ? null : 
+                         yearId === 'active' ? activeYear : 
+                         academicYears.find(y => y.academic_year_id === yearId);
 
     return (
         <div className="space-y-6">
             <PageHeader
                 title="Module Management"
-                description="Create and manage academic modules"
+                description={`Managing modules for ${selectedYear?.label || 'Legacy/All'}`}
             >
-                <ModuleDialog />
+                <ModuleDialog academicYearId={selectedYear?.academic_year_id} />
             </PageHeader>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col md:flex-row items-center gap-4">
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"
                         placeholder="Search modules..."
                         className="pl-8"
-                        // Since this is a server component, we'd typically use a client component for search
-                        // For simplicity, we assume a form or just simple display for now.
-                        // Real implementation would use a Search component that pushes to URL.
                         defaultValue={query}
+                    />
+                </div>
+                <div className="w-full md:w-64">
+                    <ModuleYearSelector 
+                        academicYears={academicYears} 
+                        currentYear={yearId} 
                     />
                 </div>
             </div>
@@ -63,6 +81,7 @@ export default async function AdminModulesPage(props: { searchParams: Promise<{ 
                             <TableRow>
                                 <TableHead>Code</TableHead>
                                 <TableHead>Name</TableHead>
+                                <TableHead>Year</TableHead>
                                 <TableHead>Level</TableHead>
                                 <TableHead>Credits</TableHead>
                                 <TableHead>Status</TableHead>
@@ -74,6 +93,11 @@ export default async function AdminModulesPage(props: { searchParams: Promise<{ 
                                 <TableRow key={module.module_id}>
                                     <TableCell className="font-medium">{module.code}</TableCell>
                                     <TableCell>{module.name}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className="font-mono text-[10px]">
+                                            {module.academic_year?.label || 'Legacy'}
+                                        </Badge>
+                                    </TableCell>
                                     <TableCell>{module.level}</TableCell>
                                     <TableCell>{module.credits}</TableCell>
                                     <TableCell>

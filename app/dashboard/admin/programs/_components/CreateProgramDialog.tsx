@@ -18,7 +18,7 @@ import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { createProgram } from '@/lib/actions/admin-programs';
 
-export function CreateProgramDialog() {
+export function CreateProgramDialog({ academicYearId }: { academicYearId?: string }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -32,7 +32,10 @@ export function CreateProgramDialog() {
         setLoading(true);
 
         try {
-            await createProgram(formData);
+            await createProgram({
+                ...formData,
+                academicYearId
+            });
             toast.success('Program created successfully');
             setOpen(false);
             setFormData({ code: '', name: '', description: '' });

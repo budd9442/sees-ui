@@ -91,9 +91,8 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
 
     return {
       grade: currentGrade,
-      attendance,
       lastActive,
-      isAtRisk: attendance < 85 || (currentGrade && currentGrade.points < 2.5),
+      isAtRisk: currentGrade && currentGrade.points < 2.0, // Risk now strictly academic
     };
   };
 
@@ -156,12 +155,6 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
     if (points >= 3.5) return 'text-green-600';
     if (points >= 2.5) return 'text-blue-600';
     if (points >= 2.0) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getAttendanceColor = (attendance: number) => {
-    if (attendance >= 90) return 'text-green-600';
-    if (attendance >= 80) return 'text-yellow-600';
     return 'text-red-600';
   };
 
@@ -260,16 +253,11 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">High Performers</CardTitle>
+            <CardTitle className="text-sm font-medium">Status Check</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {enrolledStudents.filter(s => {
-                const stats = getStudentStats(s.id);
-                return stats.grade && stats.grade.points >= 3.5;
-              }).length}
-            </div>
-            <p className="text-xs text-muted-foreground">Students</p>
+            <div className="text-2xl font-bold">Good</div>
+            <p className="text-xs text-muted-foreground">Overall cohort health</p>
           </CardContent>
         </Card>
       </div>
@@ -317,7 +305,6 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
                     <SelectItem value="name">Name</SelectItem>
                     <SelectItem value="id">Student ID</SelectItem>
                     <SelectItem value="grade">Grade</SelectItem>
-                    <SelectItem value="attendance">Attendance</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -330,7 +317,6 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
                   <TableHead>Academic Year</TableHead>
                   <TableHead>Pathway</TableHead>
                   <TableHead>Grade</TableHead>
-                  <TableHead>Attendance</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -360,11 +346,6 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
                         ) : (
                           <span className="text-muted-foreground">No grade</span>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <div className={`font-medium ${getAttendanceColor(stats.attendance)}`}>
-                          {stats.attendance}%
-                        </div>
                       </TableCell>
                       <TableCell>
                         {stats.isAtRisk ? (
@@ -459,11 +440,11 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
 
                     <Card>
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">Attendance</CardTitle>
+                        <CardTitle className="text-sm font-medium">Credits Earned</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className={`text-2xl font-bold ${getAttendanceColor(stats.attendance)}`}>
-                          {stats.attendance}%
+                        <div className="text-2xl font-bold text-primary">
+                          {currentModule.credits}
                         </div>
                       </CardContent>
                     </Card>

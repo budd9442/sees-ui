@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { GraduationCap, CheckCircle, ArrowRight, Loader2, Star, Info } from 'lucide-react';
+import { GraduationCap, CheckCircle, ArrowRight, Loader2, Star, Info, Clock, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAvailableSpecializedPaths, selectSpecializedPath } from '@/lib/actions/academic-path-actions';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Progress } from '@/components/ui/progress';
+import { format } from 'date-fns';
 
 export function PathwaySelectionClient() {
     const [paths, setPaths] = useState<any[]>([]);
@@ -17,12 +19,26 @@ export function PathwaySelectionClient() {
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     const [completed, setCompleted] = useState(false);
+    const [deadline, setDeadline] = useState<Date | null>(null);
+    const [isReSelection, setIsReSelection] = useState(false);
 
     useEffect(() => {
         async function load() {
             try {
-                const data = await getAvailableSpecializedPaths();
-                setPaths(data);
+                const res = await getAvailableSpecializedPaths();
+                setDeadline(res.closingDate ? new Date(res.closingDate) : null);
+                
+                if (res.status === 'COMPLETED') {
+                    setCompleted(true);
+                } else {
+                    setPaths(res.paths);
+                    if (res.currentSelectionId) {
+                        setSelectedPathId(res.currentSelectionId);
+                        if (res.isLocked) {
+                            setIsReSelection(true);
+                        }
+                    }
+                }
             } catch (err) {
                 console.error(err);
                 toast.error("Failed to load specialization options.");
@@ -40,8 +56,11 @@ export function PathwaySelectionClient() {
         try {
             const res = await selectSpecializedPath(selectedPathId);
             if (res.success) {
-                toast.success("Degree specialization confirmed!");
-                setCompleted(true);
+                toast.success(isReSelection ? "Degree specialization updated!" : "Degree specialization confirmed!");
+                // Refresh data instead of switching views
+                const freshData = await getAvailableSpecializedPaths();
+                setPaths(freshData.paths);
+                setIsReSelection(true);
             }
         } catch (err: any) {
             toast.error(err.message);
@@ -101,8 +120,21 @@ export function PathwaySelectionClient() {
                     </p>
                 </div>
                 <Badge variant="outline" className="px-4 py-1 text-xs uppercase tracking-widest border-primary/20 text-primary bg-primary/5">
-                    Action Required: Mandatory Choice
+                    {isReSelection ? "Change Requested: Selection Window Open" : "Action Required: Mandatory Choice"}
                 </Badge>
+
+                {deadline && (
+                    <div className="flex items-center gap-6 mt-2">
+                        <div className="flex items-center gap-2 text-sm font-bold bg-zinc-900 text-white px-6 py-3 rounded-full shadow-xl">
+                            <Clock className="h-4 w-4 text-primary" />
+                            <span>Deadline: {format(deadline, 'PPP')}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-bold bg-primary/10 text-primary px-6 py-3 rounded-full border border-primary/20">
+                            <Info className="h-4 w-4" />
+                            <span>Batch Quota: 60% (~{paths[0]?.selectionStats?.quota} seats)</span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="grid gap-6">
@@ -127,19 +159,60 @@ export function PathwaySelectionClient() {
                                         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                                             <Star className={`h-5 w-5 ${selectedPathId === path.program_id ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
                                         </div>
-                                        {selectedPathId === path.program_id && (
-                                            <Badge className="bg-primary text-primary-foreground animate-in zoom-in h-5 px-2">Selected</Badge>
-                                        )}
+                                        <div className="flex flex-col items-end gap-2">
+                                            {path.selectionStats?.mode === 'GPA_PRIORITY' ? (
+                                                <Badge variant="destructive" className="animate-pulse flex items-center gap-1 text-[10px] uppercase font-black">
+                                                    Competitive (GPA Priority)
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-green-600 border-green-500/20 bg-green-500/5 text-[10px] uppercase font-black">
+                                                    Open (Free Selection)
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <h3 className="font-bold text-xl leading-tight">{path.name}</h3>
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="font-bold text-xl leading-tight">{path.name}</h3>
+                                            {selectedPathId === path.program_id && (
+                                                <Badge 
+                                                    variant={path.selectionStats?.status === 'WAITLISTED' ? 'secondary' : 'default'}
+                                                    className="shadow-sm"
+                                                >
+                                                    {path.selectionStats?.status === 'WAITLISTED' ? 'Waitlisted' : 'Provisionally Accepted'}
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <Badge variant="secondary" className="text-[10px] font-mono">{path.code}</Badge>
                                     </div>
-                                    <p className="text-sm text-muted-foreground line-clamp-3">
-                                        {path.description || "This specialized pathway focuses on advanced concepts in Management and Information Technology, preparing you for high-impact roles in the global tech ecosystem."}
+                                    <p className="text-sm text-muted-foreground line-clamp-2">
+                                        {path.description || "This specialized pathway focuses on advanced concepts in Management and Information Technology."}
                                     </p>
+
+                                    {/* Demand Bar */}
+                                    <div className="space-y-2 pt-2">
+                                        <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter">
+                                            <span className="text-muted-foreground">Batch Demand</span>
+                                            <span className={path.selectionStats?.demandPercentage > 85 ? 'text-red-500' : 'text-primary'}>
+                                                {path.selectionStats?.applicantCount} / {path.selectionStats?.quota} Seats
+                                            </span>
+                                        </div>
+                                        <Progress value={path.selectionStats?.demandPercentage} className="h-1.5" />
+                                        
+                                        {path.selectionStats?.rank && (
+                                            <div className="flex items-center gap-2 mt-2 py-2 px-3 bg-muted/40 rounded-lg border border-muted-foreground/10">
+                                                <div className="text-[10px] font-bold text-muted-foreground uppercase flex-1">Your Rank in Batch</div>
+                                                <div className="text-sm font-black flex items-center gap-1.5">
+                                                    #{path.selectionStats.rank}
+                                                    {path.selectionStats.status === 'WAITLISTED' && (
+                                                        <span className="text-[10px] text-red-500">(Waitlisted)</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="mt-8 pt-8 border-t w-full flex items-center justify-between">
+                                <div className="mt-6 pt-6 border-t w-full flex items-center justify-between">
                                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Level 2 - Level 4</span>
                                     <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${selectedPathId === path.program_id ? 'bg-primary text-white' : 'bg-muted'}`}>
                                         <ArrowRight className="h-4 w-4" />
@@ -178,12 +251,12 @@ export function PathwaySelectionClient() {
                     </Button>
                     <Button 
                         size="lg" 
-                        className="flex-1 font-bold shadow-lg shadow-primary/20"
+                        className="flex-1 font-bold shadow-lg shadow-primary/20 h-12 rounded-xl"
                         disabled={!selectedPathId || processing}
                         onClick={handleConfirm}
                     >
                         {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-                        Finalize Selection
+                        {isReSelection ? "Update Selection" : "Finalize Selection"}
                     </Button>
                 </div>
             </div>
@@ -191,23 +264,3 @@ export function PathwaySelectionClient() {
     );
 }
 
-function AlertTriangle(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-        </svg>
-    );
-}

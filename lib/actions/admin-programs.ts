@@ -10,6 +10,7 @@ const ProgramSchema = z.object({
     code: z.string().min(2),
     name: z.string().min(3),
     description: z.string().optional(),
+    academicYearId: z.string().optional(),
 });
 
 const SpecializationSchema = z.object({
@@ -20,14 +21,32 @@ const SpecializationSchema = z.object({
 });
 
 // GET Actions
-export async function getAllPrograms() {
+export async function getAllPrograms(query: string = '', yearId: string = 'active') {
     const session = await auth();
     if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
+    let academicYearId = yearId;
+    if (yearId === 'active') {
+        const activeYear = await prisma.academicYear.findFirst({ where: { active: true } });
+        academicYearId = activeYear?.academic_year_id || '';
+    }
+
+    const where: any = {};
+    if (academicYearId && yearId !== 'all') {
+        where.academic_year_id = academicYearId;
+    }
+    if (query) {
+        where.OR = [
+            { name: { contains: query, mode: 'insensitive' } },
+            { code: { contains: query, mode: 'insensitive' } }
+        ];
+    }
+
     return await prisma.degreeProgram.findMany({
+        where,
         include: {
             specializations: true,
-            // Could include Intake?
+            academic_year: true
         },
         orderBy: { code: 'asc' }
     });
@@ -58,12 +77,18 @@ export async function createProgram(data: z.infer<typeof ProgramSchema>) {
 
     const validated = ProgramSchema.parse(data);
 
+    let academicYearId = validated.academicYearId;
+    if (!academicYearId) {
+        const activeYear = await prisma.academicYear.findFirst({ where: { active: true } });
+        academicYearId = activeYear?.academic_year_id;
+    }
+
     await prisma.degreeProgram.create({
         data: {
             code: validated.code,
             name: validated.name,
             description: validated.description || '',
-            // total_credits: 120 // Using default
+            academic_year_id: academicYearId
         }
     });
     revalidatePath('/dashboard/admin/programs');
@@ -83,18 +108,29 @@ export async function updateProgram(programId: string, data: Partial<z.infer<typ
 }
 
 // CREATE / UPDATE Specializations
-export async function createSpecialization(data: z.infer<typeof SpecializationSchema>) {
+export async function createSpecialization(data: z.infer<typeof SpecializationSchema> & { academicYearId?: string }) {
     const session = await auth();
     if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     const validated = SpecializationSchema.parse(data);
+
+    let academicYearId = data.academicYearId;
+    if (!academicYearId) {
+        // Try to get from program if not provided
+        const program = await prisma.degreeProgram.findUnique({
+            where: { program_id: validated.programId },
+            select: { academic_year_id: true }
+        });
+        academicYearId = program?.academic_year_id || undefined;
+    }
 
     await prisma.specialization.create({
         data: {
             code: validated.code,
             name: validated.name,
             description: validated.description || '',
-            degree_program: { connect: { program_id: validated.programId } }
+            degree_program: { connect: { program_id: validated.programId } },
+            academic_year_id: academicYearId
         }
     });
     revalidatePath(`/dashboard/admin/programs`);
@@ -107,16 +143,27 @@ export async function addModuleToStructure(data: {
     specializationId?: string | null,
     academicLevel: string,
     semesterNumber: number,
-    moduleType: 'CORE' | 'ELECTIVE'
+    moduleType: 'CORE' | 'ELECTIVE',
+    academicYearId?: string
 }) {
     const session = await auth();
     if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+
+    let academicYearId = data.academicYearId;
+    if (!academicYearId) {
+        const program = await prisma.degreeProgram.findUnique({
+            where: { program_id: data.programId },
+            select: { academic_year_id: true }
+        });
+        academicYearId = program?.academic_year_id || undefined;
+    }
 
     await prisma.programStructure.create({
         data: {
             degree_program: { connect: { program_id: data.programId } },
             module: { connect: { module_id: data.moduleId } },
             specialization: data.specializationId ? { connect: { specialization_id: data.specializationId } } : undefined,
+            academic_year_id: academicYearId,
             academic_level: data.academicLevel,
             semester_number: data.semesterNumber,
             module_type: data.moduleType
