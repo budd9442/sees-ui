@@ -1,7 +1,11 @@
 'use server';
 
+import { randomUUID } from 'crypto';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
+import { ensureDefaultGradingSchemeInDb } from '@/lib/grading/module-bands';
+import { DEFAULT_INSTITUTION_GRADING_BANDS, validateBands } from '@/lib/grading/marks-to-grade';
 
 export async function getAdminDashboardData() {
     const session = await auth();
@@ -286,29 +290,32 @@ export async function getAdminGpaConfigData() {
         }
     });
 
+    await ensureDefaultGradingSchemeInDb();
     const activeScheme = await prisma.gradingScheme.findFirst({
         where: { active: true },
         include: { bands: { orderBy: { min_marks: 'desc' } } }
     });
 
+    const gradePointScale =
+        activeScheme?.bands?.length
+            ? activeScheme.bands.map((b) => ({
+                  id: b.band_id,
+                  grade: b.letter_grade,
+                  points: b.grade_point,
+                  minMarks: b.min_marks,
+                  maxMarks: b.max_marks,
+              }))
+            : DEFAULT_INSTITUTION_GRADING_BANDS.map((b, i) => ({
+                  id: `default-${i}`,
+                  grade: b.letter_grade,
+                  points: b.grade_point,
+                  minMarks: b.min_marks,
+                  maxMarks: b.max_marks,
+              }));
+
     const config = {
         calculationMethod: settings.find(s => s.key === 'gpa_calculation_method')?.value || 'weighted_average',
-        gradePointScale: activeScheme?.bands.map(b => ({
-            id: b.band_id,
-            grade: b.letter_grade,
-            points: b.grade_point,
-            minMarks: b.min_marks,
-            maxMarks: b.max_marks
-        })) || [
-            { id: '1', grade: 'A+', points: 4.0, minMarks: 85, maxMarks: 100 },
-            { id: '2', grade: 'A', points: 4.0, minMarks: 75, maxMarks: 84 },
-            { id: '3', grade: 'B+', points: 3.3, minMarks: 70, maxMarks: 74 },
-            { id: '4', grade: 'B', points: 3.0, minMarks: 65, maxMarks: 69 },
-            { id: '5', grade: 'C+', points: 2.3, minMarks: 60, maxMarks: 64 },
-            { id: '6', grade: 'C', points: 2.0, minMarks: 55, maxMarks: 59 },
-            { id: '7', grade: 'D', points: 1.0, minMarks: 45, maxMarks: 54 },
-            { id: '8', grade: 'F', points: 0.0, minMarks: 0, maxMarks: 44 },
-        ],
+        gradePointScale,
         academicClassThresholds: JSON.parse(settings.find(s => s.key === 'gpa_academic_class_thresholds')?.value || JSON.stringify({
             firstClass: 3.7, secondUpper: 3.0, secondLower: 2.5, thirdPass: 2.0,
         })),
@@ -333,26 +340,50 @@ export async function updateAdminGpaConfigData(data: any) {
         // Update basic settings
         await tx.systemSetting.upsert({
             where: { key: 'gpa_calculation_method' },
-            create: { key: 'gpa_calculation_method', value: calculationMethod, category: 'GPA' },
-            update: { value: calculationMethod }
+            create: {
+                setting_id: randomUUID(),
+                key: 'gpa_calculation_method',
+                value: String(calculationMethod),
+                category: 'GPA',
+                updated_at: new Date(),
+            },
+            update: { value: String(calculationMethod), updated_at: new Date() },
         });
 
         await tx.systemSetting.upsert({
             where: { key: 'gpa_academic_class_thresholds' },
-            create: { key: 'gpa_academic_class_thresholds', value: JSON.stringify(academicClassThresholds), category: 'GPA' },
-            update: { value: JSON.stringify(academicClassThresholds) }
+            create: {
+                setting_id: randomUUID(),
+                key: 'gpa_academic_class_thresholds',
+                value: JSON.stringify(academicClassThresholds),
+                category: 'GPA',
+                updated_at: new Date(),
+            },
+            update: { value: JSON.stringify(academicClassThresholds), updated_at: new Date() },
         });
 
         await tx.systemSetting.upsert({
             where: { key: 'gpa_tiebreaker_formula' },
-            create: { key: 'gpa_tiebreaker_formula', value: JSON.stringify(tiebreakerFormula), category: 'GPA' },
-            update: { value: JSON.stringify(tiebreakerFormula) }
+            create: {
+                setting_id: randomUUID(),
+                key: 'gpa_tiebreaker_formula',
+                value: JSON.stringify(tiebreakerFormula),
+                category: 'GPA',
+                updated_at: new Date(),
+            },
+            update: { value: JSON.stringify(tiebreakerFormula), updated_at: new Date() },
         });
 
         await tx.systemSetting.upsert({
             where: { key: 'gpa_rounding_rules' },
-            create: { key: 'gpa_rounding_rules', value: JSON.stringify(roundingRules), category: 'GPA' },
-            update: { value: JSON.stringify(roundingRules) }
+            create: {
+                setting_id: randomUUID(),
+                key: 'gpa_rounding_rules',
+                value: JSON.stringify(roundingRules),
+                category: 'GPA',
+                updated_at: new Date(),
+            },
+            update: { value: JSON.stringify(roundingRules), updated_at: new Date() },
         });
 
         // Update Grading Scheme
@@ -384,6 +415,62 @@ export async function updateAdminGpaConfigData(data: any) {
     });
 
     return { success: true };
+}
+
+/** Persist only institution mark → letter → points bands (active grading scheme). Does not touch GPA settings tabs. */
+export async function saveAdminGradingBands(
+    gradeScale: {
+        grade: string;
+        points: number | string;
+        minMarks: number | string;
+        maxMarks: number | string;
+    }[]
+) {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== 'admin') throw new Error('Unauthorized');
+
+    const payload = gradeScale.map((b) => ({
+        letter_grade: String(b.grade ?? '').trim(),
+        grade_point: typeof b.points === 'string' ? parseFloat(b.points) : b.points,
+        min_marks: typeof b.minMarks === 'string' ? parseFloat(b.minMarks) : b.minMarks,
+        max_marks: typeof b.maxMarks === 'string' ? parseFloat(b.maxMarks) : b.maxMarks,
+    }));
+
+    const v = validateBands(payload);
+    if (!v.ok) {
+        throw new Error(v.error);
+    }
+
+    await ensureDefaultGradingSchemeInDb();
+
+    await prisma.$transaction(async (tx) => {
+        let scheme = await tx.gradingScheme.findFirst({
+            where: { active: true },
+        });
+
+        if (!scheme) {
+            scheme = await tx.gradingScheme.create({
+                data: { name: 'Main Grading Scheme', version: '1.0', active: true },
+            });
+        }
+
+        await tx.gradingBand.deleteMany({
+            where: { scheme_id: scheme.scheme_id },
+        });
+
+        await tx.gradingBand.createMany({
+            data: v.bands.map((band) => ({
+                scheme_id: scheme!.scheme_id,
+                letter_grade: band.letter_grade,
+                grade_point: band.grade_point,
+                min_marks: band.min_marks,
+                max_marks: band.max_marks,
+            })),
+        });
+    });
+
+    revalidatePath('/dashboard/admin/config/gpa');
+    return { success: true as const };
 }
 
 // REPORT TEMPLATES ACTIONS

@@ -23,11 +23,13 @@ export default async function StaffDashboardPage() {
           staff={data.staff}
           myModules={data.myModules}
           totalStudents={data.totalStudents}
-          assignmentsToGrade={data.assignmentsToGrade}
+          pendingGrades={data.pendingGrades}
           upcomingClasses={data.upcomingClasses}
           gradeDistribution={data.gradeDistribution}
           moduleWorkload={data.moduleWorkload}
           performanceData={data.performanceData}
+          recentActivities={data.recentActivities}
+          upcomingDeadlines={data.upcomingDeadlines}
         />
       </Suspense>
     );

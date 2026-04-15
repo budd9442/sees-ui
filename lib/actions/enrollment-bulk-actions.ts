@@ -27,25 +27,34 @@ export async function uploadBulkEnrollment(formData: FormData) {
         bom: true
     }).filter((r: any) => r.email && (r.firstName || r.lastName));
 
-    // 1. Create Batch Entry
+    // 2. Proactive Validation & Creation of Records
+    const emails = records.map((r: any) => r.email);
+    const existingUsers = await prisma.user.findMany({
+        where: { email: { in: emails } },
+        select: { email: true }
+    });
+    const existingEmailsInDb = new Set(existingUsers.map(u => u.email));
+
     const batch = await prisma.bulkEnrollmentBatch.create({
         data: {
             uploaded_by: session.user.id,
             filename: file.name,
             total_records: records.length,
-            status: 'PENDING'
-        }
+            status: 'PROCESSING',
+        },
     });
 
-    // 2. Create Raw Records
+    const batchRecords = records.map((r: any) => ({
+        batch_id: batch.batch_id,
+        email: r.email,
+        firstName: r.firstName,
+        lastName: r.lastName,
+        status: existingEmailsInDb.has(r.email) ? 'DUPLICATE' : 'READY',
+        error_message: existingEmailsInDb.has(r.email) ? 'Account already exists in system' : null
+    }));
+
     await prisma.bulkEnrollmentRecord.createMany({
-        data: records.map((r: any) => ({
-            batch_id: batch.batch_id,
-            email: r.email,
-            firstName: r.firstName,
-            lastName: r.lastName,
-            status: 'PENDING'
-        }))
+        data: batchRecords
     });
 
     revalidatePath('/dashboard/admin/enrollment');
@@ -72,35 +81,47 @@ export async function processEnrollmentBatch(batchId: string) {
     let failCount = 0;
 
     for (const record of batch.records) {
+        if (record.status === 'DUPLICATE') {
+            failCount++;
+            await prisma.bulkEnrollmentRecord.update({
+                where: { record_id: record.record_id },
+                data: { status: 'FAILED', error_message: "Registration skipped: Account already exists." }
+            });
+            continue;
+        }
+
         try {
             await prisma.$transaction(async (tx) => {
-                // 1. Check for Duplicate
+                // Final safety check for race conditions
                 const existing = await tx.user.findUnique({ where: { email: record.email } });
-                if (existing) throw new Error(`User with email ${record.email} already exists.`);
+                if (existing) throw new Error("Duplicate email detected just before creation.");
 
                 // 2. Create User (Pending Setup)
                 const user = await tx.user.create({
                     data: {
                         email: record.email,
-                        username: record.email.split('@')[0] + Math.floor(Math.random() * 1000), // Random username fallback
-                        password_hash: 'PENDING_INVITE', // Placeholder
+                        username: record.email.split('@')[0] + '_' + Math.floor(Math.random() * 10000), 
+                        password_hash: 'PENDING_INVITE',
                         firstName: record.firstName,
                         lastName: record.lastName,
-                        status: 'PENDING_SETUP'
+                        status: 'PENDING_SETUP',
+                        role: record.role || 'student'
                     }
                 });
 
-                // 3. Create Student Profile
-                const mit = await tx.degreeProgram.findFirst({ where: { code: 'MIT' } });
-                await tx.student.create({
-                    data: {
-                        student_id: user.user_id,
-                        admission_year: 2024,
-                        degree_path_id: mit?.program_id || 'DEFAULT_PATH_ID',
-                        enrollment_status: 'ENROLLED',
-                        current_level: 'Level 1'
-                    }
-                });
+                // 3. Create Student Profile (If applicable)
+                if (record.role === 'student' || !record.role) {
+                    const mit = await tx.degreeProgram.findFirst({ where: { code: 'MIT' } });
+                    await tx.student.create({
+                        data: {
+                            student_id: user.user_id,
+                            admission_year: new Date().getFullYear(),
+                            degree_path_id: mit?.program_id || 'DEFAULT',
+                            enrollment_status: 'ENROLLED',
+                            current_level: 'Level 1'
+                        }
+                    });
+                }
 
                 // 4. Generate Registration Token
                 const token = crypto.randomBytes(32).toString('hex');
@@ -108,7 +129,7 @@ export async function processEnrollmentBatch(batchId: string) {
                     data: {
                         user_id: user.user_id,
                         token: token,
-                        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+                        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                     }
                 });
 
@@ -122,9 +143,13 @@ export async function processEnrollmentBatch(batchId: string) {
             });
         } catch (error: any) {
             failCount++;
+            const friendlyMessage = error.code === 'P2002' 
+                ? "Unique constraint failed. This email or username is already taken."
+                : error.message;
+
             await prisma.bulkEnrollmentRecord.update({
                 where: { record_id: record.record_id },
-                data: { status: 'FAILED', error_message: error.message }
+                data: { status: 'FAILED', error_message: friendlyMessage }
             });
         }
     }
@@ -224,9 +249,7 @@ export async function getBulkEnrollmentBatches() {
     return await prisma.bulkEnrollmentBatch.findMany({
         orderBy: { created_at: 'desc' },
         include: {
-            records: {
-                take: 5 // Sample for preview
-            }
+            records: true // Include all records for the verification dialog
         }
     });
 }

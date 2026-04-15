@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,9 +56,11 @@ import {
     Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { updateAdminGpaConfigData } from '@/lib/actions/admin-actions';
+import { saveAdminGradingBands, updateAdminGpaConfigData } from '@/lib/actions/admin-actions';
+import { getAcademicClass } from '@/lib/gpa-utils';
 
 export default function GpaConfigClient({ initialData }: { initialData: any }) {
+    const router = useRouter();
     const { user } = useAuthStore();
     const [showHistoryDialog, setShowHistoryDialog] = useState(false);
     const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -83,6 +86,22 @@ export default function GpaConfigClient({ initialData }: { initialData: any }) {
     const [gradeScale, setGradeScale] = useState<any[]>(gpaConfig.gradePointScale);
     const [thresholds, setThresholds] = useState(gpaConfig.academicClassThresholds);
     const [tiebreaker, setTiebreaker] = useState(gpaConfig.tiebreakerFormula);
+    const [savingBands, setSavingBands] = useState(false);
+
+    const handleSaveGradingBands = async () => {
+        setSavingBands(true);
+        try {
+            await saveAdminGradingBands(gradeScale);
+            setGpaConfig((prev) => ({ ...prev, gradePointScale: gradeScale }));
+            toast.success('Grade bands saved. Staff grading uses this scale now.');
+            router.refresh();
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Failed to save grade bands';
+            toast.error(msg);
+        } finally {
+            setSavingBands(false);
+        }
+    };
 
     const handleSaveConfiguration = async () => {
         const config = {
@@ -107,11 +126,9 @@ export default function GpaConfigClient({ initialData }: { initialData: any }) {
         ));
     };
 
-    const handleResetToDefault = () => {
-        setGradeScale(gpaConfig.gradePointScale);
-        setThresholds(gpaConfig.academicClassThresholds);
-        setTiebreaker(gpaConfig.tiebreakerFormula);
-        toast.success('Configuration reset to default values');
+    const handleResetGradeBandsTable = () => {
+        setGradeScale(gpaConfig.gradePointScale.map((b: any) => ({ ...b })));
+        toast.success('Grade bands table reset to last saved values');
     };
 
     const calculateSampleGPA = () => {
@@ -136,16 +153,14 @@ export default function GpaConfigClient({ initialData }: { initialData: any }) {
         const gpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
         return {
             gpa: gpa.toFixed(2),
-            academicClass: getAcademicClass(gpa),
+            academicClass: getAcademicClass(gpa, {
+                firstClass: thresholds.firstClass,
+                secondUpper: thresholds.secondUpper,
+                secondLower: thresholds.secondLower,
+                thirdPass: thresholds.thirdPass,
+            }),
             sampleGrades,
         };
-    };
-
-    const getAcademicClass = (gpa: number) => {
-        if (gpa >= thresholds.firstClass) return 'First Class';
-        if (gpa >= thresholds.secondUpper) return 'Second Upper';
-        if (gpa >= thresholds.secondLower) return 'Second Lower';
-        return 'Third/Pass';
     };
 
     const sampleCalculation = calculateSampleGPA();
@@ -158,10 +173,13 @@ export default function GpaConfigClient({ initialData }: { initialData: any }) {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-start">
-                <div>
-                    <h1 className="text-3xl font-bold">GPA Formula & Thresholds Configuration</h1>
-                    <p className="text-muted-foreground mt-1">Configure GPA calculation methods, grade scales, and academic class thresholds</p>
+            <div className="flex justify-between items-start gap-4">
+                <div className="min-w-0 space-y-3">
+                    <div>
+                        <h1 className="text-3xl font-bold">GPA & grading scheme (institution)</h1>
+                        
+                    </div>
+           
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setShowHistoryDialog(true)}><History className="mr-2 h-4 w-4" />Version History</Button>
@@ -223,7 +241,14 @@ export default function GpaConfigClient({ initialData }: { initialData: any }) {
 
                 <TabsContent value="gradescale" className="space-y-4">
                     <Card>
-                        <CardHeader><CardTitle>Grade Point Scale & Mark Bands</CardTitle><CardDescription>Configure the mark ranges and point values for each letter grade</CardDescription></CardHeader>
+                        <CardHeader>
+                            <CardTitle>Default grade point scale & mark bands</CardTitle>
+                            <CardDescription>
+                                Defines the institution default used for mapping marks to letters and points. Staff may
+                                open “Grade bands” on a module’s grading page to apply a one-off override for that module
+                                only; overrides do not change these defaults.
+                            </CardDescription>
+                        </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
                                 <Table>
@@ -254,10 +279,44 @@ export default function GpaConfigClient({ initialData }: { initialData: any }) {
                                         ))}
                                     </TableBody>
                                 </Table>
-                                <div className="flex gap-2">
-                                    <Button variant="outline" onClick={handleResetToDefault}><RefreshCw className="mr-2 h-4 w-4" />Reset to Default</Button>
-                                    <Button variant="outline" onClick={() => setGradeScale([...gradeScale, { id: Math.random().toString(), grade: 'New', points: 0.0, minMarks: 0, maxMarks: 0 }])}><Copy className="mr-2 h-4 w-4" />Add New Grade</Button>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button
+                                        type="button"
+                                        onClick={() => void handleSaveGradingBands()}
+                                        disabled={savingBands}
+                                    >
+                                        <Save className="mr-2 h-4 w-4" />
+                                        {savingBands ? 'Saving…' : 'Save grade bands'}
+                                    </Button>
+                                    <Button variant="outline" type="button" onClick={handleResetGradeBandsTable}>
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Reset table to last saved
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        type="button"
+                                        onClick={() =>
+                                            setGradeScale([
+                                                ...gradeScale,
+                                                {
+                                                    id: crypto.randomUUID(),
+                                                    grade: 'New',
+                                                    points: 0.0,
+                                                    minMarks: 0,
+                                                    maxMarks: 0,
+                                                },
+                                            ])
+                                        }
+                                    >
+                                        <Copy className="mr-2 h-4 w-4" />
+                                        Add row
+                                    </Button>
                                 </div>
+                                <p className="text-xs text-muted-foreground">
+                                    <strong>Save grade bands</strong> writes this table to the database for staff
+                                    grading (marks → letter). <strong>Save configuration</strong> in the header saves
+                                    all tabs at once, including these bands.
+                                </p>
                             </div>
                         </CardContent>
                     </Card>

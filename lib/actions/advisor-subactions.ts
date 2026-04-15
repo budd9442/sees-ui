@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
+import { gradeContributesToGpa } from '@/lib/gpa-utils';
 
 export async function getAdviseesData() {
     const session = await auth();
@@ -16,7 +17,8 @@ export async function getAdviseesData() {
                     specialization: true,
                     module_registrations: {
                         include: {
-                            grade: true
+                            grade: true,
+                            module: true,
                         }
                     }
                 }
@@ -36,8 +38,8 @@ export async function getAdviseesData() {
         let totalGrades = 0;
 
         student.module_registrations.forEach((reg: any) => {
-            if (reg.grade) {
-                const credits = 3;
+            if (reg.grade && gradeContributesToGpa(reg.module)) {
+                const credits = reg.module.credits;
                 totalPoints += reg.grade.grade_point * credits;
                 totalCredits += credits;
                 totalGrades += 1;
@@ -78,14 +80,24 @@ export async function getAdvisorStudentDetails(studentId: string) {
     if (!student) throw new Error("Student not found");
 
     // Real data from DB
-    const [goals, interventions, grades] = await Promise.all([
+    const [goals, grades] = await Promise.all([
         prisma.academicGoal.findMany({ where: { student_id: studentId } }),
-        prisma.intervention.findMany({ where: { student_id: studentId } }),
-        prisma.grade.findMany({ 
+        prisma.grade.findMany({
             where: { student_id: studentId },
-            include: { module: true, semester: true }
-        })
+            include: { module: true, semester: true },
+        }),
     ]);
+    const interventions: Array<{
+        intervention_id: string;
+        student_id: string;
+        type: string;
+        title: string;
+        description: string;
+        severity: string;
+        status: string;
+        suggestions: string[];
+        created_at: Date;
+    }> = [];
 
     const formattedGrades = grades.map(g => ({
         id: g.grade_id,
@@ -129,24 +141,10 @@ export async function getAdvisorStudentDetails(studentId: string) {
     };
 }
 
-export async function createStudentIntervention(data: any) {
+export async function createStudentIntervention(_data: unknown) {
     const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    const intervention = await prisma.intervention.create({
-        data: {
-            student_id: data.studentId,
-            advisor_id: session.user.id,
-            type: data.type,
-            title: data.title,
-            description: data.description,
-            severity: data.severity,
-            status: 'ACTIVE',
-            suggestions: data.suggestions || []
-        }
-    });
-
-    return { success: true, intervention };
+    if (!session?.user?.id) throw new Error('Unauthorized');
+    return { success: false as const, error: 'Interventions are not available in this deployment.' };
 }
 
 // ----------------------------------------------------------------------
@@ -157,68 +155,35 @@ export async function getAdvisorMessagesData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
-    const [adviseesResponse, dbMessages] = await Promise.all([
+    const [{ getMyMessages }, adviseesResponse] = await Promise.all([
+        import('@/lib/actions/message-actions'),
         getAdviseesData(),
-        prisma.message.findMany({
-            where: {
-                OR: [
-                    { sender_id: session.user.id },
-                    { recipient_id: session.user.id }
-                ]
-            },
-            orderBy: { sent_at: 'desc' },
-            take: 50
-        })
     ]);
-
-    const messages = dbMessages.map(m => ({
-        id: m.message_id,
-        senderId: m.sender_id,
-        senderName: m.sender_id === session.user.id ? (session.user.name || 'Advisor') : 'Student', 
-        senderRole: m.sender_id === session.user.id ? 'advisor' : 'student',
-        receiverId: m.recipient_id,
-        receiverName: m.recipient_id === session.user.id ? (session.user.name || 'Advisor') : 'Student',
-        subject: m.subject,
-        content: m.content,
-        isRead: !!m.read_at,
-        createdAt: m.sent_at.toISOString(),
-    }));
+    const { messages, nextCursor } = await getMyMessages({ limit: 150 });
 
     return {
         students: adviseesResponse.students,
-        messages
+        messages,
+        nextCursor,
     };
 }
 
-export async function sendAdvisorMessage(data: any) {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    const message = await prisma.message.create({
-        data: {
-            sender_id: session.user.id,
-            recipient_id: data.receiverId,
-            subject: data.subject,
-            content: data.content,
-        }
+export async function sendAdvisorMessage(data: {
+    receiverId: string;
+    subject: string;
+    content: string;
+}) {
+    const { sendDirectMessage } = await import('@/lib/actions/message-actions');
+    const result = await sendDirectMessage({
+        recipientId: data.receiverId,
+        subject: data.subject,
+        content: data.content,
     });
-
-    return { success: true, message };
+    return { success: true as const, message: result.message };
 }
 
-export async function acknowledgeIntervention(interventionId: string, notes?: string) {
+export async function acknowledgeIntervention(_interventionId: string, _notes?: string) {
     const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    const result = await prisma.intervention.update({
-        where: { intervention_id: interventionId },
-        data: {
-            status: 'RESOLVED',
-            suggestions: {
-                push: notes ? [`Student Acknowledgment: ${notes}`] : ['Student Acknowledged']
-            }
-        }
-    });
-
-    return { success: true, intervention: result };
+    if (!session?.user?.id) throw new Error('Unauthorized');
+    return { success: false as const, error: 'Interventions are not available in this deployment.' };
 }

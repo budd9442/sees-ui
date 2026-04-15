@@ -18,8 +18,8 @@ export default async function StaffModulesPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {modules.map((module: any) => (
-          <Card key={module.module_id} className="flex flex-col">
+        {modules.map((module: any, index: number) => (
+          <Card key={module.assignment_id ?? `${module.module_id}-${index}`} className="flex flex-col">
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
@@ -46,8 +46,8 @@ export default async function StaffModulesPage() {
                 </div>
               </div>
               <Button asChild className="w-full">
-                <Link href={`/dashboard/staff/modules/${module.module_id}`}>
-                  Manage Grades <ArrowRight className="ml-2 h-4 w-4" />
+                <Link href={`/dashboard/staff/roster/${module.module_id}`}>
+                  Manage Roster <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </CardContent>

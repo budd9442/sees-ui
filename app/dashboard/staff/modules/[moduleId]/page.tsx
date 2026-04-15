@@ -1,4 +1,4 @@
-import { getEnrolledStudents } from '@/lib/actions/staff-actions';
+import { getEnrolledStudents, getModuleGradingScaleForStaff } from '@/lib/actions/staff-actions';
 import { notFound } from 'next/navigation';
 import StudentGradingClient from './grading-view';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -20,7 +20,10 @@ export default async function ModuleGradingPage({ params }: PageProps) {
 
     if (!moduleInfo) notFound();
 
-    const students = await getEnrolledStudents(moduleId);
+    const [students, initialScale] = await Promise.all([
+        getEnrolledStudents(moduleId),
+        getModuleGradingScaleForStaff(moduleId),
+    ]);
 
     return (
         <div className="space-y-6">
@@ -33,11 +36,16 @@ export default async function ModuleGradingPage({ params }: PageProps) {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Enrolled Students</CardTitle>
-                    <CardDescription>Enter marks below. Grades are calculated automatically based on standard scheme (A {'>'}= 85, B {'>'}= 70...)</CardDescription>
+                    <CardTitle>Enrolled students & marks</CardTitle>
+                    <CardDescription>
+                        This screen is for <strong>entering and publishing marks</strong> for this module only. It is
+                        not the same as <strong>Admin → GPA Config</strong>, which sets institution-wide GPA calculation
+                        and the default grading scheme. Use <strong>Grade bands</strong> (button on the grading panel)
+                        only if you need to view or override how percentage marks map to letters for this module.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <StudentGradingClient students={students} moduleId={moduleId} />
+                    <StudentGradingClient students={students} moduleId={moduleId} initialScale={initialScale} />
                 </CardContent>
             </Card>
         </div>

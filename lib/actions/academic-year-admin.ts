@@ -81,18 +81,14 @@ export async function createAcademicYear(data: {
                         academic_year_id: year.academic_year_id,
                         start_date: data.startDate,
                         end_date: midDate,
-                        credits_limit: 24,
-                        is_active: false
                     },
                     {
                         label: "Semester 2",
                         academic_year_id: year.academic_year_id,
                         start_date: new Date(midTime + 1000 * 60 * 60 * 24), // Day after mid
                         end_date: data.endDate,
-                        credits_limit: 24,
-                        is_active: false
-                    }
-                ]
+                    },
+                ],
             });
 
             return year;

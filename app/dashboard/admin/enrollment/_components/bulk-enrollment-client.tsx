@@ -130,29 +130,47 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
                         
                         {validation && (
                             <div className="w-full max-w-2xl space-y-4 animate-in slide-in-from-top-4 duration-300">
-                                <Alert variant={validation.isValid ? "default" : "destructive"} className="text-left bg-white shadow-sm">
-                                    {validation.isValid ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                                    <AlertTitle className="font-bold">
-                                        {validation.isValid ? "Pre-Validation Successful" : "Data Integrity Issues Detected"}
-                                    </AlertTitle>
-                                    <AlertDescription className="text-sm">
-                                        Total: {validation.summary.total} | Valid: {validation.summary.valid} | Invalid: {validation.summary.invalid}
-                                    </AlertDescription>
-                                </Alert>
-
-                                {!validation.isValid && (
-                                    <ScrollArea className="h-48 rounded-md border bg-white p-4">
-                                        <div className="space-y-2 text-left">
-                                            {validation.errors.map((error, idx) => (
-                                                <div key={idx} className="flex gap-2 text-xs items-start border-b pb-2 last:border-0">
-                                                    <XCircle className="h-3 w-3 text-red-500 mt-0.5 flex-shrink-0" />
-                                                    <div>
-                                                        <span className="font-bold">Row {error.row}:</span> {error.message}
-                                                    </div>
-                                                </div>
-                                            ))}
+                                {validation.records && validation.records.length > 0 && (
+                                    <div className="rounded-xl border bg-white overflow-hidden shadow-sm">
+                                        <div className="bg-muted/50 p-3 border-b flex justify-between items-center">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Pre-Import Audit List</span>
+                                            <Badge variant="outline" className="text-[10px]">{validation.summary.total} Records Found</Badge>
                                         </div>
-                                    </ScrollArea>
+                                        <ScrollArea className="h-72">
+                                            <Table>
+                                                <TableHeader className="bg-muted/30 sticky top-0 z-10">
+                                                    <TableRow>
+                                                        <TableHead className="w-[80px] text-[10px] uppercase font-black">Status</TableHead>
+                                                        <TableHead className="text-[10px] uppercase font-black">Email</TableHead>
+                                                        <TableHead className="text-[10px] uppercase font-black">Name</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {validation.records.map((record, idx) => (
+                                                        <TableRow key={idx} className={record.status === 'DUPLICATE' ? 'bg-amber-50/40' : record.status === 'INVALID' ? 'bg-red-50/40' : ''}>
+                                                            <TableCell>
+                                                                {record.status === 'READY' && <Badge className="bg-green-500 text-[9px] h-4 px-1 uppercase">Ready</Badge>}
+                                                                {record.status === 'DUPLICATE' && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 text-[9px] h-4 px-1 uppercase">Exists</Badge>}
+                                                                {record.status === 'INVALID' && <Badge variant="destructive" className="text-[9px] h-4 px-1 uppercase">Error</Badge>}
+                                                            </TableCell>
+                                                            <TableCell className="text-xs font-medium py-2">{record.email}</TableCell>
+                                                            <TableCell className="text-xs py-2">{record.firstName} {record.lastName}</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </ScrollArea>
+                                    </div>
+                                )}
+
+                                {!validation.isValid && validation.errors.length > 0 && (
+                                    <Alert variant="destructive" className="text-left bg-red-50 border-red-200">
+                                        <XCircle className="h-4 w-4" />
+                                        <AlertTitle className="font-bold">Critical Errors Detected</AlertTitle>
+                                        <AlertDescription className="text-xs">
+                                            Please correct the {validation.errors.length} formatting errors in your CSV before attempting to upload.
+                                        </AlertDescription>
+                                    </Alert>
                                 )}
 
                                 <div className="flex gap-2 justify-center">
@@ -259,9 +277,17 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
             <Dialog open={!!confirmingBatch} onOpenChange={(open) => !open && setConfirmingBatch(null)}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>Verify Enrollment Data</DialogTitle>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Search className="h-5 w-5 text-primary" />
+                            Verify Enrollment Data
+                        </DialogTitle>
                         <DialogDescription>
-                            Review the extracted records from <b>{confirmingBatch?.filename}</b> before finalizing enrollment.
+                            Review the extracted records from <b>{confirmingBatch?.filename}</b>. 
+                            {confirmingBatch?.records?.some((r: any) => r.status === 'DUPLICATE') && (
+                                <span className="block mt-2 text-amber-600 font-medium">
+                                    Warning: Some accounts already exist and will be skipped.
+                                </span>
+                            )}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -269,6 +295,7 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
                         <Table>
                             <TableHeader className="bg-muted/50 sticky top-0 z-10">
                                 <TableRow>
+                                    <TableHead className="w-[100px]">Status</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead>First Name</TableHead>
                                     <TableHead>Last Name</TableHead>
@@ -276,7 +303,18 @@ export function BulkEnrollmentClient({ initialBatches }: BulkEnrollmentClientPro
                             </TableHeader>
                             <TableBody>
                                 {confirmingBatch?.records?.map((record: any, idx: number) => (
-                                    <TableRow key={idx}>
+                                    <TableRow key={idx} className={record.status === 'DUPLICATE' ? 'bg-amber-50/30' : ''}>
+                                        <TableCell>
+                                            {record.status === 'READY' && (
+                                                <Badge className="bg-green-500 hover:bg-green-600 text-[10px] h-5 uppercase px-1">Ready</Badge>
+                                            )}
+                                            {record.status === 'DUPLICATE' && (
+                                                <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 text-[10px] h-5 uppercase px-1">Exists</Badge>
+                                            )}
+                                            {record.status === 'FAILED' && (
+                                                <Badge variant="destructive" className="text-[10px] h-5 uppercase px-1">Error</Badge>
+                                            )}
+                                        </TableCell>
                                         <TableCell className="font-medium">{record.email}</TableCell>
                                         <TableCell>{record.firstName}</TableCell>
                                         <TableCell>{record.lastName}</TableCell>

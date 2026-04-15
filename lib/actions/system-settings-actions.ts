@@ -1,5 +1,6 @@
 'use server';
 
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
@@ -62,8 +63,14 @@ export async function updateSystemSettingWithAudit(key: string, value: string) {
 
     const updated = await prisma.systemSetting.upsert({
         where: { key },
-        create: { key, value, category: 'GENERAL' },
-        update: { value }
+        create: {
+            setting_id: randomUUID(),
+            key,
+            value,
+            category: 'GENERAL',
+            updated_at: new Date(),
+        },
+        update: { value, updated_at: new Date() },
     });
 
     // Capture Audit Log

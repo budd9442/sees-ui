@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -64,12 +64,17 @@ import { ScheduleEditModal } from './schedule-edit-modal';
 export default function ScheduleClient({ initialData }: { initialData: any }) {
     const router = useRouter();
     const { modules, schedules: initialSchedules } = initialData;
-    const [selectedModule, setSelectedModule] = useState<string>('');
+    /** One assignment row = one card; avoids duplicate React keys when the same module_id appears twice. */
+    const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>('');
     const [isEditing, setIsEditing] = useState(false);
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showConflictDialog, setShowConflictDialog] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentSchedules, setCurrentSchedules] = useState(initialSchedules);
+
+    useEffect(() => {
+        setCurrentSchedules(initialSchedules);
+    }, [initialSchedules]);
 
     const [scheduleData, setScheduleData] = useState({
         moduleId: '',
@@ -81,8 +86,23 @@ export default function ScheduleClient({ initialData }: { initialData: any }) {
         capacity: 50,
     });
 
-    const moduleSchedules = currentSchedules.filter((s: any) => s.moduleId === selectedModule);
-    const currentModule = modules.find((m: any) => m.id === selectedModule);
+    const selectedEntry = modules.find((m: any) => m.assignmentId === selectedAssignmentId);
+    const selectedModuleId = selectedEntry?.id ?? '';
+    const selectedMetaLabel = selectedEntry
+        ? [selectedEntry.code, selectedEntry.academicYearLabel].filter(Boolean).join(' · ')
+        : '';
+
+    const moduleSchedules = useMemo(() => {
+        const rows = currentSchedules.filter((s: any) => s.moduleId === selectedModuleId);
+        const seen = new Set<string>();
+        return rows.filter((s: any) => {
+            if (!s.id || seen.has(s.id)) return false;
+            seen.add(s.id);
+            return true;
+        });
+    }, [currentSchedules, selectedModuleId]);
+
+    const currentModule = selectedEntry;
 
     const detectConflicts = (newSchedule: any) => {
         return currentSchedules.filter((schedule: any) =>
@@ -123,7 +143,9 @@ export default function ScheduleClient({ initialData }: { initialData: any }) {
 
         try {
             const _s = await createStaffSchedule(scheduleData);
-            setCurrentSchedules((prev: any) => [...prev, _s]);
+            setCurrentSchedules((prev: any) =>
+                prev.some((x: any) => x.id === _s.id) ? prev : [...prev, _s],
+            );
             setShowAddDialog(false);
             toast.success('New schedule added successfully');
             router.refresh();
@@ -221,11 +243,11 @@ export default function ScheduleClient({ initialData }: { initialData: any }) {
                                 const stats = getScheduleStats(module.id);
                                 return (
                                     <Card
-                                        key={module.id}
-                                        className={`cursor-pointer transition-colors ${selectedModule === module.id ? 'ring-2 ring-blue-500' : ''
+                                        key={module.assignmentId}
+                                        className={`cursor-pointer transition-colors ${selectedAssignmentId === module.assignmentId ? 'ring-2 ring-blue-500' : ''
                                             }`}
                                         onClick={() => {
-                                            setSelectedModule(module.id);
+                                            setSelectedAssignmentId(module.assignmentId);
                                             setScheduleData(prev => ({ ...prev, moduleId: module.id }));
                                         }}
                                     >
@@ -233,7 +255,12 @@ export default function ScheduleClient({ initialData }: { initialData: any }) {
                                             <div className="flex items-start justify-between">
                                                 <div>
                                                     <CardTitle className="text-lg">{module.title}</CardTitle>
-                                                    <CardDescription>{module.code}</CardDescription>
+                                                    <CardDescription>
+                                                        {module.code}
+                                                        {module.academicYearLabel
+                                                            ? ` · ${module.academicYearLabel}`
+                                                            : ''}
+                                                    </CardDescription>
                                                 </div>
                                                 <Badge variant="outline">{stats.totalSessions} sessions</Badge>
                                             </div>
@@ -254,7 +281,7 @@ export default function ScheduleClient({ initialData }: { initialData: any }) {
                 </CardContent>
             </Card>
 
-            {selectedModule && currentModule && (
+            {selectedAssignmentId && selectedModuleId && currentModule && (
                 <Tabs defaultValue="schedule" className="space-y-4">
                     <TabsList>
                         <TabsTrigger value="schedule">Schedule</TabsTrigger>
@@ -267,7 +294,10 @@ export default function ScheduleClient({ initialData }: { initialData: any }) {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <CardTitle>Schedule for {currentModule.title}</CardTitle>
-                                        <CardDescription>Manage lecture, tutorial, and lab schedules</CardDescription>
+                                        <CardDescription>
+                                            {selectedMetaLabel ? `${selectedMetaLabel} — ` : ''}
+                                            Manage lecture, tutorial, and lab schedules
+                                        </CardDescription>
                                     </div>
                                     <div className="flex gap-2">
                                         {isEditing ? (

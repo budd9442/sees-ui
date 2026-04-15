@@ -126,8 +126,8 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
           const gradeB = getStudentStats(b.id).grade?.points || 0;
           return gradeB - gradeA;
         case 'attendance':
-          const attendanceA = getStudentStats(a.id).attendance;
-          const attendanceB = getStudentStats(b.id).attendance;
+          const attendanceA = getStudentStats(a.id).attendance ?? 0;
+          const attendanceB = getStudentStats(b.id).attendance ?? 0;
           return attendanceB - attendanceA;
         default:
           return 0;

@@ -1,5 +1,6 @@
 'use server';
 
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 
@@ -7,11 +8,17 @@ import { revalidatePath } from 'next/cache';
  * Update system-wide GPA thresholds (e.g., First Class at 3.7)
  */
 export async function updateAcademicThresholds(settings: Record<string, string>) {
-    const operations = Object.entries(settings).map(([key, value]) => 
+    const operations = Object.entries(settings).map(([key, value]) =>
         prisma.systemSetting.upsert({
             where: { key },
-            update: { value },
-            create: { key, value }
+            update: { value, updated_at: new Date() },
+            create: {
+                setting_id: randomUUID(),
+                key,
+                value,
+                category: 'Academic',
+                updated_at: new Date(),
+            },
         })
     );
 
@@ -59,7 +66,14 @@ export async function ensureDefaultSettings() {
         await prisma.systemSetting.upsert({
             where: { key: d.key },
             update: {},
-            create: d
+            create: {
+                setting_id: randomUUID(),
+                key: d.key,
+                value: d.value,
+                description: d.description,
+                category: 'Academic',
+                updated_at: new Date(),
+            },
         });
     }
 

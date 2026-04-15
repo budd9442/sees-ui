@@ -4,10 +4,57 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { Student, Grade, AcademicGoal, Notification, Module } from '@/types';
 import { revalidatePath } from 'next/cache';
-import { checkFeatureFlag } from '@/app/actions/feature-flags';
-import { FEATURE_FLAGS } from '@/lib/constants/feature-flags';
+import { AcademicEngine } from '@/lib/services/academic-engine';
+import { gradeContributesToGpa } from '@/lib/gpa-utils';
+import { getStudentModuleRegistrationWindow } from '@/lib/actions/module-registration-round-actions';
+import { normalizeStudentLevel } from '@/lib/module-registration-round-utils';
 
-import { AcademicEngine } from '@/lib/services/academic-engine'; 
+const programStructureInclude = {
+    module: {
+        include: {
+            Module_A: true,
+            module_registrations: true,
+        },
+    },
+} as const;
+
+/** Program catalogue rows for registration: active year first, then legacy rows with null academic_year_id. */
+async function fetchProgramStructuresForEnrollment(opts: {
+    programId: string;
+    specializationId: string | null;
+    studentLevelRaw: string | null;
+}) {
+    const activeYear = await prisma.academicYear.findFirst({ where: { active: true } });
+    if (!activeYear) return [];
+
+    const academicLevel = normalizeStudentLevel(opts.studentLevelRaw) || 'L1';
+
+    const buildWhere = (academicYearId: string | null) => {
+        const w: Record<string, unknown> = {
+            program_id: opts.programId,
+            academic_level: academicLevel,
+            academic_year_id: academicYearId,
+        };
+        if (opts.specializationId) {
+            w.OR = [{ specialization_id: null }, { specialization_id: opts.specializationId }];
+        }
+        return w;
+    };
+
+    let structures = await prisma.programStructure.findMany({
+        where: buildWhere(activeYear.academic_year_id) as any,
+        include: programStructureInclude,
+    });
+
+    if (structures.length === 0) {
+        structures = await prisma.programStructure.findMany({
+            where: buildWhere(null) as any,
+            include: programStructureInclude,
+        });
+    }
+
+    return structures;
+}
 
 export async function getStudentDashboardData() {
     const session = await auth();
@@ -219,28 +266,16 @@ export async function getModuleRegistrationData() {
     const semesters = await getAnnualSemesters();
     if (semesters.length === 0) throw new Error("No active semesters found for registration");
 
-    // 2. Determine current level (e.g., L1, L2)
-    const studentYear = record.current_level || ('L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1)));
+    // 2. Determine current level (normalize "Level 2" -> "L2" for ProgramStructure.academic_level)
+    const studentYear =
+        normalizeStudentLevel(record.current_level) ||
+        'L' + Math.max(1, Math.ceil(record.admission_year ? new Date().getFullYear() - record.admission_year - 1 : 1));
 
-    // 3. Fetch Program Structure for this level
-    const whereClause: any = {
-        program_id: record.degree_path_id,
-        academic_level: studentYear,
-    };
-    if (record.specialization_id) {
-        whereClause.OR = [{ specialization_id: null }, { specialization_id: record.specialization_id }];
-    }
-
-    const structures = await prisma.programStructure.findMany({
-        where: whereClause,
-        include: {
-            module: {
-                include: {
-                    Module_A: true,
-                    module_registrations: true // Need this for the count below
-                }
-            }
-        }
+    // 3. Fetch Program Structure for this level (scoped to active academic year when possible)
+    const structures = await fetchProgramStructuresForEnrollment({
+        programId: record.degree_path_id,
+        specializationId: record.specialization_id,
+        studentLevelRaw: record.current_level,
     });
 
     // 4. Fetch Credit Rules for both semesters
@@ -267,9 +302,9 @@ export async function getModuleRegistrationData() {
                 credits: s.module.credits,
                 description: s.module.description,
                 prerequisites: s.module.Module_A.map((p: any) => p.code),
-                academicYear: s.academicLevel,
+                academicYear: s.academic_level,
                 semester: sem.label,
-                capacity: s.module.max_students || 60,
+                capacity: 60,
                 enrolled: s.module.module_registrations.filter((r: any) => r.semester_id === sem.semester_id && r.status !== 'DROPPED').length,
                 isCompulsory: !!(s.module_type === 'CORE')
             }))
@@ -281,18 +316,30 @@ export async function getModuleRegistrationData() {
         .map((mr: any) => mr.module_id);
 
     const completedModuleCodes = record.grades
-        .filter((g: any) => g.marks >= 50)
+        .filter((g: any) => (g.grade_point ?? 0) >= 2.0 || (g.marks != null && g.marks >= 50))
         .map((g: any) => g.module.code);
+
+    const regWindow = await getStudentModuleRegistrationWindow();
 
     return {
         student: {
-            academicYear: studentYear,
+            academicYear: record.current_level || studentYear,
             degreeProgram: record.degree_path?.code,
             specialization: record.specialization?.code,
         },
         semesters: semestersData,
         registeredModuleIds,
-        completedModuleCodes
+        completedModuleCodes,
+        registrationWindow: {
+            canEdit: regWindow.canEdit,
+            windowOk: regWindow.windowOk,
+            message: regWindow.message,
+            label: regWindow.round?.label,
+            status: regWindow.round?.status,
+            opensAt: regWindow.round?.opens_at ? regWindow.round.opens_at.toISOString() : null,
+            closesAt: regWindow.round?.closes_at ? regWindow.round.closes_at.toISOString() : null,
+            studentMessage: regWindow.round?.student_message ?? null,
+        },
     };
 }
 
@@ -314,28 +361,32 @@ export async function registerForModules(moduleIds: string[]) {
     const record = studentRecord as any;
 
     try {
-        // [GOVERNANCE] Check if registration window is open using centralized feature flag
-        const isRegistrationOpen = await checkFeatureFlag(FEATURE_FLAGS.ENABLE_MODULE_REGISTRATION, 'student');
-        if (!isRegistrationOpen) {
-            throw new Error("Module registration is currently CLOSED. Please check the active window in the academic calendar.");
+        const regWindow = await getStudentModuleRegistrationWindow();
+        if (!regWindow.canEdit) {
+            throw new Error(regWindow.message || 'Module registration is closed.');
         }
 
         // 1. Resolve Active Year and Semesters
         const semesters = await getAnnualSemesters();
         if (semesters.length === 0) throw new Error("No active academic year found for registration.");
 
-        const studentYear = record.current_level || ('L' + Math.max(1, Math.ceil(record.admission_year ? (new Date().getFullYear() - record.admission_year - 1) : 1)));
+        const studentYear =
+            normalizeStudentLevel(record.current_level) ||
+            'L' + Math.max(1, Math.ceil(record.admission_year ? new Date().getFullYear() - record.admission_year - 1 : 1));
 
-        // 2. Fetch Program Structure and Modules for validation
-        const structures = await prisma.programStructure.findMany({
-            where: {
-                program_id: record.degree_path_id,
-                module_id: { in: moduleIds }
-            },
-            include: { module: true }
+        const catalogueStructures = await fetchProgramStructuresForEnrollment({
+            programId: record.degree_path_id,
+            specializationId: record.specialization_id,
+            studentLevelRaw: record.current_level,
         });
+        const allowedModuleIds = new Set(catalogueStructures.map((s) => s.module_id));
+        const uniqueSelected = [...new Set(moduleIds)];
+        if (uniqueSelected.some((id) => !allowedModuleIds.has(id))) {
+            throw new Error("One or more modules do not belong to your academic program.");
+        }
 
-        if (structures.length !== moduleIds.length) {
+        const structures = catalogueStructures.filter((s) => uniqueSelected.includes(s.module_id));
+        if (structures.length !== uniqueSelected.length) {
             throw new Error("One or more modules do not belong to your academic program.");
         }
 
@@ -433,6 +484,7 @@ export async function getStudentGrades() {
         credits: reg.module.credits,
         grade: reg.grade?.letter_grade || 'Pending',
         gradePoint: reg.grade?.grade_point || 0.0,
+        countsTowardGpa: gradeContributesToGpa(reg.module),
         semester: reg.semester?.label || 'Unknown',
         // User requested "Year" to mean Level (L1, L2)
         level: reg.module.level || 'L1',
@@ -523,8 +575,8 @@ export async function getStudentGPAHistory() {
         .filter((g: any) =>
             g.released_at &&
             g.letter_grade !== 'Pending' &&
-            g.letter_grade !== 'Pass' &&
-            g.semester
+            g.semester &&
+            gradeContributesToGpa(g.module)
         )
         .sort((a: any, b: any) => {
             const dateA = a.semester.end_date ? new Date(a.semester.end_date).getTime() : 0;

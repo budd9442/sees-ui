@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -82,7 +83,11 @@ export function AdvisorDashboardView({
 
             {/* Stats Overview */}
             <div className="grid gap-4 md:grid-cols-4">
-                <Card>
+                <Link
+                    href="/dashboard/advisor/students"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Advisees</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
@@ -91,9 +96,14 @@ export function AdvisorDashboardView({
                         <div className="text-2xl font-bold">{myStudents.length}</div>
                         <p className="text-xs text-muted-foreground">Active students</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/advisor/students?tab=at-risk"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">At Risk</CardTitle>
                         <AlertTriangle className="h-4 w-4 text-muted-foreground" />
@@ -105,9 +115,14 @@ export function AdvisorDashboardView({
                             <Badge variant="destructive" className="mt-2">Critical</Badge>
                         )}
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/advisor/messages"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Messages</CardTitle>
                         <MessageCircle className="h-4 w-4 text-muted-foreground" />
@@ -116,9 +131,14 @@ export function AdvisorDashboardView({
                         <div className="text-2xl font-bold">{pendingMessages}</div>
                         <p className="text-xs text-muted-foreground">Unread messages</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/advisor/records"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Average GPA</CardTitle>
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -127,13 +147,18 @@ export function AdvisorDashboardView({
                         <div className="text-2xl font-bold">{averageGPA.toFixed(2)}</div>
                         <p className="text-xs text-muted-foreground">Group performance</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
             </div>
 
             {/* GPA Trends and Performance Distribution */}
             <div className="grid gap-4 md:grid-cols-2">
                 {/* Average GPA Trend */}
-                <Card>
+                <Link
+                    href="/dashboard/advisor/records"
+                    className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/20 cursor-pointer">
                     <CardHeader>
                         <CardTitle>Average GPA Trend</CardTitle>
                         <CardDescription>Advisee group performance over time</CardDescription>
@@ -166,10 +191,15 @@ export function AdvisorDashboardView({
                             </div>
                         </div>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
                 {/* Performance Distribution */}
-                <Card>
+                <Link
+                    href="/dashboard/advisor/students"
+                    className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/20 cursor-pointer">
                     <CardHeader>
                         <CardTitle>Performance Distribution</CardTitle>
                         <CardDescription>Current advisee performance breakdown</CardDescription>
@@ -193,14 +223,20 @@ export function AdvisorDashboardView({
                             ))}
                         </div>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
             </div>
 
             {/* At-Risk Students */}
             <Card>
-                <CardHeader>
-                    <CardTitle>At-Risk Students</CardTitle>
-                    <CardDescription>Students requiring immediate attention</CardDescription>
+                <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0">
+                    <div>
+                        <CardTitle>At-Risk Students</CardTitle>
+                        <CardDescription>Students requiring immediate attention</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href="/dashboard/advisor/students?tab=at-risk">View all</Link>
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     {atRiskStudents.length > 0 ? (
@@ -224,7 +260,9 @@ export function AdvisorDashboardView({
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <Button size="sm" variant="outline">View Profile</Button>
+                                        <Button size="sm" variant="outline" asChild>
+                                            <Link href={`/dashboard/advisor/students/${student.id}`}>View Profile</Link>
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
@@ -240,7 +278,11 @@ export function AdvisorDashboardView({
             {/* Recent Activities and Upcoming Meetings */}
             <div className="grid gap-4 md:grid-cols-2">
                 {/* Recent Advisee Activities */}
-                <Card>
+                <Link
+                    href="/dashboard/advisor/students"
+                    className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/20 cursor-pointer">
                     <CardHeader>
                         <CardTitle>Recent Activities</CardTitle>
                         <CardDescription>Latest updates from your advisees</CardDescription>
@@ -266,7 +308,8 @@ export function AdvisorDashboardView({
                             ))}
                         </div>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
 
             </div>
@@ -278,19 +321,25 @@ export function AdvisorDashboardView({
                     <CardDescription>Common advising tasks</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid gap-4 md:grid-cols-4">
-                        <Button className="h-24 flex-col gap-2" variant="outline">
-                            <MessageCircle className="h-6 w-6" />
-                            <span className="text-xs">Send Message</span>
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <Button className="h-24 flex-col gap-2" variant="outline" asChild>
+                            <Link href="/dashboard/advisor/messages" className="inline-flex flex-col items-center justify-center gap-2">
+                                <MessageCircle className="h-6 w-6" />
+                                <span className="text-xs">Send Message</span>
+                            </Link>
                         </Button>
 
-                        <Button className="h-24 flex-col gap-2" variant="outline">
-                            <Target className="h-6 w-6" />
-                            <span className="text-xs">Set Goals</span>
+                        <Button className="h-24 flex-col gap-2" variant="outline" asChild>
+                            <Link href="/dashboard/advisor/students" className="inline-flex flex-col items-center justify-center gap-2">
+                                <Target className="h-6 w-6" />
+                                <span className="text-xs">My Advisees</span>
+                            </Link>
                         </Button>
-                        <Button className="h-24 flex-col gap-2" variant="outline">
-                            <BarChart3 className="h-6 w-6" />
-                            <span className="text-xs">Performance Report</span>
+                        <Button className="h-24 flex-col gap-2" variant="outline" asChild>
+                            <Link href="/dashboard/advisor/records" className="inline-flex flex-col items-center justify-center gap-2">
+                                <BarChart3 className="h-6 w-6" />
+                                <span className="text-xs">Performance Report</span>
+                            </Link>
                         </Button>
                     </div>
                 </CardContent>

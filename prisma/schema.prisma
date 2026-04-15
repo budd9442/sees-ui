@@ -29,8 +29,10 @@ model User {
   notifications       Notification[]
   staff               Staff?
   student             Student?
-  passwordResetTokens PasswordResetToken[]
-  registrationTokens  RegistrationToken[]
+  passwordResetTokens                       PasswordResetToken[]
+  registrationTokens                      RegistrationToken[]
+  resolved_selection_change_requests        SelectionAllocationChangeRequest[] @relation("ResolvedSelectionChangeRequests")
+  analytics_reports                         AnalyticsReport[]
 }
 
 model RegistrationToken {
@@ -53,6 +55,8 @@ model Student {
   admission_year          Int
   current_gpa             Float                @default(0.0)
   academic_class          String?
+  metadata                Json?
+  onboarding_completed_at DateTime?
   degree_path_id          String
   specialization_id       String?
   advisor_id              String?
@@ -75,6 +79,7 @@ model Student {
   preference_2            DegreeProgram?       @relation("PathwayPreference2", fields: [pathway_preference_2_id], references: [program_id])
   specialization          Specialization?      @relation(fields: [specialization_id], references: [specialization_id])
   user                    User                 @relation(fields: [student_id], references: [user_id], onDelete: Cascade)
+  selection_allocation_change_requests SelectionAllocationChangeRequest[]
 }
 
 model Staff {
@@ -87,6 +92,7 @@ model Staff {
   lecture_schedules LectureSchedule[]
   user              User              @relation(fields: [staff_id], references: [user_id], onDelete: Cascade)
   assignments       StaffAssignment[]
+  graduation_eligibility_profiles_updated GraduationEligibilityProfile[] @relation("GraduationProfileUpdatedBy")
 }
 
 model Advisor {
@@ -120,8 +126,23 @@ model DegreeProgram {
   preferenced_by_2      Student[]                @relation("PathwayPreference2")
   source_of_transitions AcademicPathTransition[] @relation("SourceProgram")
   target_of_transitions AcademicPathTransition[] @relation("TargetProgram")
+  selection_configs              SelectionRoundConfig[]           @relation("ProgramSelectionConfig")
+  graduation_eligibility_profile GraduationEligibilityProfile?
 
   @@unique([code, academic_year_id])
+}
+
+model GraduationEligibilityProfile {
+  profile_id          String        @id @default(uuid())
+  program_id          String        @unique
+  rules               Json
+  version             Int           @default(1)
+  updated_at          DateTime      @updatedAt
+  updated_by_staff_id String?
+  degree_program      DegreeProgram @relation(fields: [program_id], references: [program_id], onDelete: Cascade)
+  updated_by_staff    Staff?      @relation("GraduationProfileUpdatedBy", fields: [updated_by_staff_id], references: [staff_id], onDelete: SetNull)
+
+  @@map("graduation_eligibility_profiles")
 }
 
 model Specialization {
@@ -136,6 +157,7 @@ model Specialization {
   academic_year     AcademicYear?      @relation(fields: [academic_year_id], references: [academic_year_id])
   degree_program    DegreeProgram      @relation(fields: [program_id], references: [program_id])
   students          Student[]
+  selection_configs SelectionRoundConfig[] @relation("SpecSelectionConfig")
 
   @@unique([code, academic_year_id])
 }
@@ -161,6 +183,10 @@ model Module {
   level                String
   description          String?
   active               Boolean              @default(true)
+  /// When false, released grades for this module do not affect GPA (points or credits).
+  counts_toward_gpa    Boolean              @default(true)
+  /// Staff-editable override: [{ letter_grade, grade_point, min_marks, max_marks }]. Null = use active GradingScheme.
+  custom_grading_bands Json?
   academic_year_id     String?
   grades               Grade[]
   lecture_schedules    LectureSchedule[]
@@ -224,7 +250,9 @@ model AcademicYear {
   semesters         Semester[]
   specializations   Specialization[]
   staff_assignments StaffAssignment[]
-  credit_rules      AcademicCreditRule[]
+  credit_rules               AcademicCreditRule[]
+  selection_rounds           SelectionRound[]
+  module_registration_rounds ModuleRegistrationRound[]
 }
 
 model Semester {
@@ -263,6 +291,8 @@ model ModuleRegistration {
   module            Module   @relation(fields: [module_id], references: [module_id])
   semester          Semester @relation(fields: [semester_id], references: [semester_id])
   student           Student  @relation(fields: [student_id], references: [student_id])
+
+  @@index([semester_id, status])
 }
 
 model Grade {
@@ -271,7 +301,7 @@ model Grade {
   student_id          String
   module_id           String
   semester_id         String
-  marks               Float
+  marks               Float?
   grade_point         Float
   letter_grade        String
   attempt_no          Int                @default(1)
@@ -280,6 +310,8 @@ model Grade {
   module_registration ModuleRegistration @relation(fields: [reg_id], references: [reg_id])
   semester            Semester           @relation(fields: [semester_id], references: [semester_id])
   student             Student            @relation(fields: [student_id], references: [student_id])
+
+  @@index([released_at])
 }
 
 model GradingScheme {
@@ -324,6 +356,8 @@ model GPAHistory {
   gpa              Float
   academic_class   String?
   student          Student  @relation(fields: [student_id], references: [student_id])
+
+  @@index([calculation_date])
 }
 
 model AcademicGoal {
@@ -366,6 +400,10 @@ model Message {
   read_at      DateTime?
   recipient    User      @relation("Recipient", fields: [recipient_id], references: [user_id])
   sender       User      @relation("Sender", fields: [sender_id], references: [user_id])
+
+  @@index([recipient_id, read_at])
+  @@index([recipient_id, sent_at])
+  @@index([sender_id, sent_at])
 }
 
 model Notification {
@@ -565,4 +603,127 @@ model AuditLog {
   @@index([timestamp])
   @@index([admin_id])
   @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Selection Round System
+// ─────────────────────────────────────────────────────────────
+
+model SelectionRound {
+  round_id         String                 @id @default(uuid())
+  academic_year_id String
+  type             String                 // "PATHWAY" | "SPECIALIZATION"
+  label            String
+  level            String                 // "L2" | "L3"
+  status           String                 @default("DRAFT") // DRAFT | OPEN | CLOSED | APPROVED
+  selection_mode   String                 @default("AUTO")  // "AUTO" | "GPA" | "FREE" — AUTO: GPA only when a pathway slot is oversubscribed
+  opens_at         DateTime?
+  closes_at        DateTime?
+  created_at       DateTime               @default(now())
+  approved_at      DateTime?
+  notes            String?
+  /// Days after approval during which students may submit allocation change requests (0 = none).
+  allocation_change_grace_days Int            @default(0)
+  configs          SelectionRoundConfig[]
+  applications     SelectionApplication[]
+  allocation_change_requests SelectionAllocationChangeRequest[]
+  academic_year    AcademicYear           @relation(fields: [academic_year_id], references: [academic_year_id])
+
+  @@map("selection_rounds")
+}
+
+model SelectionRoundConfig {
+  config_id      String          @id @default(uuid())
+  round_id       String
+  program_id     String?         // for PATHWAY rounds
+  spec_id        String?         // for SPECIALIZATION rounds
+  capacity       Int             @default(50) // max (pathway) or min threshold (specialization)
+  priority       Int             @default(0)
+  round          SelectionRound  @relation(fields: [round_id], references: [round_id], onDelete: Cascade)
+  program        DegreeProgram?  @relation("ProgramSelectionConfig", fields: [program_id], references: [program_id])
+  specialization Specialization? @relation("SpecSelectionConfig", fields: [spec_id], references: [specialization_id])
+
+  @@map("selection_round_configs")
+}
+
+model SelectionApplication {
+  app_id        String         @id @default(uuid())
+  round_id      String
+  student_id    String
+  preference_1  String         // program_id or spec_id
+  preference_2  String?
+  status        String         @default("PENDING") // PENDING | ALLOCATED | WAITLISTED | REJECTED
+  allocated_to  String?        // program_id or spec_id that was finally allocated
+  waitlist_pos  Int?           // position in waitlist (null if not waitlisted)
+  gpa_at_time   Float          @default(0.0)
+  applied_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  round         SelectionRound @relation(fields: [round_id], references: [round_id], onDelete: Cascade)
+
+  @@unique([round_id, student_id])
+  @@index([round_id])
+  @@index([student_id])
+  @@map("selection_applications")
+}
+
+model SelectionAllocationChangeRequest {
+  request_id               String   @id @default(uuid())
+  round_id                 String
+  student_id               String
+  requested_preference_1   String
+  requested_preference_2   String?
+  reason                   String?
+  status                   String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  created_at               DateTime @default(now())
+  resolved_at              DateTime?
+  resolved_by_user_id      String?
+
+  round       SelectionRound @relation(fields: [round_id], references: [round_id], onDelete: Cascade)
+  student     Student        @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+  resolved_by User?          @relation("ResolvedSelectionChangeRequests", fields: [resolved_by_user_id], references: [user_id])
+
+  @@index([round_id])
+  @@index([student_id])
+  @@index([status])
+  @@map("selection_allocation_change_requests")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Module registration rounds (HOD-managed windows)
+// ─────────────────────────────────────────────────────────────
+
+model ModuleRegistrationRound {
+  round_id         String       @id @default(uuid())
+  academic_year_id String
+  label            String
+  status           String       @default("DRAFT") // DRAFT | OPEN | CLOSED | FINALIZED
+  opens_at         DateTime?
+  closes_at        DateTime?
+  levels           String[]     @default([]) // empty = all levels (e.g. L1, L2)
+  notes            String?
+  student_message  String?
+  features         Json?
+  finalized_at     DateTime?
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+  academic_year    AcademicYear @relation(fields: [academic_year_id], references: [academic_year_id], onDelete: Cascade)
+
+  @@index([academic_year_id])
+  @@index([status])
+  @@map("module_registration_rounds")
+}
+
+model AnalyticsReport {
+  report_id      String   @id @default(uuid())
+  owner_user_id  String
+  scope_role     String
+  title          String
+  definition     Json
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  owner          User     @relation(fields: [owner_user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([owner_user_id])
+  @@index([scope_role])
+  @@map("analytics_reports")
 }

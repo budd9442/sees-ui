@@ -1,5 +1,6 @@
-
+import { randomUUID } from 'crypto';
 import { PrismaClient } from "@prisma/client";
+import { legacyGpaThresholdPresetRules } from "../lib/graduation/rule-presets";
 import { hash } from "bcryptjs";
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -41,6 +42,7 @@ async function clearDb() {
 
     await prisma.user.deleteMany();
 
+    await prisma.graduationEligibilityProfile.deleteMany();
     await prisma.specialization.deleteMany();
     await prisma.degreeProgram.deleteMany();
     await prisma.module.deleteMany();
@@ -60,11 +62,13 @@ async function main() {
     // 1. System Settings
     await prisma.systemSetting.create({
         data: {
+            setting_id: randomUUID(),
             key: "pathway_demand_mit",
             value: "65",
             description: "Current demand percentage for MIT pathway",
-            category: "ACADEMIC"
-        }
+            category: "ACADEMIC",
+            updated_at: new Date(),
+        },
     });
 
     // 2. Academic Years & Semesters
@@ -150,7 +154,7 @@ async function main() {
 
         // Structure
         for (const item of prog.structure) {
-            const mod = await prisma.module.findUnique({ where: { code: item.moduleCode } });
+            const mod = await prisma.module.findFirst({ where: { code: item.moduleCode } });
             if (!mod) {
                 console.warn(`Module not found for structure: ${item.moduleCode}`);
                 continue;
@@ -219,13 +223,20 @@ async function main() {
         });
     }
 
+    const allPrograms = await prisma.degreeProgram.findMany();
+    for (const p of allPrograms) {
+        await prisma.graduationEligibilityProfile.create({
+            data: {
+                program_id: p.program_id,
+                rules: legacyGpaThresholdPresetRules() as object,
+            },
+        });
+    }
+
     // 4b. Feature Flags
     console.log('Seeding Feature Flags...');
     const featureFlags = [
-        { key: 'pathway_selection', name: 'Pathway Selection', description: 'Allow students to select their degree pathway', isEnabled: true, targetRoles: ['student'] },
-        { key: 'module_registration', name: 'Module Registration', description: 'Enable module registration for students', isEnabled: true, targetRoles: ['student'] },
-        { key: 'specialization_selection', name: 'Specialization Selection', description: 'Allow students to choose specialization', isEnabled: false, targetRoles: ['student'] },
-        { key: 'anonymous_reports', name: 'Anonymous Reports', description: 'Enable anonymous reporting system', isEnabled: true, targetRoles: ['student'] }
+        { key: 'anonymous_reports', name: 'Anonymous Reports', description: 'Enable anonymous reporting system', isEnabled: true, targetRoles: ['student'] },
     ];
 
     for (const flag of featureFlags) {
@@ -284,7 +295,7 @@ async function main() {
     });
 
     const studentPassword = await hash('student123', 10);
-    const mitProgram = await prisma.degreeProgram.findUnique({ where: { code: 'MIT' } });
+    const mitProgram = await prisma.degreeProgram.findFirst({ where: { code: 'MIT' } });
     if (mitProgram) {
         await prisma.user.create({
             data: {
@@ -397,17 +408,27 @@ async function main() {
 
         for (const item of transcript) {
             // 1. Ensure Module Exists
-            const module = await prisma.module.upsert({
-                where: { code: item.code },
-                update: {},
-                create: {
-                    code: item.code,
-                    name: item.name,
-                    credits: item.credits,
-                    level: item.level,
-                    description: item.name
-                }
+            const countsTowardGpa = !item.code.startsWith('GNCT');
+            const targetAcYearForModule = item.level === 'L1' ? y1AcYear : y2AcYear;
+            const existingMod = await prisma.module.findFirst({
+                where: { code: item.code, academic_year_id: targetAcYearForModule.academic_year_id },
             });
+            const module = existingMod
+                ? await prisma.module.update({
+                      where: { module_id: existingMod.module_id },
+                      data: { counts_toward_gpa: countsTowardGpa },
+                  })
+                : await prisma.module.create({
+                      data: {
+                          code: item.code,
+                          name: item.name,
+                          credits: item.credits,
+                          level: item.level,
+                          description: item.name,
+                          counts_toward_gpa: countsTowardGpa,
+                          academic_year_id: targetAcYearForModule.academic_year_id,
+                      },
+                  });
 
             // 2. Register Module
             // Determine Academic Year based on level/transcript context

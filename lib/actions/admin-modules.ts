@@ -11,7 +11,8 @@ const ModuleSchema = z.object({
     credits: z.number().min(1, "Credits must be at least 1"),
     description: z.string().optional(),
     active: z.boolean().default(true),
-    level: z.string().default("L1")
+    level: z.string().default("L1"),
+    counts_toward_gpa: z.boolean().default(true),
 });
 
 export async function getModules(query?: string, academicYearId?: string) {
@@ -65,6 +66,7 @@ export async function upsertModule(data: z.infer<typeof ModuleSchema> & { module
                 description: validated.description,
                 active: validated.active,
                 level: validated.level,
+                counts_toward_gpa: validated.counts_toward_gpa,
                 academic_year_id: targetYearId // Allow moving years if explicitly passed
             }
         });
@@ -88,6 +90,7 @@ export async function upsertModule(data: z.infer<typeof ModuleSchema> & { module
                 description: validated.description,
                 active: validated.active,
                 level: validated.level,
+                counts_toward_gpa: validated.counts_toward_gpa,
                 academic_year_id: targetYearId
             }
         });

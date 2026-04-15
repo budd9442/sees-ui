@@ -15,7 +15,7 @@ export default async function AcademicGovernancePage() {
     <div className="space-y-6">
       <Suspense fallback={<Loading />}>
         <AcademicGovernanceClient 
-          initialYears={yearsRes.success ? yearsRes.data : []} 
+          initialYears={yearsRes.success ? (yearsRes.data ?? []) : []}
         />
       </Suspense>
     </div>

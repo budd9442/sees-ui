@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { AcademicEngine } from '@/lib/services/academic-engine';
+import { getStudentModuleRegistrationWindow } from '@/lib/actions/module-registration-round-actions';
 
 /**
  * Register a student for a list of modules.
@@ -23,6 +24,11 @@ export async function registerForModules(moduleIds: string[]) {
     });
 
     if (!student) throw new Error("Student profile not found.");
+
+    const regWindow = await getStudentModuleRegistrationWindow();
+    if (!regWindow.canEdit) {
+        throw new Error(regWindow.message || 'Module registration is closed.');
+    }
 
     // 1. Get current active semester
     // Using a simplified helper for now
@@ -115,12 +121,17 @@ export async function getEnrollmentStats() {
         }
     });
 
-    return modules.map(m => ({
-        id: m.module_id,
-        code: m.code,
-        name: m.name,
-        enrolled: m.module_registrations.length,
-        capacity: m.max_students,
-        percentage: Math.round((m.module_registrations.length / m.max_students) * 100)
-    }));
+    const defaultCapacity = 100;
+    return modules.map((m) => {
+        const capacity = defaultCapacity;
+        const enrolled = m.module_registrations.length;
+        return {
+            id: m.module_id,
+            code: m.code,
+            name: m.name,
+            enrolled,
+            capacity,
+            percentage: Math.round((enrolled / capacity) * 100),
+        };
+    });
 }

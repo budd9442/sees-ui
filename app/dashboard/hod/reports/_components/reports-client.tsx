@@ -119,10 +119,15 @@ export default function ReportsClient({ initialData }: { initialData: any }) {
             const studentCredits = studentGrades.reduce((sum: number, grade: any) => sum + grade.credits, 0);
             const studentGPA = studentCredits > 0 ? studentPoints / studentCredits : 0;
 
-            let academicClass = 'Third/Pass';
-            if (studentGPA >= 3.7) academicClass = 'First Class';
-            else if (studentGPA >= 3.0) academicClass = 'Second Upper';
-            else if (studentGPA >= 2.5) academicClass = 'Second Lower';
+            let academicClass = student.academicClass as string | undefined;
+            if (!academicClass) {
+                academicClass = 'Third/Pass';
+                if (studentGPA >= 3.7) academicClass = 'First Class';
+                else if (studentGPA >= 3.3) academicClass = 'Second Upper';
+                else if (studentGPA >= 3.0) academicClass = 'Second Lower';
+                else if (studentGPA >= 2.5) academicClass = 'Third/Pass';
+                else academicClass = 'Pass';
+            }
 
             acc[academicClass] = (acc[academicClass] || 0) + 1;
             return acc;

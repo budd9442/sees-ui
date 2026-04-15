@@ -129,9 +129,9 @@ export async function createSpecialization(data: z.infer<typeof SpecializationSc
             code: validated.code,
             name: validated.name,
             description: validated.description || '',
-            degree_program: { connect: { program_id: validated.programId } },
-            academic_year_id: academicYearId
-        }
+            program_id: validated.programId,
+            ...(academicYearId ? { academic_year_id: academicYearId } : {}),
+        },
     });
     revalidatePath(`/dashboard/admin/programs`);
 }
@@ -160,14 +160,14 @@ export async function addModuleToStructure(data: {
 
     await prisma.programStructure.create({
         data: {
-            degree_program: { connect: { program_id: data.programId } },
-            module: { connect: { module_id: data.moduleId } },
-            specialization: data.specializationId ? { connect: { specialization_id: data.specializationId } } : undefined,
-            academic_year_id: academicYearId,
+            program_id: data.programId,
+            module_id: data.moduleId,
+            specialization_id: data.specializationId ?? null,
             academic_level: data.academicLevel,
             semester_number: data.semesterNumber,
-            module_type: data.moduleType
-        }
+            module_type: data.moduleType,
+            ...(academicYearId ? { academic_year_id: academicYearId } : {}),
+        },
     });
     revalidatePath(`/dashboard/admin/programs`);
 }

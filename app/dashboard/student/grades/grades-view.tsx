@@ -24,6 +24,8 @@ interface Grade {
     credits: number;
     grade: number | string;
     gradePoint: number;
+    /** When false, excluded from GPA (matches server `gradeContributesToGpa`). */
+    countsTowardGpa?: boolean;
     semester: string;
     level: string;
     isReleased: boolean;

@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { upsertModule } from '@/lib/actions/admin-modules';
 import { Loader2, Plus, Pencil } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ModuleDialogProps {
     module?: any;
@@ -33,7 +34,8 @@ export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogPr
         name: '',
         credits: 4,
         description: '',
-        level: 'L1'
+        level: 'L1',
+        counts_toward_gpa: true,
     });
 
     useEffect(() => {
@@ -43,7 +45,8 @@ export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogPr
                 name: module.name,
                 credits: module.credits,
                 description: module.description || '',
-                level: module.level || 'L1'
+                level: module.level || 'L1',
+                counts_toward_gpa: module.counts_toward_gpa !== false,
             });
         } else {
             setFormData({
@@ -51,7 +54,8 @@ export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogPr
                 name: '',
                 credits: 4,
                 description: '',
-                level: 'L1'
+                level: 'L1',
+                counts_toward_gpa: true,
             });
         }
     }, [module, open]);
@@ -70,6 +74,7 @@ export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogPr
                 description: formData.description,
                 active: true,
                 level: formData.level,
+                counts_toward_gpa: formData.counts_toward_gpa,
                 academicYearId: academicYearId || module?.academic_year_id
             });
             setOpen(false);
@@ -155,6 +160,18 @@ export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogPr
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="counts_toward_gpa"
+                            checked={formData.counts_toward_gpa}
+                            onCheckedChange={(v) =>
+                                setFormData({ ...formData, counts_toward_gpa: v === true })
+                            }
+                        />
+                        <Label htmlFor="counts_toward_gpa" className="text-sm font-normal cursor-pointer">
+                            Counts toward GPA
+                        </Label>
                     </div>
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>

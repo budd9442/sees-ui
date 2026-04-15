@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo } from 'react';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,11 +37,38 @@ import {
 } from 'recharts';
 import { Download } from 'lucide-react';
 
-export default function HODAnalyticsClient({ initialData }: { initialData: any }) {
-    const { students, modules, grades } = initialData;
-    const [selectedPeriod, setSelectedPeriod] = useState('current');
-    const [selectedPathway, setSelectedPathway] = useState('all');
-    const [selectedYear, setSelectedYear] = useState('all');
+type HODAnalyticsClientProps = {
+    initialData: {
+        students: any[];
+        modules: any[];
+        grades: any[];
+        enrollmentTrend: { year: string; students: number }[];
+        departmentGpaTrend: { period: string; averageGPA: number }[];
+        department: string;
+        pathwayOptions: string[];
+        levelOptions: string[];
+    };
+    initialPathway?: string;
+    initialLevel?: string;
+};
+
+export default function HODAnalyticsClient({
+    initialData,
+    initialPathway = 'all',
+    initialLevel = 'all',
+}: HODAnalyticsClientProps) {
+    const router = useRouter();
+    const pathname = usePathname();
+    const { students, modules, grades, enrollmentTrend, departmentGpaTrend, department, pathwayOptions, levelOptions } =
+        initialData;
+
+    const pushFilters = (pathway: string, level: string) => {
+        const p = new URLSearchParams();
+        if (pathway !== 'all') p.set('pathway', pathway);
+        if (level !== 'all') p.set('level', level);
+        const q = p.toString();
+        router.push(q ? `${pathname}?${q}` : pathname);
+    };
 
     const totalStudents = students.length;
     const totalModules = modules.length;
@@ -53,11 +82,12 @@ export default function HODAnalyticsClient({ initialData }: { initialData: any }
         return acc;
     }, {});
 
-    const pathwayData = Object.keys(pathwayDistribution).map((pathway) => ({
+    const pathwayData = (pathwayOptions.length ? pathwayOptions : Object.keys(pathwayDistribution)).map((pathway) => ({
         pathway,
-        students: pathwayDistribution[pathway],
-        percentage: Math.round((pathwayDistribution[pathway] / (totalStudents || 1)) * 100),
+        students: pathwayDistribution[pathway] ?? 0,
+        percentage: Math.round(((pathwayDistribution[pathway] ?? 0) / (totalStudents || 1)) * 100),
     }));
+    const pathwayPieData = pathwayData.filter((d) => d.students > 0);
 
     const yearDistribution = students.reduce((acc: any, student: any) => {
         const year = student.academicYear || 'Unknown';
@@ -88,6 +118,14 @@ export default function HODAnalyticsClient({ initialData }: { initialData: any }
         percentage: Math.round((gpaDistribution[range] / (totalStudents || 1)) * 100),
     }));
 
+    const gpaTrendChart =
+        departmentGpaTrend?.length > 0
+            ? departmentGpaTrend.map((d) => ({ semester: d.period, averageGPA: d.averageGPA }))
+            : [{ semester: '—', averageGPA: averageGPA }];
+
+    const enrollmentChart =
+        enrollmentTrend?.length > 0 ? enrollmentTrend : [{ year: '—', students: totalStudents }];
+
     const modulePerformance = modules.map((module: any) => {
         const moduleGrades = grades.filter((g: any) => g.moduleId === module.id && g.isReleased);
         const averageGrade = moduleGrades.length > 0
@@ -106,21 +144,6 @@ export default function HODAnalyticsClient({ initialData }: { initialData: any }
         };
     }).sort((a: any, b: any) => parseFloat(b.averageGrade) - parseFloat(a.averageGrade));
 
-    const enrollmentTrend = [
-        { year: '2020', students: 120 },
-        { year: '2021', students: 135 },
-        { year: '2022', students: 142 },
-        { year: '2023', students: 158 },
-        { year: '2025', students: totalStudents },
-    ];
-
-    const gpaTrend = [
-        { semester: 'S1 2023', averageGPA: 3.1 },
-        { semester: 'S2 2023', averageGPA: 3.2 },
-        { semester: 'S1 2025', averageGPA: 3.15 },
-        { semester: 'S2 2025', averageGPA: averageGPA },
-    ];
-
     const pathwayPerformance = Object.keys(pathwayDistribution).map(pathway => {
         const pathwayStudents = students.filter((s: any) => s.specialization === pathway);
         const avgGPA = pathwayStudents.length > 0
@@ -133,7 +156,7 @@ export default function HODAnalyticsClient({ initialData }: { initialData: any }
             students: pathwayStudents.length,
             averageGPA: avgGPA.toFixed(2),
             atRisk,
-            retentionRate: pathwayStudents.length > 0 ? ((pathwayStudents.length - atRisk) / pathwayStudents.length * 100).toFixed(1) : "0.0",
+            notAtRiskSharePct: pathwayStudents.length > 0 ? ((pathwayStudents.length - atRisk) / pathwayStudents.length * 100).toFixed(1) : "0.0",
         };
     });
 
@@ -143,12 +166,33 @@ export default function HODAnalyticsClient({ initialData }: { initialData: any }
         console.log('Exporting analytics data...');
     };
 
+    const builderParams = new URLSearchParams();
+    if (initialPathway !== 'all') builderParams.set('pathway', initialPathway);
+    if (initialLevel !== 'all') builderParams.set('level', initialLevel);
+    const builderHref = `/dashboard/hod/analytics/builder${builderParams.toString() ? `?${builderParams.toString()}` : ''}`;
+
     return (
         <div className="space-y-6">
+            <Card>
+                <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p className="text-sm font-medium">Report builder</p>
+                        <p className="text-xs text-muted-foreground">
+                            Full-page canvas with department-scoped datasets. Filters carry over.
+                        </p>
+                    </div>
+                    <Button variant="default" size="sm" asChild>
+                        <Link href={builderHref}>Open report builder</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+            <div className="space-y-6">
             <div className="flex justify-between items-start">
                 <div>
                     <h1 className="text-3xl font-bold">Department Analytics</h1>
-                    <p className="text-muted-foreground mt-1">Comprehensive insights into department performance and trends</p>
+                    <p className="text-muted-foreground mt-1">
+                        {department ? `${department} · ` : ''}Comprehensive insights into department performance and trends
+                    </p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={exportAnalytics}><Download className="mr-2 h-4 w-4" /> Export Report</Button>
@@ -164,31 +208,31 @@ export default function HODAnalyticsClient({ initialData }: { initialData: any }
             </div>
 
             <Card>
-                <CardHeader><CardTitle>Filters</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Filters</CardTitle><CardDescription>Pathway and level slice all charts (URL-backed).</CardDescription></CardHeader>
                 <CardContent>
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <div className="space-y-2">
-                            <Label htmlFor="period">Time Period</Label>
-                            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent><SelectItem value="current">Current Semester</SelectItem><SelectItem value="year">Academic Year</SelectItem><SelectItem value="all">All Time</SelectItem></SelectContent>
-                            </Select>
-                        </div>
+                    <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="pathway">Pathway</Label>
-                            <Select value={selectedPathway} onValueChange={setSelectedPathway}>
+                            <Select value={initialPathway} onValueChange={(v) => pushFilters(v, initialLevel)}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Pathways</SelectItem>
-                                    {Object.keys(pathwayDistribution).map(pathway => <SelectItem key={pathway} value={pathway}>{pathway}</SelectItem>)}
+                                    {(pathwayOptions.length ? pathwayOptions : Object.keys(pathwayDistribution)).map((pathway) => (
+                                        <SelectItem key={pathway} value={pathway}>{pathway}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="year">Academic Year</Label>
-                            <Select value={selectedYear} onValueChange={setSelectedYear}>
+                            <Label htmlFor="year">Level</Label>
+                            <Select value={initialLevel} onValueChange={(v) => pushFilters(initialPathway, v)}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent><SelectItem value="all">All Years</SelectItem><SelectItem value="L1">L1</SelectItem><SelectItem value="L2">L2</SelectItem><SelectItem value="L3">L3</SelectItem></SelectContent>
+                                <SelectContent>
+                                    <SelectItem value="all">All levels</SelectItem>
+                                    {(levelOptions.length ? levelOptions : ['L1', 'L2', 'L3']).map((y) => (
+                                        <SelectItem key={y} value={y}>{y}</SelectItem>
+                                    ))}
+                                </SelectContent>
                             </Select>
                         </div>
                     </div>
@@ -199,27 +243,28 @@ export default function HODAnalyticsClient({ initialData }: { initialData: any }
                 <TabsList><TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="pathways">Pathways</TabsTrigger><TabsTrigger value="performance">Performance</TabsTrigger><TabsTrigger value="trends">Trends</TabsTrigger><TabsTrigger value="modules">Modules</TabsTrigger></TabsList>
                 <TabsContent value="overview" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2">
-                        <Card><CardHeader><CardTitle>Student Distribution by Pathway</CardTitle><CardDescription>Current enrollment</CardDescription></CardHeader><CardContent><ResponsiveContainer width="100%" height={300}><PieChart><Pie data={pathwayData} cx="50%" cy="50%" labelLine={false} label={({ pathway, percentage }) => `${pathway}: ${percentage}%`} outerRadius={80} fill="#8884d8" dataKey="students">{pathwayData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer></CardContent></Card>
+                        <Card><CardHeader><CardTitle>Student Distribution by Pathway</CardTitle><CardDescription>Current enrollment</CardDescription></CardHeader><CardContent>{pathwayPieData.length === 0 ? <p className="text-sm text-muted-foreground py-12 text-center">No students in this slice.</p> : <ResponsiveContainer width="100%" height={300}><PieChart><Pie data={pathwayPieData} cx="50%" cy="50%" labelLine={false} label={({ pathway, percentage }) => `${pathway}: ${percentage}%`} outerRadius={80} fill="#8884d8" dataKey="students">{pathwayPieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>}</CardContent></Card>
                         <Card><CardHeader><CardTitle>GPA Distribution</CardTitle><CardDescription>Academic performance breakdown</CardDescription></CardHeader><CardContent><ResponsiveContainer width="100%" height={300}><BarChart data={gpaData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="range" /><YAxis /><Tooltip /><Bar dataKey="students" fill="#8884d8" /></BarChart></ResponsiveContainer></CardContent></Card>
                     </div>
                     <Card><CardHeader><CardTitle>Enrollment by Academic Year</CardTitle><CardDescription>Student distribution</CardDescription></CardHeader><CardContent><ResponsiveContainer width="100%" height={300}><BarChart data={yearData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="year" /><YAxis /><Tooltip /><Bar dataKey="students" fill="#8884d8" /></BarChart></ResponsiveContainer></CardContent></Card>
                 </TabsContent>
                 <TabsContent value="pathways" className="space-y-4">
-                    <Card><CardHeader><CardTitle>Pathway Performance Analysis</CardTitle><CardDescription>Detailed performance metrics by pathway</CardDescription></CardHeader><CardContent><div className="space-y-4">{pathwayPerformance.map((pathway) => (<div key={pathway.pathway} className="p-4 rounded-lg border"><div className="flex items-center justify-between mb-3"><h4 className="font-semibold">{pathway.pathway}</h4><Badge variant="outline">{pathway.students} students</Badge></div><div className="grid gap-4 md:grid-cols-4"><div><p className="text-sm text-muted-foreground">Average GPA</p><p className="text-lg font-semibold">{pathway.averageGPA}</p></div><div><p className="text-sm text-muted-foreground">At Risk</p><p className="text-lg font-semibold text-red-600">{pathway.atRisk}</p></div><div><p className="text-sm text-muted-foreground">Retention Rate</p><p className="text-lg font-semibold text-green-600">{pathway.retentionRate}%</p></div><div><Progress value={parseFloat(pathway.retentionRate)} className="h-2" /></div></div></div>))}</div></CardContent></Card>
+                    <Card><CardHeader><CardTitle>Pathway Performance Analysis</CardTitle><CardDescription>Detailed performance metrics by pathway</CardDescription></CardHeader><CardContent><div className="space-y-4">{pathwayPerformance.map((pathway) => (<div key={pathway.pathway} className="p-4 rounded-lg border"><div className="flex items-center justify-between mb-3"><h4 className="font-semibold">{pathway.pathway}</h4><Badge variant="outline">{pathway.students} students</Badge></div><div className="grid gap-4 md:grid-cols-4"><div><p className="text-sm text-muted-foreground">Average GPA</p><p className="text-lg font-semibold">{pathway.averageGPA}</p></div><div><p className="text-sm text-muted-foreground">At Risk</p><p className="text-lg font-semibold text-red-600">{pathway.atRisk}</p></div><div><p className="text-sm text-muted-foreground">Not at risk (GPA ≥ 2.5)</p><p className="text-lg font-semibold text-green-600">{pathway.notAtRiskSharePct}%</p></div><div><Progress value={parseFloat(pathway.notAtRiskSharePct)} className="h-2" /></div></div></div>))}</div></CardContent></Card>
                 </TabsContent>
                 <TabsContent value="performance" className="space-y-4">
                     <Card><CardHeader><CardTitle>Academic Performance Metrics</CardTitle><CardDescription>Key performance indicators</CardDescription></CardHeader><CardContent><div className="grid gap-4 md:grid-cols-3"><div className="text-center p-4 rounded-lg border"><div className="text-3xl font-bold text-green-600">{totalStudents ? ((excellentStudents / totalStudents) * 100).toFixed(1) : 0}%</div><p className="text-sm text-muted-foreground">Excellent Performance</p><p className="text-xs">GPA ≥ 3.7</p></div><div className="text-center p-4 rounded-lg border"><div className="text-3xl font-bold text-blue-600">{totalStudents ? ((students.filter((s: any) => s.currentGPA >= 3.0 && s.currentGPA < 3.7).length / totalStudents) * 100).toFixed(1) : 0}%</div><p className="text-sm text-muted-foreground">Good Performance</p><p className="text-xs">GPA 3.0-3.69</p></div><div className="text-center p-4 rounded-lg border"><div className="text-3xl font-bold text-red-600">{totalStudents ? ((atRiskStudents / totalStudents) * 100).toFixed(1) : 0}%</div><p className="text-sm text-muted-foreground">At Risk</p><p className="text-xs">GPA &lt; 2.5</p></div></div></CardContent></Card>
                 </TabsContent>
                 <TabsContent value="trends" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2">
-                        <Card><CardHeader><CardTitle>Enrollment Trend</CardTitle><CardDescription>Student enrollment</CardDescription></CardHeader><CardContent><ResponsiveContainer width="100%" height={300}><LineChart data={enrollmentTrend}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="year" /><YAxis /><Tooltip /><Line type="monotone" dataKey="students" stroke="#8884d8" strokeWidth={2} /></LineChart></ResponsiveContainer></CardContent></Card>
-                        <Card><CardHeader><CardTitle>Average GPA Trend</CardTitle><CardDescription>GPA performance</CardDescription></CardHeader><CardContent><ResponsiveContainer width="100%" height={300}><LineChart data={gpaTrend}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="semester" /><YAxis domain={[2.5, 4]} /><Tooltip /><Line type="monotone" dataKey="averageGPA" stroke="#8884d8" strokeWidth={2} /></LineChart></ResponsiveContainer></CardContent></Card>
+                        <Card><CardHeader><CardTitle>Enrollment by admission year</CardTitle><CardDescription>Students in cohort (filtered slice)</CardDescription></CardHeader><CardContent><ResponsiveContainer width="100%" height={300}><LineChart data={enrollmentChart}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="year" /><YAxis /><Tooltip /><Line type="monotone" dataKey="students" stroke="#8884d8" strokeWidth={2} /></LineChart></ResponsiveContainer></CardContent></Card>
+                        <Card><CardHeader><CardTitle>Department GPA trend</CardTitle><CardDescription>Mean GPA from GPA history (monthly buckets)</CardDescription></CardHeader><CardContent><ResponsiveContainer width="100%" height={300}><LineChart data={gpaTrendChart}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="semester" /><YAxis domain={[2, 4]} /><Tooltip /><Line type="monotone" dataKey="averageGPA" stroke="#8884d8" strokeWidth={2} /></LineChart></ResponsiveContainer></CardContent></Card>
                     </div>
                 </TabsContent>
                 <TabsContent value="modules" className="space-y-4">
                     <Card><CardHeader><CardTitle>Module Performance Analysis</CardTitle><CardDescription>Performance metrics across modules</CardDescription></CardHeader><CardContent><div className="space-y-4">{modulePerformance.slice(0, 10).map((module: any) => (<div key={module.code} className="flex items-center justify-between p-3 rounded-lg border"><div className="flex-1"><h4 className="font-medium">{module.module}</h4><p className="text-sm text-muted-foreground">{module.code}</p></div><div className="flex items-center gap-6"><div className="text-center"><p className="text-sm text-muted-foreground">Avg Grade</p><p className="font-semibold">{module.averageGrade}</p></div><div className="text-center"><p className="text-sm text-muted-foreground">Pass Rate</p><p className="font-semibold">{module.passRate}%</p></div><div className="text-center"><p className="text-sm text-muted-foreground">Students</p><p className="font-semibold">{module.students}</p></div></div></div>))}</div></CardContent></Card>
                 </TabsContent>
             </Tabs>
+            </div>
         </div>
     );
 }

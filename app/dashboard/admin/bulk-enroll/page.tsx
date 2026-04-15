@@ -11,9 +11,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, FileText, CheckCircle2, AlertCircle, Info, History } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, Info, History, Search, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { validateEnrollmentCSV, ValidationResult } from '@/lib/actions/enrollment-validation';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+    getOnboardingQuestionsForAdmin,
+    saveOnboardingQuestionsForAdmin,
+} from '@/lib/actions/student-onboarding-actions';
+import type { OnboardingQuestion } from '@/lib/onboarding/question-schema';
 
 interface Program {
     program_id: string;
@@ -29,6 +36,13 @@ export default function BulkEnrollPage() {
     const [programs, setPrograms] = useState<Program[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [results, setResults] = useState<any>(null);
+    const [validation, setValidation] = useState<ValidationResult | null>(null);
+    const [editableRecords, setEditableRecords] = useState<ValidationResult['records']>([]);
+    const [isValidating, setIsValidating] = useState(false);
+    const [customPrefix, setCustomPrefix] = useState<string>('');
+    const [showSettings, setShowSettings] = useState(false);
+    const [onboardingQuestions, setOnboardingQuestions] = useState<OnboardingQuestion[]>([]);
+    const [savingQuestions, setSavingQuestions] = useState(false);
 
     useEffect(() => {
         // Fetch programs
@@ -38,15 +52,65 @@ export default function BulkEnrollPage() {
             .catch(err => console.error('Failed to fetch programs:', err));
     }, []);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const doc = await getOnboardingQuestionsForAdmin();
+                setOnboardingQuestions(doc.questions);
+            } catch (e) {
+                console.error('Failed to load onboarding questions', e);
+            }
+        };
+        void load();
+    }, []);
+
+    useEffect(() => {
+        if (file) {
+            handleFileChange({ target: { files: [file] } } as any);
+        }
+    }, [customPrefix]);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
+        if (!selectedFile) return;
+
+        setFile(selectedFile);
+        setIsValidating(true);
+        setResults(null); // Clear previous results
+
+        try {
+            const content = await selectedFile.text();
+            const scanResult = await validateEnrollmentCSV(content, customPrefix);
+            setValidation(scanResult);
+            setEditableRecords(scanResult.records);
+
+            if (scanResult.isValid) {
+                toast.success("CSV Scan Complete: File looks healthy.");
+            } else {
+                toast.warning(`Found ${scanResult.errors.length} data issues. Please review the audit list.`);
+            }
+        } catch (err) {
+            toast.error("Failed to read CSV file for validation.");
+        } finally {
+            setIsValidating(false);
         }
     };
 
+    const handleUsernameChange = (rowIdx: number, newUsername: string) => {
+        const updated = [...editableRecords];
+        updated[rowIdx] = { ...updated[rowIdx], username: newUsername };
+        setEditableRecords(updated);
+    };
+
+    const handleStudentIdChange = (rowIdx: number, newId: string) => {
+        const updated = [...editableRecords];
+        updated[rowIdx] = { ...updated[rowIdx], studentId: newId };
+        setEditableRecords(updated);
+    };
+
     const handleUpload = async () => {
-        if (!file) {
-            toast.error('Please select a CSV file');
+        if (!editableRecords || editableRecords.length === 0) {
+            toast.error('No valid records to enroll');
             return;
         }
 
@@ -61,15 +125,16 @@ export default function BulkEnrollPage() {
         }
 
         setIsUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('programId', programId);
-        formData.append('level', level);
-
         try {
             const response = await fetch('/api/admin/bulk-enroll', {
                 method: 'POST',
-                body: formData,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    records: editableRecords,
+                    programId,
+                    level,
+                    filename: file?.name || 'manual_entry.csv'
+                }),
             });
 
             if (!response.ok) {
@@ -84,6 +149,52 @@ export default function BulkEnrollPage() {
             toast.error(error.message);
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const addQuestion = () => {
+        const suffix = onboardingQuestions.length + 1;
+        setOnboardingQuestions((prev) => [
+            ...prev,
+            {
+                key: `custom_field_${suffix}`,
+                label: `Custom field ${suffix}`,
+                type: 'text',
+                required: false,
+                includeInAnalytics: false,
+                options: [],
+            },
+        ]);
+    };
+
+    const updateQuestion = (idx: number, next: Partial<OnboardingQuestion>) => {
+        setOnboardingQuestions((prev) => prev.map((q, i) => (i === idx ? { ...q, ...next } : q)));
+    };
+
+    const removeQuestion = (idx: number) => {
+        setOnboardingQuestions((prev) => prev.filter((_, i) => i !== idx));
+    };
+
+    const updateQuestionOption = (idx: number, optionsText: string) => {
+        const options = optionsText
+            .split(',')
+            .map((x) => x.trim())
+            .filter(Boolean);
+        updateQuestion(idx, { options });
+    };
+
+    const saveQuestions = async () => {
+        setSavingQuestions(true);
+        try {
+            await saveOnboardingQuestionsForAdmin({
+                version: 1,
+                questions: onboardingQuestions,
+            });
+            toast.success('Onboarding questions saved');
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Failed to save onboarding questions');
+        } finally {
+            setSavingQuestions(false);
         }
     };
 
@@ -107,12 +218,51 @@ export default function BulkEnrollPage() {
             <div className="grid gap-6 md:grid-cols-3">
                 <Card className="md:col-span-2">
                     <CardHeader>
-                        <CardTitle>Upload CSV File</CardTitle>
-                        <CardDescription>
-                            Create multiple student accounts at once by uploading a CSV file.
-                        </CardDescription>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>Upload CSV File</CardTitle>
+                                <CardDescription>
+                                    Create multiple student accounts at once by uploading a CSV file.
+                                </CardDescription>
+                            </div>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setShowSettings(!showSettings)}
+                                className={showSettings ? "text-primary bg-primary/10" : ""}
+                            >
+                                <Settings className="h-4 w-4 mr-2" />
+                                Format Settings
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                        {showSettings && (
+                            <div className="p-4 rounded-lg border bg-muted/30 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="flex items-center gap-2">
+                                    <Settings className="h-3 w-3 text-primary" />
+                                    <h4 className="text-xs font-bold uppercase tracking-tight">ID Format Configuration</h4>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="pre-override" className="text-[10px] uppercase font-bold text-muted-foreground">Custom Prefix (PRE)</Label>
+                                        <Input 
+                                            id="pre-override"
+                                            placeholder="e.g. IM, CS, ME"
+                                            value={customPrefix}
+                                            onChange={(e) => setCustomPrefix(e.target.value.toUpperCase())}
+                                            className="h-8 text-xs font-bold"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground">Forces all student IDs to start with this prefix.</p>
+                                    </div>
+                                    <div className="flex items-end pb-2">
+                                        <div className="text-[10px] border px-2 py-1 rounded bg-white">
+                                            Preview: <span className="text-primary font-bold">{customPrefix || 'PRE'}/2022/001</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="program">Degree Program *</Label>
@@ -164,25 +314,80 @@ export default function BulkEnrollPage() {
                             </div>
                         </div>
 
-                        <div className="flex items-center space-x-2 rounded-md border bg-muted/30 p-4">
-                            <Info className="h-5 w-5 text-primary" />
-                            <div className="grid gap-1.5 leading-none">
-                                <label className="text-sm font-medium leading-none">
-                                    Automatic Email Notifications
-                                </label>
-                                <p className="text-sm text-muted-foreground">
-                                    All enrolled students will automatically receive an email with their credentials.
-                                </p>
+                        {validation && (
+                            <div className="space-y-4 animate-in slide-in-from-top-4 duration-300">
+                                <div className="rounded-xl border bg-white overflow-hidden shadow-sm">
+                                    <div className="bg-muted/50 p-3 border-b flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <Search className="h-4 w-4 text-primary" />
+                                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Pre-Import Audit List</span>
+                                        </div>
+                                        <Badge variant="outline" className="text-[10px]">{validation.summary.total} Records Found</Badge>
+                                    </div>
+                                    <ScrollArea className="h-64">
+                                        <Table>
+                                            <TableHeader className="bg-muted/30 sticky top-0 z-10">
+                                                <TableRow>
+                                                    <TableHead className="w-[80px] text-[10px] uppercase font-black">Status</TableHead>
+                                                    <TableHead className="text-[10px] uppercase font-black">Email</TableHead>
+                                                    <TableHead className="text-[10px] uppercase font-black w-[150px]">ID / Username</TableHead>
+                                                    {editableRecords.some(r => r.firstName || r.lastName) && (
+                                                        <TableHead className="text-[10px] uppercase font-black">Full Name</TableHead>
+                                                    )}
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {editableRecords.map((record, idx) => (
+                                                    <TableRow key={idx} className={record.status === 'DUPLICATE' ? 'bg-amber-50/40' : record.status === 'INVALID' ? 'bg-red-50/40' : ''}>
+                                                        <TableCell className="py-2">
+                                                            {record.status === 'READY' && <Badge className="bg-green-500 text-[9px] h-4 px-1 uppercase">Ready</Badge>}
+                                                            {record.status === 'DUPLICATE' && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 text-[9px] h-4 px-1 uppercase">Exists</Badge>}
+                                                            {record.status === 'INVALID' && <Badge variant="destructive" className="text-[9px] h-4 px-1 uppercase">Error</Badge>}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs font-medium py-2 text-primary">{record.email}</TableCell>
+                                                        <TableCell className="py-1">
+                                                            <div className="flex flex-col gap-1">
+                                                                <Input 
+                                                                    value={record.studentId} 
+                                                                    onChange={(e) => handleStudentIdChange(idx, e.target.value)}
+                                                                    className="h-6 text-[10px] px-2 font-bold bg-muted/30 focus-visible:bg-white border-primary/20"
+                                                                    placeholder="Student ID"
+                                                                />
+                                                                <Input 
+                                                                    value={record.username} 
+                                                                    onChange={(e) => handleUsernameChange(idx, e.target.value)}
+                                                                    className="h-6 text-[10px] px-2 font-mono bg-muted/10 focus-visible:bg-white text-muted-foreground"
+                                                                    placeholder="Username"
+                                                                />
+                                                            </div>
+                                                        </TableCell>
+                                                        {editableRecords.some(r => r.firstName || r.lastName) && (
+                                                            <TableCell className="text-xs py-2">{[record.firstName, record.lastName].filter(Boolean).join(' ')}</TableCell>
+                                                        )}
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </ScrollArea>
+                                </div>
+                                {validation.summary.duplicates > 0 && (
+                                    <Alert className="bg-amber-50 border-amber-200 py-2">
+                                        <Info className="h-4 w-4 text-amber-600" />
+                                        <AlertDescription className="text-xs text-amber-700">
+                                            <b>Note:</b> {validation.summary.duplicates} existing accounts were detected and will be automatically skipped or linked.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
                             </div>
-                        </div>
+                        )}
 
-                        {isUploading && (
+                        {(isUploading || isValidating) && (
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
-                                    <span>Processing records...</span>
+                                    <span>{isValidating ? 'Performing diagnostic scan...' : 'Processing records...'}</span>
                                     <span className="animate-pulse">Please wait</span>
                                 </div>
-                                <Progress value={45} className="h-2" />
+                                <Progress value={isValidating ? 100 : 45} className="h-2" />
                             </div>
                         )}
                     </CardContent>
@@ -194,7 +399,10 @@ export default function BulkEnrollPage() {
                         }} disabled={isUploading}>
                             Clear
                         </Button>
-                        <Button onClick={handleUpload} disabled={!file || !programId || !level || isUploading}>
+                        <Button 
+                            onClick={handleUpload} 
+                            disabled={!file || !programId || !level || isUploading || isValidating || (!!validation && !validation.isValid)}
+                        >
                             {isUploading ? (
                                 <>
                                     <Upload className="mr-2 h-4 w-4 animate-spin" />
@@ -245,6 +453,112 @@ export default function BulkEnrollPage() {
                                 Download Template CSV
                             </a>
                         </Button>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">First-Login Onboarding Questions</CardTitle>
+                        <CardDescription>
+                            Configure student questions asked after first sign-in. Mark fields for analytics usage.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {onboardingQuestions.length === 0 && (
+                            <p className="text-xs text-muted-foreground">
+                                No questions configured yet.
+                            </p>
+                        )}
+                        {onboardingQuestions.map((q, idx) => (
+                            <div key={`${q.key}-${idx}`} className="rounded-md border p-3 space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Field key</Label>
+                                        <Input
+                                            value={q.key}
+                                            onChange={(e) => updateQuestion(idx, { key: e.target.value })}
+                                            className="h-8 text-xs"
+                                            placeholder="al_subject_stream"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Question label</Label>
+                                        <Input
+                                            value={q.label}
+                                            onChange={(e) => updateQuestion(idx, { label: e.target.value })}
+                                            className="h-8 text-xs"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Input type</Label>
+                                        <Select
+                                            value={q.type}
+                                            onValueChange={(v) => updateQuestion(idx, { type: v as OnboardingQuestion['type'] })}
+                                        >
+                                            <SelectTrigger className="h-8 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="text">Text</SelectItem>
+                                                <SelectItem value="textarea">Textarea</SelectItem>
+                                                <SelectItem value="select">Dropdown</SelectItem>
+                                                <SelectItem value="radio">Radio</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Placeholder</Label>
+                                        <Input
+                                            value={q.placeholder ?? ''}
+                                            onChange={(e) => updateQuestion(idx, { placeholder: e.target.value })}
+                                            className="h-8 text-xs"
+                                        />
+                                    </div>
+                                </div>
+                                {(q.type === 'select' || q.type === 'radio') && (
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Options (comma-separated)</Label>
+                                        <Input
+                                            value={q.options.join(', ')}
+                                            onChange={(e) => updateQuestionOption(idx, e.target.value)}
+                                            className="h-8 text-xs"
+                                            placeholder="Physical Science, Biology"
+                                        />
+                                    </div>
+                                )}
+                                <div className="flex items-center justify-between">
+                                    <label className="flex items-center gap-2 text-xs">
+                                        <input
+                                            type="checkbox"
+                                            checked={q.required}
+                                            onChange={(e) => updateQuestion(idx, { required: e.target.checked })}
+                                        />
+                                        Required on first login
+                                    </label>
+                                    <label className="flex items-center gap-2 text-xs">
+                                        <input
+                                            type="checkbox"
+                                            checked={q.includeInAnalytics}
+                                            onChange={(e) => updateQuestion(idx, { includeInAnalytics: e.target.checked })}
+                                        />
+                                        Include in analytics dimensions
+                                    </label>
+                                </div>
+                                <Button variant="ghost" className="h-7 text-xs" onClick={() => removeQuestion(idx)}>
+                                    Remove question
+                                </Button>
+                            </div>
+                        ))}
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={addQuestion}>
+                                Add question
+                            </Button>
+                            <Button size="sm" onClick={saveQuestions} disabled={savingQuestions}>
+                                {savingQuestions ? 'Saving...' : 'Save questions'}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

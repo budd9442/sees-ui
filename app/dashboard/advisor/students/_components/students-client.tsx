@@ -42,9 +42,26 @@ import {
     Download,
     Award,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export default function AdvisorStudentsClient({ initialData }: { initialData: any }) {
+const ADVISOR_STUDENT_TABS = ['all', 'at-risk', 'excellent', 'recent'] as const;
+type AdvisorStudentTab = (typeof ADVISOR_STUDENT_TABS)[number];
+
+function normalizeAdvisorStudentTab(tab: string | undefined): AdvisorStudentTab {
+    if (tab && (ADVISOR_STUDENT_TABS as readonly string[]).includes(tab)) {
+        return tab as AdvisorStudentTab;
+    }
+    return 'all';
+}
+
+export default function AdvisorStudentsClient({
+    initialData,
+    initialTab,
+}: {
+    initialData: any;
+    initialTab?: string;
+}) {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedYear, setSelectedYear] = useState('all');
@@ -52,6 +69,7 @@ export default function AdvisorStudentsClient({ initialData }: { initialData: an
     const [selectedStatus, setSelectedStatus] = useState('all');
 
     const myStudents = initialData.students;
+    const tabsDefault = normalizeAdvisorStudentTab(initialTab);
 
     const filteredStudents = myStudents.filter((student: any) => {
         const term = (searchTerm || '').toLowerCase();
@@ -111,10 +129,62 @@ export default function AdvisorStudentsClient({ initialData }: { initialData: an
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Total Students</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{totalStudents}</div><p className="text-xs text-muted-foreground">Active advisees</p></CardContent></Card>
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">At Risk</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{atRiskStudents}</div><p className="text-xs text-muted-foreground">Need attention</p></CardContent></Card>
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Excellent</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{excellentStudents}</div><p className="text-xs text-muted-foreground">High performers</p></CardContent></Card>
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Average GPA</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{averageGPA.toFixed(2)}</div><Progress value={(averageGPA / 4) * 100} className="mt-2 h-1" /></CardContent></Card>
+                <Link
+                    href="/dashboard/advisor/students?tab=all"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{totalStudents}</div>
+                            <p className="text-xs text-muted-foreground">Active advisees</p>
+                        </CardContent>
+                    </Card>
+                </Link>
+                <Link
+                    href="/dashboard/advisor/students?tab=at-risk"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-medium">At Risk</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-red-600">{atRiskStudents}</div>
+                            <p className="text-xs text-muted-foreground">Need attention</p>
+                        </CardContent>
+                    </Card>
+                </Link>
+                <Link
+                    href="/dashboard/advisor/students?tab=excellent"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-medium">Excellent</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-green-600">{excellentStudents}</div>
+                            <p className="text-xs text-muted-foreground">High performers</p>
+                        </CardContent>
+                    </Card>
+                </Link>
+                <Link
+                    href="/dashboard/advisor/records"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-medium">Average GPA</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{averageGPA.toFixed(2)}</div>
+                            <Progress value={(averageGPA / 4) * 100} className="mt-2 h-1" />
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
 
             <Card>
@@ -177,7 +247,7 @@ export default function AdvisorStudentsClient({ initialData }: { initialData: an
                 </CardContent>
             </Card>
 
-            <Tabs defaultValue="all" className="space-y-4">
+            <Tabs defaultValue={tabsDefault} className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="all">All Students ({filteredStudents.length})</TabsTrigger>
                     <TabsTrigger value="at-risk">At Risk ({myStudents.filter((s: any) => s.currentGPA < 2.5).length})</TabsTrigger>

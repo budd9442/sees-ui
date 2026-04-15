@@ -46,6 +46,10 @@ export default async function DashboardLayout({
     avatar: undefined // Explicitly undefined if not present
   };
 
+  if ((dbUser as any)?.student && !(dbUser as any).student.onboarding_completed_at) {
+    redirect('/onboarding/student');
+  }
+
   // Fetch Feature Flags
   const { getFeatureFlags } = await import('@/app/actions/feature-flags');
   const flagsRes = await getFeatureFlags();

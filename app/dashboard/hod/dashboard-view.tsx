@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,20 +66,28 @@ export function HodDashboardView({
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Config
+                    <Button variant="outline" asChild>
+                        <Link href="/dashboard/hod/module-registration" className="inline-flex items-center">
+                            <Settings className="mr-2 h-4 w-4" />
+                            Config
+                        </Link>
                     </Button>
-                    <Button>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Generate Report
+                    <Button asChild>
+                        <Link href="/dashboard/hod/reports" className="inline-flex items-center">
+                            <FileText className="mr-2 h-4 w-4" />
+                            Generate Report
+                        </Link>
                     </Button>
                 </div>
             </div>
 
             {/* Stats Overview */}
             <div className="grid gap-4 md:grid-cols-4">
-                <Card>
+                <Link
+                    href="/dashboard/hod/analytics"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Students</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
@@ -87,9 +96,14 @@ export function HodDashboardView({
                         <div className="text-2xl font-bold">{totalStudents}</div>
                         <p className="text-xs text-muted-foreground">+5% from last year</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/hod/analytics"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Teaching Staff</CardTitle>
                         <GraduationCap className="h-4 w-4 text-muted-foreground" />
@@ -98,9 +112,14 @@ export function HodDashboardView({
                         <div className="text-2xl font-bold">{totalStaff}</div>
                         <p className="text-xs text-muted-foreground">Active faculty</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/hod/analytics"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Active Modules</CardTitle>
                         <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -109,21 +128,27 @@ export function HodDashboardView({
                         <div className="text-2xl font-bold">{totalModules}</div>
                         <p className="text-xs text-muted-foreground">Across all programs</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/hod/pathways#hod-pending-approvals"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
                         <UserCheck className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{pendingApprovals}</div>
-                        <p className="text-xs text-muted-foreground">Require your attention</p>
+                        <p className="text-xs text-muted-foreground">Closed selection rounds and change requests</p>
                         {pendingApprovals > 0 && (
                             <Badge variant="destructive" className="mt-2">Action Required</Badge>
                         )}
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
             </div>
 
             {/* Department Alerts */}

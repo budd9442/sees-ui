@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/db';
+import { gradeContributesToGpa } from '@/lib/gpa-utils';
+import { evaluateStudentEligibility } from '@/lib/graduation/student-eligibility';
 
 /**
  * AcademicEngine
@@ -34,7 +36,12 @@ export class AcademicEngine {
             where: {
                 student_id: studentId,
                 module_id: { in: prerequisites.map((p: any) => p.module_id) },
-                grade_point: { gt: 0 } // Must have actually passed
+                released_at: { not: null },
+                OR: [
+                    { grade_point: { gte: 2 } },
+                    { letter_grade: 'Pass' },
+                    { marks: { gte: 50 } },
+                ],
             },
             include: { module: true }
         });
@@ -111,7 +118,7 @@ export class AcademicEngine {
             })
         ]);
 
-        const capacity = mod?.max_students || 60;
+        const capacity = 60;
 
         return {
             hasSpace: count < capacity,
@@ -130,70 +137,19 @@ export class AcademicEngine {
     }
 
     /**
-     * Production-Grade GPA Calculation (Best Attempt Policy)
-     * Fetches all released grades for a student and calculates cumulative GPA using 
-     * the highest score per module.
+     * Student GPA + academic class. Delegates to `evaluateStudentEligibility` (see
+     * `lib/graduation/student-eligibility.ts` module doc for full classification map).
      */
     static async calculateStudentGPA(studentId: string): Promise<{
         gpa: number;
         totalCredits: number;
         academicClass: string;
     }> {
-        const grades = await prisma.grade.findMany({
-            where: {
-                student_id: studentId,
-                released_at: { not: null } // Strict: Only released grades
-            },
-            include: { module: true }
-        });
-
-        if (grades.length === 0) {
-            return { gpa: 0, totalCredits: 0, academicClass: 'Unassigned' };
-        }
-        const moduleMap = new Map<string, { points: number, credits: number }>();
-        
-        grades.forEach(g => {
-            const current = moduleMap.get(g.module_id);
-            if (!current || g.grade_point > current.points) {
-                moduleMap.set(g.module_id, {
-                    points: g.grade_point,
-                    credits: g.module.credits
-                });
-            }
-        });
-
-        let totalPoints = 0;
-        let totalCredits = 0;
-
-        moduleMap.forEach(data => {
-            totalPoints += data.points * data.credits;
-            totalCredits += data.credits;
-        });
-
-        const gpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
-
-        // Dynamic Honors Determination
-        const settings = await prisma.systemSetting.findMany({
-            where: { key: { startsWith: 'threshold_' } }
-        });
-
-        const thresholds = {
-            first: parseFloat(settings.find(s => s.key === 'threshold_first_class')?.value || '3.7'),
-            upper: parseFloat(settings.find(s => s.key === 'threshold_second_upper')?.value || '3.3'),
-            lower: parseFloat(settings.find(s => s.key === 'threshold_second_lower')?.value || '3.0'),
-            third: parseFloat(settings.find(s => s.key === 'threshold_third_class')?.value || '2.5')
-        };
-
-        let honors = 'Pass';
-        if (gpa >= thresholds.first) honors = 'First Class';
-        else if (gpa >= thresholds.upper) honors = 'Second Class Upper';
-        else if (gpa >= thresholds.lower) honors = 'Second Class Lower';
-        else if (gpa >= thresholds.third) honors = 'Third Class';
-
+        const result = await evaluateStudentEligibility(studentId);
         return {
-            gpa: parseFloat(gpa.toFixed(2)),
-            totalCredits,
-            academicClass: honors
+            gpa: result.gpa,
+            totalCredits: result.totalGpaCredits,
+            academicClass: result.academicClass,
         };
     }
 }

@@ -91,7 +91,11 @@ export default function InterventionModal({
   const handleAcknowledge = async () => {
     setIsSubmitting(true);
     try {
-      await acknowledgeIntervention(intervention.id, notes);
+      const res = await acknowledgeIntervention(intervention.id, notes);
+      if (!res.success) {
+        toast.error(res.error || 'Could not acknowledge intervention.');
+        return;
+      }
       setAcknowledged(true);
       toast.success('Intervention acknowledged. We\'re here to help you succeed!');
       setTimeout(onClose, 2000);

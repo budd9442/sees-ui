@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PathwaySelectionPage() {
     return (
-        <div className="container py-8 px-4 md:px-6">
+        <div className="container max-w-7xl py-8 px-4 md:px-8">
             <PathwaySelectionClient />
         </div>
     );

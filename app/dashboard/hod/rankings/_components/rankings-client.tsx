@@ -176,11 +176,7 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
 
     const getAcademicClassDistribution = () => {
         const distribution = filteredRankings.reduce((acc, ranking) => {
-            let academicClass = 'Third/Pass';
-            if (ranking.gpa >= 3.7) academicClass = 'First Class';
-            else if (ranking.gpa >= 3.0) academicClass = 'Second Upper';
-            else if (ranking.gpa >= 2.5) academicClass = 'Second Lower';
-
+            const academicClass = ranking.academicClass || 'Pass';
             acc[academicClass] = (acc[academicClass] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);

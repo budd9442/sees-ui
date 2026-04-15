@@ -1,7 +1,24 @@
 'use server';
 
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
+import { evaluateStudentEligibility } from '@/lib/graduation/student-eligibility';
+import { resolveHodDepartmentScope } from '@/lib/hod-department-scope';
+import {
+    getAnalyticsEnabledOnboardingQuestions,
+    pickAnalyticsMetadataValues,
+} from '@/lib/onboarding/analytics-metadata';
+
+/** HoD lists: same classification as `AcademicEngine.calculateStudentGPA` — see `student-eligibility.ts`. */
+async function attachEligibilityToStudents<T extends { id: string }>(students: T[]) {
+    return Promise.all(
+        students.map(async (s) => {
+            const ev = await evaluateStudentEligibility(s.id);
+            return { ...s, academicClass: ev.academicClass, currentGPA: ev.gpa };
+        })
+    );
+}
 
 export async function getHODDashboardData() {
     const session = await auth();
@@ -110,10 +127,12 @@ export async function getHODDashboardData() {
         students: s.assignments.reduce((acc, a) => acc + (a.module?.module_registrations?.length || 0), 0)
     }));
 
-    // Real pending approvals (using reports as a temporary proxy for HOD tasks)
-    const pendingApprovals = await prisma.anonymousReport.count({
-        where: { status: 'PENDING' }
-    });
+    // Selection workflow items awaiting HOD action (same queue as Selection Management)
+    const [closedSelectionRounds, pendingAllocationChangeRequests] = await Promise.all([
+        prisma.selectionRound.count({ where: { status: 'CLOSED' } }),
+        prisma.selectionAllocationChangeRequest.count({ where: { status: 'PENDING' } }),
+    ]);
+    const pendingApprovals = closedSelectionRounds + pendingAllocationChangeRequests;
 
     return {
         hod: {
@@ -133,49 +152,184 @@ export async function getHODDashboardData() {
 
 // ANALYTICS DATA (Aggregated from DB)
 
-export async function getHODAnalyticsData() {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
+export type HODAnalyticsFilters = {
+    pathway?: string | null;
+    level?: string | null;
+    metadataKey?: string | null;
+    metadataValue?: string | null;
+};
 
-    // For HOD, we need real data for students in their department's programs
-    const allStudents = await prisma.student.findMany({
+async function resolveHodUserId(): Promise<string> {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error('Unauthorized');
+    if (session.user.role !== 'hod') throw new Error('Unauthorized');
+    let userId = session.user.id;
+    let u = await prisma.user.findUnique({ where: { user_id: userId } });
+    if (!u && session.user.email) {
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
+    if (!u) throw new Error('HOD unauthenticated');
+    return u.user_id;
+}
+
+function monthKey(d: Date) {
+    return `${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
+}
+
+export async function getHODAnalyticsData(filters?: HODAnalyticsFilters) {
+    const userId = await resolveHodUserId();
+    const scope = await resolveHodDepartmentScope(userId);
+
+    type HodStudentRow = {
+        id: string;
+        name: string;
+        currentGPA: number;
+        specialization: string;
+        academicYear: string;
+        admissionYear: number;
+        analyticsMetadata: Record<string, string>;
+    };
+    type HodGradeRow = {
+        id: string;
+        studentId: string;
+        moduleId: string;
+        credits: number;
+        points: number;
+        letterGrade: string;
+        isReleased: boolean;
+        semesterId: string;
+        semesterLabel: string;
+    };
+
+    if (scope.deptModuleIds.length === 0) {
+        return {
+            students: [] as HodStudentRow[],
+            modules: [] as { id: string; code: string; title: string }[],
+            grades: [] as HodGradeRow[],
+            enrollmentTrend: [] as { year: string; students: number }[],
+            departmentGpaTrend: [] as { period: string; averageGPA: number }[],
+            department: scope.department,
+            pathwayOptions: [] as string[],
+            levelOptions: [] as string[],
+        };
+    }
+
+    const studentsRaw = await prisma.student.findMany({
+        where: { student_id: { in: scope.departmentStudentIds } },
         include: {
             user: true,
             degree_path: true,
-            gpa_history: { orderBy: { calculation_date: 'desc' }, take: 1 }
-        }
+            gpa_history: { orderBy: { calculation_date: 'desc' }, take: 1 },
+        },
+    });
+    const analyticsQuestions = await getAnalyticsEnabledOnboardingQuestions();
+    const analyticsKeys = analyticsQuestions.map((q) => q.key);
+
+    function mapStudent(s: (typeof studentsRaw)[0]) {
+        return {
+            id: s.student_id,
+            name: `${s.user.firstName} ${s.user.lastName}`,
+            currentGPA: s.gpa_history[0]?.gpa ?? s.current_gpa,
+            specialization: s.degree_path?.name || 'Unassigned',
+            academicYear: s.current_level || 'Unknown',
+            admissionYear: s.admission_year,
+            analyticsMetadata: pickAnalyticsMetadataValues(s.metadata, analyticsKeys),
+        };
+    }
+
+    const pathwayOptions = [
+        ...new Set(studentsRaw.map((s) => s.degree_path?.name || 'Unassigned')),
+    ].sort();
+    const levelOptions = [
+        ...new Set(studentsRaw.map((s) => s.current_level || 'Unknown')),
+    ].sort();
+
+    let students = studentsRaw.map(mapStudent);
+
+    if (filters?.pathway && filters.pathway !== 'all') {
+        students = students.filter((s) => s.specialization === filters.pathway);
+    }
+    if (filters?.level && filters.level !== 'all') {
+        students = students.filter((s) => s.academicYear === filters.level);
+    }
+    if (filters?.metadataKey && filters.metadataValue) {
+        const key = filters.metadataKey;
+        const expected = filters.metadataValue.toLowerCase();
+        students = students.filter((s) => (s.analyticsMetadata[key] ?? '').toLowerCase() === expected);
+    }
+
+    const studentIdSet = new Set(students.map((s) => s.id));
+
+    const modules = (
+        await prisma.module.findMany({
+            where: { module_id: { in: scope.deptModuleIds } },
+            select: { module_id: true, code: true, name: true },
+        })
+    ).map((m) => ({ id: m.module_id, code: m.code, title: m.name }));
+
+    const gradesRaw = await prisma.grade.findMany({
+        where: {
+            module_id: { in: scope.deptModuleIds },
+            student_id: { in: scope.departmentStudentIds },
+        },
+        include: { module: true, semester: true },
     });
 
-    const students = allStudents.map(s => ({
-        id: s.student_id,
-        name: `${s.user.firstName} ${s.user.lastName}`,
-        currentGPA: s.gpa_history[0]?.gpa || 0,
-        specialization: s.degree_path?.name || "Unassigned",
-        academicYear: s.current_level
-    }));
+    function mapGrade(g: (typeof gradesRaw)[0]) {
+        return {
+            id: g.grade_id,
+            studentId: g.student_id,
+            moduleId: g.module_id,
+            credits: g.module.credits,
+            points: g.grade_point,
+            letterGrade: g.letter_grade,
+            isReleased: !!g.released_at,
+            semesterId: g.semester_id,
+            semesterLabel: g.semester?.label ?? '',
+        };
+    }
 
-    const allModules = await prisma.module.findMany();
-    const modules = allModules.map(m => ({
-        id: m.module_id,
-        code: m.code,
-        title: m.name
-    }));
+    const grades = gradesRaw.filter((g) => studentIdSet.has(g.student_id)).map(mapGrade);
 
-    const allGrades = await prisma.grade.findMany({ include: { module: true } });
-    const grades = allGrades.map(g => ({
-        id: g.grade_id,
-        studentId: g.student_id,
-        moduleId: g.module_id,
-        credits: g.module.credits, // Real credits
-        points: g.grade_point,
-        letterGrade: g.letter_grade,
-        isReleased: !!g.released_at
-    }));
+    const admissionCounts = new Map<number, number>();
+    for (const s of students) {
+        admissionCounts.set(s.admissionYear, (admissionCounts.get(s.admissionYear) ?? 0) + 1);
+    }
+    const enrollmentTrend = [...admissionCounts.entries()]
+        .sort(([a], [b]) => a - b)
+        .map(([year, count]) => ({ year: String(year), students: count }));
+
+    const historyForTrend = await prisma.gPAHistory.findMany({
+        where: { student_id: { in: [...studentIdSet] } },
+        orderBy: { calculation_date: 'asc' },
+        select: { gpa: true, calculation_date: true },
+    });
+
+    const grouped = new Map<string, { total: number; n: number; ts: number }>();
+    for (const row of historyForTrend) {
+        const d = new Date(row.calculation_date);
+        const key = monthKey(d);
+        const cur = grouped.get(key) ?? { total: 0, n: 0, ts: d.getTime() };
+        cur.total += row.gpa;
+        cur.n += 1;
+        grouped.set(key, cur);
+    }
+    const departmentGpaTrend = [...grouped.entries()]
+        .sort((a, b) => a[1].ts - b[1].ts)
+        .map(([period, v]) => ({
+            period,
+            averageGPA: v.n ? Math.round((v.total / v.n) * 100) / 100 : 0,
+        }));
 
     return {
         students,
         modules,
-        grades
+        grades,
+        enrollmentTrend,
+        departmentGpaTrend,
+        department: scope.department,
+        pathwayOptions,
+        levelOptions,
     };
 }
 
@@ -225,6 +379,7 @@ export async function getHODReportsData() {
     if (!staffRecord) throw new Error("Staff profile not found");
 
     const data = await getHODAnalyticsData();
+    const studentsWithEligibility = await attachEligibilityToStudents(data.students);
 
     // Fetch actual academic goals for students in this department
     const academicGoalsRaw = await prisma.academicGoal.findMany({
@@ -260,6 +415,7 @@ export async function getHODReportsData() {
 
     return {
         ...data,
+        students: studentsWithEligibility,
         interventions,
         academicGoals
     };
@@ -274,9 +430,10 @@ export async function getHODRankingsData() {
     if (!session?.user?.id) throw new Error("Unauthorized");
 
     const data = await getHODAnalyticsData();
+    const students = await attachEligibilityToStudents(data.students);
 
     return {
-        students: data.students,
+        students,
         grades: data.grades,
         modules: data.modules
     };
@@ -291,9 +448,10 @@ export async function getHODEligibleData() {
     if (!session?.user?.id) throw new Error("Unauthorized");
 
     const data = await getHODAnalyticsData();
+    const students = await attachEligibilityToStudents(data.students);
 
     return {
-        students: data.students,
+        students,
         grades: data.grades,
         modules: data.modules
     };
@@ -322,24 +480,28 @@ export async function updateRankingWeights(gpaWeight: number, passRateWeight: nu
 
     await prisma.systemSetting.upsert({
         where: { key: 'ranking_weight_gpa' },
-        update: { value: gpaWeight.toString() },
+        update: { value: gpaWeight.toString(), updated_at: new Date() },
         create: {
+            setting_id: randomUUID(),
             key: 'ranking_weight_gpa',
             value: gpaWeight.toString(),
             category: 'Rankings',
-            description: 'Weight of GPA in student rankings score'
-        }
+            description: 'Weight of GPA in student rankings score',
+            updated_at: new Date(),
+        },
     });
 
     await prisma.systemSetting.upsert({
         where: { key: 'ranking_weight_pass_rate' },
-        update: { value: passRateWeight.toString() },
+        update: { value: passRateWeight.toString(), updated_at: new Date() },
         create: {
+            setting_id: randomUUID(),
             key: 'ranking_weight_pass_rate',
             value: passRateWeight.toString(),
             category: 'Rankings',
-            description: 'Weight of Pass Rate in student rankings score'
-        }
+            description: 'Weight of Pass Rate in student rankings score',
+            updated_at: new Date(),
+        },
     });
 
     return { success: true };
@@ -349,19 +511,110 @@ export async function updateRankingWeights(gpaWeight: number, passRateWeight: nu
 // TRENDS ACTIONS
 // ----------------------------------------------------------------------
 
-export async function getHODTrendsData() {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
+export type HODTrendsFilters = HODAnalyticsFilters;
 
-    // Fetch GPA history for trending
-    const history = await prisma.gPAHistory.findMany({
-        orderBy: { calculation_date: 'asc' },
-        include: {
-            student: {
-                include: { degree_path: true }
-            }
-        }
+export async function getHODTrendsData(filters?: HODTrendsFilters) {
+    const userId = await resolveHodUserId();
+    const scope = await resolveHodDepartmentScope(userId);
+
+    let scopedStudentIds = [...scope.departmentStudentIds];
+
+    if (filters?.pathway && filters.pathway !== 'all') {
+        const rows = await prisma.student.findMany({
+            where: {
+                student_id: { in: scope.departmentStudentIds },
+                degree_path: { name: filters.pathway },
+            },
+            select: { student_id: true },
+        });
+        scopedStudentIds = rows.map((r) => r.student_id);
+    }
+    if (filters?.level && filters.level !== 'all') {
+        const rows = await prisma.student.findMany({
+            where: {
+                student_id: { in: scopedStudentIds },
+                current_level: filters.level,
+            },
+            select: { student_id: true },
+        });
+        scopedStudentIds = rows.map((r) => r.student_id);
+    }
+
+    const history =
+        scopedStudentIds.length === 0
+            ? []
+            : await prisma.gPAHistory.findMany({
+                  where: { student_id: { in: scopedStudentIds } },
+                  orderBy: { calculation_date: 'asc' },
+                  include: {
+                      student: {
+                          include: { degree_path: true },
+                      },
+                  },
+              });
+
+    const latestStudents =
+        scopedStudentIds.length === 0
+            ? []
+            : await prisma.student.findMany({
+                  where: { student_id: { in: scopedStudentIds } },
+                  select: { current_gpa: true },
+              });
+
+    const departmentMeanGpa = latestStudents.length
+        ? latestStudents.reduce((acc, s) => acc + s.current_gpa, 0) / latestStudents.length
+        : 0;
+    const highAchieversPct = latestStudents.length
+        ? (latestStudents.filter((s) => s.current_gpa > 3.5).length / latestStudents.length) * 100
+        : 0;
+
+    const bucket = new Map<string, { total: number; n: number; ts: number }>();
+    for (const row of history) {
+        const d = new Date(row.calculation_date);
+        const key = monthKey(d);
+        const cur = bucket.get(key) ?? { total: 0, n: 0, ts: d.getTime() };
+        cur.total += row.gpa;
+        cur.n += 1;
+        bucket.set(key, cur);
+    }
+    const series = [...bucket.entries()]
+        .sort((a, b) => a[1].ts - b[1].ts)
+        .map(([name, v]) => ({
+            name,
+            avgGPA: v.n ? v.total / v.n : 0,
+        }));
+
+    let performanceDeltaPct = 0;
+    let trendDirection: 'up' | 'down' | 'flat' = 'flat';
+    if (series.length >= 2) {
+        const last = series[series.length - 1].avgGPA;
+        const prev = series[series.length - 2].avgGPA;
+        performanceDeltaPct = prev ? ((last - prev) / prev) * 100 : 0;
+        if (performanceDeltaPct > 0.5) trendDirection = 'up';
+        else if (performanceDeltaPct < -0.5) trendDirection = 'down';
+    }
+
+    const cohortForOptions = await prisma.student.findMany({
+        where: { student_id: { in: scope.departmentStudentIds } },
+        include: { degree_path: true },
     });
+    const pathwayOptions = [
+        ...new Set(cohortForOptions.map((s) => s.degree_path?.name || 'Unassigned')),
+    ].sort();
+    const levelOptions = [
+        ...new Set(cohortForOptions.map((s) => s.current_level || 'Unknown')),
+    ].sort();
 
-    return { history };
+    return {
+        history,
+        department: scope.department,
+        pathwayOptions,
+        levelOptions,
+        summary: {
+            performanceDeltaPct: Math.round(performanceDeltaPct * 10) / 10,
+            highAchieversPct: Math.round(highAchieversPct * 10) / 10,
+            departmentMeanGpa: Math.round(departmentMeanGpa * 100) / 100,
+            trendDirection,
+        },
+    };
 }

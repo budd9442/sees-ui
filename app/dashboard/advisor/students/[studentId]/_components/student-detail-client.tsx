@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getAcademicClass } from '@/lib/gpa-utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -84,13 +85,6 @@ export default function StudentDetailClient({ initialData, currentUserId }: { in
     const totalCredits = studentGrades.reduce((sum: number, grade: any) => sum + grade.credits, 0);
     const currentGPA = totalCredits > 0 ? totalPoints / totalCredits : 0;
 
-    const getAcademicClass = (gpa: number) => {
-        if (gpa >= 3.7) return 'First Class';
-        if (gpa >= 3.0) return 'Second Upper';
-        if (gpa >= 2.5) return 'Second Lower';
-        return 'Third/Pass';
-    };
-
     const academicClass = getAcademicClass(currentGPA);
 
     const gpaTrendData = [
@@ -126,7 +120,10 @@ export default function StudentDetailClient({ initialData, currentUserId }: { in
 
         try {
             const _i = await createStudentIntervention(newIntervention);
-            setInterventions((prev: any) => [...prev, _i.intervention]);
+            if (!_i.success) {
+                toast.error(_i.error || 'Could not create intervention');
+                return;
+            }
             setShowInterventionDialog(false);
             setInterventionData({
                 type: 'manual',

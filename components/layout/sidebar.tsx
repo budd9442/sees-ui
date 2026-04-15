@@ -41,6 +41,7 @@ import {
   Search,
   ShieldCheck,
   Settings2,
+  Scale,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -140,15 +141,15 @@ const navigationItems: NavItem[] = [
     roles: ['staff', 'advisor', 'hod'],
   },
   {
-    title: 'My Modules',
-    href: '/dashboard/staff/modules',
-    icon: BookOpen,
-    roles: ['staff', 'advisor', 'hod'],
-  },
-  {
     title: 'Grade Management',
     href: '/dashboard/staff/grades',
     icon: ClipboardList,
+    roles: ['staff', 'advisor', 'hod'],
+  },
+  {
+    title: 'My Modules',
+    href: '/dashboard/staff/modules',
+    icon: BookOpen,
     roles: ['staff', 'advisor', 'hod'],
   },
   {
@@ -161,6 +162,18 @@ const navigationItems: NavItem[] = [
     title: 'Analytics',
     href: '/dashboard/staff/analytics',
     icon: BarChart3,
+    roles: ['staff', 'advisor', 'hod'],
+  },
+  {
+    title: 'Report builder',
+    href: '/dashboard/staff/analytics/builder',
+    icon: FileSpreadsheet,
+    roles: ['staff', 'advisor', 'hod'],
+  },
+  {
+    title: 'Messages',
+    href: '/dashboard/staff/messages',
+    icon: MessageSquare,
     roles: ['staff', 'advisor', 'hod'],
   },
 
@@ -199,15 +212,33 @@ const navigationItems: NavItem[] = [
     roles: ['hod'],
   },
   {
+    title: 'Messages',
+    href: '/dashboard/hod/messages',
+    icon: MessageSquare,
+    roles: ['hod'],
+  },
+  {
     title: 'Analytics',
     href: '/dashboard/hod/analytics',
     icon: BarChart3,
     roles: ['hod'],
   },
   {
+    title: 'Report builder',
+    href: '/dashboard/hod/analytics/builder',
+    icon: FileSpreadsheet,
+    roles: ['hod'],
+  },
+  {
     title: 'Trend Analysis',
     href: '/dashboard/hod/trends',
     icon: TrendingUp,
+    roles: ['hod'],
+  },
+  {
+    title: 'Trends builder',
+    href: '/dashboard/hod/trends/builder',
+    icon: FileSpreadsheet,
     roles: ['hod'],
   },
   {
@@ -229,9 +260,21 @@ const navigationItems: NavItem[] = [
     roles: ['hod'],
   },
   {
-    title: 'Pathway Allocation',
+    title: 'Graduation rules',
+    href: '/dashboard/hod/graduation-rules',
+    icon: Scale,
+    roles: ['hod'],
+  },
+  {
+    title: 'Selections',
     href: '/dashboard/hod/pathways',
     icon: GraduationCap,
+    roles: ['hod'],
+  },
+  {
+    title: 'Module registration',
+    href: '/dashboard/hod/module-registration',
+    icon: BookOpen,
     roles: ['hod'],
   },
 
@@ -240,6 +283,12 @@ const navigationItems: NavItem[] = [
     title: 'Dashboard',
     href: '/dashboard/admin',
     icon: LayoutDashboard,
+    roles: ['admin'],
+  },
+  {
+    title: 'Messages',
+    href: '/dashboard/admin/messages',
+    icon: MessageSquare,
     roles: ['admin'],
   },
   {
@@ -276,6 +325,12 @@ const navigationItems: NavItem[] = [
     title: 'GPA Config',
     href: '/dashboard/admin/config/gpa',
     icon: Award,
+    roles: ['admin'],
+  },
+  {
+    title: 'Graduation rules',
+    href: '/dashboard/hod/graduation-rules',
+    icon: Scale,
     roles: ['admin'],
   },
   {
@@ -334,11 +389,8 @@ export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolea
 
   if (!user) return null;
 
-  // Feature Key Mapping
+  // Feature Key Mapping (pathway/specialization visibility is HOD-controlled via selection rounds, not flags)
   const FEATURE_KEYS: Record<string, string> = {
-    '/dashboard/student/pathway': 'pathway_selection',
-    '/dashboard/student/modules': 'module_registration',
-    '/dashboard/student/specialization': 'specialization_selection',
     '/dashboard/student/reports': 'anonymous_reports',
   };
 

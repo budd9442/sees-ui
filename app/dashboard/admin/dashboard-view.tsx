@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -72,20 +73,28 @@ export function AdminDashboardView({
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline">
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Refresh Data
+                    <Button variant="outline" asChild>
+                        <Link href="/dashboard/admin" className="inline-flex items-center">
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Refresh Data
+                        </Link>
                     </Button>
-                    <Button>
-                        <Settings className="mr-2 h-4 w-4" />
-                        Global Settings
+                    <Button asChild>
+                        <Link href="/dashboard/admin/config/features" className="inline-flex items-center">
+                            <Settings className="mr-2 h-4 w-4" />
+                            Global Settings
+                        </Link>
                     </Button>
                 </div>
             </div>
 
             {/* Primary Metrics */}
             <div className="grid gap-4 md:grid-cols-4">
-                <Card>
+                <Link
+                    href="/dashboard/admin/users"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Users</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
@@ -94,9 +103,14 @@ export function AdminDashboardView({
                         <div className="text-2xl font-bold">{totalUsers}</div>
                         <p className="text-xs text-muted-foreground">{activeSessions} active sessions</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/admin/logs"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Server Status</CardTitle>
                         <Server className="h-4 w-4 text-green-500" />
@@ -105,9 +119,14 @@ export function AdminDashboardView({
                         <div className="text-2xl font-bold">Healthy</div>
                         <p className="text-xs text-muted-foreground">Uptime: {systemMetrics.uptime}</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/admin/backup"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Database Size</CardTitle>
                         <Database className="h-4 w-4 text-muted-foreground" />
@@ -116,9 +135,14 @@ export function AdminDashboardView({
                         <div className="text-2xl font-bold">{databaseSize}</div>
                         <p className="text-xs text-muted-foreground">Last backup: {systemMetrics.lastBackup}</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/admin/logs"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">System Errors</CardTitle>
                         <ShieldAlert className={`h-4 w-4 ${systemErrors > 0 ? 'text-red-500' : 'text-muted-foreground'}`} />
@@ -127,7 +151,8 @@ export function AdminDashboardView({
                         <div className="text-2xl font-bold">{systemErrors}</div>
                         <p className="text-xs text-muted-foreground">In the last 24 hours</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
             </div>
 
             <Tabs defaultValue="monitoring" className="space-y-4">
@@ -241,17 +266,25 @@ export function AdminDashboardView({
                                 <CardDescription>Quick actions for user administration</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <Button className="w-full justify-start mt-2" variant="outline">
-                                    <Users className="mr-2 h-4 w-4" /> Manage Student Accounts
+                                <Button className="w-full justify-start mt-2" variant="outline" asChild>
+                                    <Link href="/dashboard/admin/users?tab=students" className="inline-flex items-center">
+                                        <Users className="mr-2 h-4 w-4" /> Manage Student Accounts
+                                    </Link>
                                 </Button>
-                                <Button className="w-full justify-start mt-2" variant="outline">
-                                    <Users className="mr-2 h-4 w-4" /> Manage Staff Accounts
+                                <Button className="w-full justify-start mt-2" variant="outline" asChild>
+                                    <Link href="/dashboard/admin/users?tab=staff" className="inline-flex items-center">
+                                        <Users className="mr-2 h-4 w-4" /> Manage Staff Accounts
+                                    </Link>
                                 </Button>
-                                <Button className="w-full justify-start mt-2" variant="outline">
-                                    <Users className="mr-2 h-4 w-4" /> Manage Admin Accounts
+                                <Button className="w-full justify-start mt-2" variant="outline" asChild>
+                                    <Link href="/dashboard/admin/users?tab=admins" className="inline-flex items-center">
+                                        <Users className="mr-2 h-4 w-4" /> Manage Admin Accounts
+                                    </Link>
                                 </Button>
-                                <Button className="w-full justify-start mt-2 text-red-600 border-red-200 hover:bg-red-50" variant="outline">
-                                    <ShieldAlert className="mr-2 h-4 w-4" /> View Suspended Accounts
+                                <Button className="w-full justify-start mt-2 text-red-600 border-red-200 hover:bg-red-50" variant="outline" asChild>
+                                    <Link href="/dashboard/admin/users" className="inline-flex items-center">
+                                        <ShieldAlert className="mr-2 h-4 w-4" /> View Suspended Accounts
+                                    </Link>
                                 </Button>
                             </CardContent>
                         </Card>
@@ -294,7 +327,9 @@ export function AdminDashboardView({
                                 <CardTitle>Recent System Events</CardTitle>
                                 <CardDescription>Latest system logs and alerts</CardDescription>
                             </div>
-                            <Button variant="outline" size="sm">View All Logs</Button>
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href="/dashboard/admin/logs">View All Logs</Link>
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">

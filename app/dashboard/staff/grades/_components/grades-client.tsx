@@ -53,6 +53,7 @@ import {
 import { toast } from 'sonner';
 import { uploadStaffGrades, releaseStaffGrades } from '@/lib/actions/staff-subactions';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function GradesClient({ initialData, currentUserId }: { initialData: any, currentUserId: string }) {
     const router = useRouter();
@@ -86,11 +87,19 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
 
     const moduleGrades = currentGrades.filter((g: any) => g.moduleId === selectedModule);
     const currentModule = modules.find((m: any) => m.id === selectedModule);
+    const gradingHref = selectedModule ? `/dashboard/staff/modules/${selectedModule}` : '#';
+    const rosterHref = selectedModule ? `/dashboard/staff/roster/${selectedModule}` : '#';
+
+    const hasRecord = (g: any) => g.hasGradeRecord === true;
+    const gradesEnteredCount = moduleGrades.filter(hasRecord).length;
+    const releasedGrades = moduleGrades.filter((g: any) => hasRecord(g) && g.isReleased);
+    const pendingReleaseGrades = moduleGrades.filter((g: any) => hasRecord(g) && !g.isReleased);
+    const awaitingMarksGrades = moduleGrades.filter((g: any) => g.hasGradeRecord === false);
 
     const csvTemplate = [
-        ['Student ID', 'Student Name', 'Grade', 'Points', 'Credits', 'Comments'],
-        ['STU001', 'John Doe', 'A', '4.0', '3', 'Excellent work'],
-        ['STU002', 'Jane Smith', 'B+', '3.3', '3', 'Good performance'],
+        ['Student Id', 'Grade'],
+        ['STU001', '85'],
+        ['STU002', '72'],
     ];
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,13 +132,8 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                 });
 
                 const rowErrors: string[] = [];
-                if (!rowData.studentid) rowErrors.push('Student ID is required');
-                if (!rowData.grade) rowErrors.push('Grade is required');
-                else if (!['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D', 'F', 'IP', 'W'].includes(rowData.grade)) {
-                    rowErrors.push('Invalid grade format');
-                }
-                if (!rowData.points || isNaN(parseFloat(rowData.points))) rowErrors.push('Points must be a valid number');
-                if (!rowData.credits || isNaN(parseInt(rowData.credits))) rowErrors.push('Credits must be a valid number');
+                if (!rowData.studentid) rowErrors.push('Student Id is required');
+                if (!rowData.grade || isNaN(parseFloat(rowData.grade))) rowErrors.push('Grade must be a valid number (0-100)');
 
                 if (rowErrors.length > 0) {
                     errors.push({
@@ -139,13 +143,12 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                         error: rowErrors.join(', '),
                     });
                 } else {
+                    const marks = parseFloat(rowData.grade);
                     data.push({
                         id: `UPLOAD_${i}`,
                         studentId: rowData.studentid,
-                        studentName: rowData.studentname || '',
-                        grade: rowData.grade,
-                        points: parseFloat(rowData.points),
-                        credits: parseInt(rowData.credits),
+                        studentName: '', // Will be matched on server
+                        grade: marks,
                         moduleId: selectedModule,
                     });
                 }
@@ -169,10 +172,8 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                 id: `GRADE_${Date.now()}_${Math.random()}`,
                 studentId: g.studentId,
                 moduleId: g.moduleId,
-                grade: g.points,
-                letterGrade: g.grade,
-                points: g.points,
-                credits: g.credits,
+                grade: g.grade,
+                letterGrade: getLetterGrade(g.grade), // Placeholder utility
                 isReleased: false
             }));
             setCurrentGrades((prev: any) => [...prev, ...newGrades]);
@@ -190,11 +191,22 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
     };
 
     const handleReleaseGrades = async () => {
-        try {
-            await releaseStaffGrades(selectedGrades);
-            setCurrentGrades((prev: any) => prev.map((g: any) => selectedGrades.includes(g.id) ? { ...g, isReleased: true } : g));
+        const gradeIds = selectedGrades
+            .map((sid) => currentGrades.find((g: any) => g.id === sid))
+            .filter((g: any) => g?.hasGradeRecord && g?.gradeId)
+            .map((g: any) => g.gradeId as string);
+        if (gradeIds.length === 0) {
+            toast.error('No draft grades to release. Enter marks under My modules → Grading (or upload) first.');
             setShowReleaseDialog(false);
-            toast.success(`Released ${selectedGrades.length} grades`);
+            return;
+        }
+        try {
+            await releaseStaffGrades(gradeIds);
+            setCurrentGrades((prev: any) =>
+                prev.map((g: any) => (gradeIds.includes(g.gradeId) ? { ...g, isReleased: true } : g))
+            );
+            setShowReleaseDialog(false);
+            toast.success(`Released ${gradeIds.length} grades`);
             setSelectedGrades([]);
             router.refresh();
         } catch (e) {
@@ -203,7 +215,9 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
     };
 
     const handleSelectAllGrades = () => {
-        if (selectedGrades.length === moduleGrades.length) setSelectedGrades([]);
+        const allSelected =
+            moduleGrades.length > 0 && moduleGrades.every((g: any) => selectedGrades.includes(g.id));
+        if (allSelected) setSelectedGrades([]);
         else setSelectedGrades(moduleGrades.map((g: any) => g.id));
     };
 
@@ -230,8 +244,10 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
         return studentName.includes(term) || studentId.includes(term);
     });
 
-    const releasedGrades = moduleGrades.filter((g: any) => g.isReleased);
-    const pendingGrades = moduleGrades.filter((g: any) => !g.isReleased);
+    const releasableSelectedCount = selectedGrades.filter((sid) => {
+        const g = currentGrades.find((x: any) => x.id === sid);
+        return g?.hasGradeRecord && g?.gradeId;
+    }).length;
 
     return (
         <div className="space-y-6">
@@ -296,10 +312,10 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Grades Uploaded</CardTitle></CardHeader>
+                            <CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Marks entered</CardTitle></CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{moduleGrades.length}</div>
-                                <p className="text-xs text-muted-foreground">All grades</p>
+                                <div className="text-2xl font-bold">{gradesEnteredCount}</div>
+                                <p className="text-xs text-muted-foreground">Grade records in DB</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -310,10 +326,10 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Pending</CardTitle></CardHeader>
+                            <CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Pending release</CardTitle></CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{pendingGrades.length}</div>
-                                <p className="text-xs text-muted-foreground">Awaiting release</p>
+                                <div className="text-2xl font-bold">{pendingReleaseGrades.length}</div>
+                                <p className="text-xs text-muted-foreground">Draft grades not released</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -344,12 +360,15 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                                 />
                                             </div>
                                             <Button variant="outline" onClick={handleSelectAllGrades}>
-                                                {selectedGrades.length === moduleGrades.length ? 'Deselect All' : 'Select All'}
+                                                {moduleGrades.length > 0 &&
+                                                moduleGrades.every((g: any) => selectedGrades.includes(g.id))
+                                                    ? 'Deselect All'
+                                                    : 'Select All'}
                                             </Button>
                                             {selectedGrades.length > 0 && (
                                                 <Button onClick={() => setShowReleaseDialog(true)}>
                                                     <Send className="mr-2 h-4 w-4" />
-                                                    Release Selected ({selectedGrades.length})
+                                                    Release Selected ({releasableSelectedCount})
                                                 </Button>
                                             )}
                                         </div>
@@ -360,7 +379,10 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                                     <TableHead className="w-12">
                                                         <input
                                                             type="checkbox"
-                                                            checked={moduleGrades.length > 0 && selectedGrades.length === moduleGrades.length}
+                                                            checked={
+                                                                moduleGrades.length > 0 &&
+                                                                moduleGrades.every((g: any) => selectedGrades.includes(g.id))
+                                                            }
                                                             onChange={handleSelectAllGrades}
                                                         />
                                                     </TableHead>
@@ -391,21 +413,41 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell>
-                                                                <Badge variant={grade.letterGrade === 'F' ? 'destructive' : 'default'}>
+                                                                <Badge
+                                                                    variant={
+                                                                        grade.letterGrade === 'F'
+                                                                            ? 'destructive'
+                                                                            : grade.hasGradeRecord === false
+                                                                              ? 'outline'
+                                                                              : 'default'
+                                                                    }
+                                                                >
                                                                     {grade.letterGrade}
                                                                 </Badge>
                                                             </TableCell>
-                                                            <TableCell>{grade.points}</TableCell>
+                                                            <TableCell>{grade.hasGradeRecord === false ? '—' : grade.points}</TableCell>
                                                             <TableCell>{grade.credits}</TableCell>
                                                             <TableCell>
-                                                                <Badge variant={grade.isReleased ? 'default' : 'secondary'}>
-                                                                    {grade.isReleased ? 'Released' : 'Pending'}
-                                                                </Badge>
+                                                                {grade.hasGradeRecord === false ? (
+                                                                    <Badge variant="outline">No marks</Badge>
+                                                                ) : (
+                                                                    <Badge variant={grade.isReleased ? 'default' : 'secondary'}>
+                                                                        {grade.isReleased ? 'Released' : 'Draft'}
+                                                                    </Badge>
+                                                                )}
                                                             </TableCell>
                                                             <TableCell>
                                                                 <div className="flex gap-1">
-                                                                    <Button variant="outline" size="sm"><Eye className="h-4 w-4" /></Button>
-                                                                    <Button variant="outline" size="sm"><Edit className="h-4 w-4" /></Button>
+                                                                    <Button variant="outline" size="sm" asChild title="View roster">
+                                                                        <Link href={rosterHref}>
+                                                                            <Eye className="h-4 w-4" />
+                                                                        </Link>
+                                                                    </Button>
+                                                                    <Button variant="outline" size="sm" asChild title="Edit in Grading">
+                                                                        <Link href={gradingHref}>
+                                                                            <Edit className="h-4 w-4" />
+                                                                        </Link>
+                                                                    </Button>
                                                                 </div>
                                                             </TableCell>
                                                         </TableRow>
@@ -425,20 +467,36 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
-                                        {pendingGrades.length === 0 ? (
+                                        {pendingReleaseGrades.length === 0 ? (
                                             <div className="text-center py-8 text-muted-foreground">
-                                                <CheckCircle2 className="h-12 w-12 mx-auto mb-4" />
-                                                <p>All grades have been released</p>
+                                                {awaitingMarksGrades.length > 0 ? (
+                                                    <>
+                                                        <AlertCircle className="h-12 w-12 mx-auto mb-4" />
+                                                        <p className="font-medium text-foreground">No draft grades to release yet</p>
+                                                        <p className="mt-2 max-w-md mx-auto text-sm">
+                                                            {awaitingMarksGrades.length} enrolled student{awaitingMarksGrades.length === 1 ? '' : 's'} have no grade record. Enter marks under <span className="text-foreground font-medium">My modules → Grading</span> (or upload a CSV), then return here to release.
+                                                        </p>
+                                                        <Button className="mt-4" variant="outline" asChild>
+                                                            <Link href={gradingHref}>Open grading</Link>
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle2 className="h-12 w-12 mx-auto mb-4" />
+                                                        <p>Nothing waiting for release — all entered grades are published, or there are no students.</p>
+                                                    </>
+                                                )}
                                             </div>
                                         ) : (
                                             <>
                                                 <div className="flex items-center gap-4">
-                                                    <Button variant="outline" onClick={() => setSelectedGrades(pendingGrades.map((g: any) => g.id))}>
+                                                    <Button variant="outline" onClick={() => setSelectedGrades(pendingReleaseGrades.map((g: any) => g.id))}>
                                                         Select All Pending
                                                     </Button>
                                                     {selectedGrades.length > 0 && (
                                                         <Button onClick={() => setShowReleaseDialog(true)}>
-                                                            <Send className="mr-2 h-4 w-4" /> Release Selected ({selectedGrades.length})
+                                                            <Send className="mr-2 h-4 w-4" /> Release Selected (
+                                                            {releasableSelectedCount})
                                                         </Button>
                                                     )}
                                                 </div>
@@ -448,8 +506,15 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                                             <TableHead className="w-12">
                                                                 <input
                                                                     type="checkbox"
-                                                                    checked={pendingGrades.length > 0 && selectedGrades.length === pendingGrades.length}
-                                                                    onChange={() => setSelectedGrades(pendingGrades.map((g: any) => g.id))}
+                                                                    checked={
+                                                                        pendingReleaseGrades.length > 0 &&
+                                                                        pendingReleaseGrades.every((g: any) => selectedGrades.includes(g.id))
+                                                                    }
+                                                                    onChange={() =>
+                                                                        pendingReleaseGrades.every((g: any) => selectedGrades.includes(g.id))
+                                                                            ? setSelectedGrades([])
+                                                                            : setSelectedGrades(pendingReleaseGrades.map((g: any) => g.id))
+                                                                    }
                                                                 />
                                                             </TableHead>
                                                             <TableHead>Student</TableHead>
@@ -459,7 +524,7 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
-                                                        {pendingGrades.map((grade: any) => {
+                                                        {pendingReleaseGrades.map((grade: any) => {
                                                             const student = students.find((s: any) => s.id === grade.studentId);
                                                             return (
                                                                 <TableRow key={grade.id}>
@@ -484,7 +549,11 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                                                     <TableCell>{grade.points}</TableCell>
                                                                     <TableCell>
                                                                         <div className="flex gap-1">
-                                                                            <Button variant="outline" size="sm"><Edit className="h-4 w-4" /></Button>
+                                                                            <Button variant="outline" size="sm" asChild title="Edit in Grading">
+                                                                                <Link href={gradingHref}>
+                                                                                    <Edit className="h-4 w-4" />
+                                                                                </Link>
+                                                                            </Button>
                                                                             <Button
                                                                                 variant="outline" size="sm"
                                                                                 onClick={() => { setSelectedGrades([grade.id]); setShowReleaseDialog(true); }}
@@ -521,24 +590,32 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {releasedGrades.map((grade: any) => {
-                                                const student = students.find((s: any) => s.id === grade.studentId);
-                                                return (
-                                                    <TableRow key={grade.id}>
-                                                        <TableCell>
-                                                            <div>
-                                                                <div className="font-medium">{student?.name || 'Unknown User'}</div>
-                                                                <div className="text-sm text-muted-foreground">{grade.studentId}</div>
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Badge variant={grade.letterGrade === 'F' ? 'destructive' : 'default'}>{grade.letterGrade}</Badge>
-                                                        </TableCell>
-                                                        <TableCell>{grade.points}</TableCell>
-                                                        <TableCell>Released</TableCell>
-                                                    </TableRow>
-                                                );
-                                            })}
+                                            {releasedGrades.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                                                        No released grades for this module yet.
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                releasedGrades.map((grade: any) => {
+                                                    const student = students.find((s: any) => s.id === grade.studentId);
+                                                    return (
+                                                        <TableRow key={grade.id}>
+                                                            <TableCell>
+                                                                <div>
+                                                                    <div className="font-medium">{student?.name || 'Unknown User'}</div>
+                                                                    <div className="text-sm text-muted-foreground">{grade.studentId}</div>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge variant={grade.letterGrade === 'F' ? 'destructive' : 'default'}>{grade.letterGrade}</Badge>
+                                                            </TableCell>
+                                                            <TableCell>{grade.points}</TableCell>
+                                                            <TableCell>Released</TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })
+                                            )}
                                         </TableBody>
                                     </Table>
                                 </CardContent>
@@ -616,7 +693,16 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Release Grades</DialogTitle>
-                        <DialogDescription>Are you sure you want to release {selectedGrades.length} grades to students?</DialogDescription>
+                        <DialogDescription>
+                            Are you sure you want to release {releasableSelectedCount} grade
+                            {releasableSelectedCount === 1 ? '' : 's'} to students?
+                            {releasableSelectedCount < selectedGrades.length && (
+                                <span className="block mt-2 text-muted-foreground">
+                                    ({selectedGrades.length - releasableSelectedCount} selected row
+                                    {selectedGrades.length - releasableSelectedCount === 1 ? '' : 's'} have no marks yet and will be skipped.)
+                                </span>
+                            )}
+                        </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowReleaseDialog(false)}>Cancel</Button>

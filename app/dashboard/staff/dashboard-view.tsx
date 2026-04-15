@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import Link from 'next/link';
 import {
     Users,
     BookOpen,
@@ -16,6 +17,7 @@ import {
     BarChart3,
     Award,
     ClipboardCheck,
+    Settings,
 } from 'lucide-react';
 import {
     LineChart,
@@ -35,7 +37,7 @@ interface StaffDashboardViewProps {
     staff: any;
     myModules: any[];
     totalStudents: number;
-    assignmentsToGrade: number;
+    pendingGrades: number;
     upcomingClasses: number;
     gradeDistribution: any[];
     moduleWorkload: any[];
@@ -48,7 +50,7 @@ export function StaffDashboardView({
     staff,
     myModules,
     totalStudents,
-    assignmentsToGrade,
+    pendingGrades,
     upcomingClasses,
     gradeDistribution,
     moduleWorkload,
@@ -70,7 +72,11 @@ export function StaffDashboardView({
 
             {/* Stats Overview */}
             <div className="grid gap-4 md:grid-cols-4">
-                <Card>
+                <Link
+                    href="/dashboard/staff/modules"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Students</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
@@ -79,9 +85,14 @@ export function StaffDashboardView({
                         <div className="text-2xl font-bold">{totalStudents}</div>
                         <p className="text-xs text-muted-foreground">Across all modules</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/staff/modules"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Modules Teaching</CardTitle>
                         <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -90,23 +101,33 @@ export function StaffDashboardView({
                         <div className="text-2xl font-bold">{myModules.length}</div>
                         <p className="text-xs text-muted-foreground">This semester</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/staff/grades"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pending Grading</CardTitle>
+                        <CardTitle className="text-sm font-medium">Pending Grades</CardTitle>
                         <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{assignmentsToGrade}</div>
-                        <p className="text-xs text-muted-foreground">Assignments to review</p>
-                        {assignmentsToGrade > 0 && (
-                            <Badge variant="destructive" className="mt-2">Action Required</Badge>
+                        <div className="text-2xl font-bold">{pendingGrades}</div>
+                        <p className="text-xs text-muted-foreground">Entries to resolve</p>
+                        {pendingGrades > 0 && (
+                            <Badge variant="destructive" className="mt-2 text-[10px] font-black uppercase">Action Required</Badge>
                         )}
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
-                <Card>
+                <Link
+                    href="/dashboard/staff/schedule"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">This Week</CardTitle>
                         <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -115,13 +136,18 @@ export function StaffDashboardView({
                         <div className="text-2xl font-bold">{upcomingClasses}</div>
                         <p className="text-xs text-muted-foreground">Classes scheduled</p>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
             </div>
 
             {/* Charts Row */}
             <div className="grid gap-4 md:grid-cols-2">
                 {/* Performance Trends */}
-                <Card>
+                <Link
+                    href="/dashboard/staff/analytics"
+                    className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/20 cursor-pointer">
                     <CardHeader>
                         <CardTitle>Student Performance Trends</CardTitle>
                         <CardDescription>Average grades across all modules</CardDescription>
@@ -143,10 +169,15 @@ export function StaffDashboardView({
                             </LineChart>
                         </ResponsiveContainer>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
                 {/* Grade Distribution */}
-                <Card>
+                <Link
+                    href="/dashboard/staff/grades"
+                    className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/20 cursor-pointer">
                     <CardHeader>
                         <CardTitle>Grade Distribution</CardTitle>
                         <CardDescription>Current semester grade breakdown</CardDescription>
@@ -173,21 +204,27 @@ export function StaffDashboardView({
                             </PieChart>
                         </ResponsiveContainer>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
             </div>
 
             {/* Module Management and Activities */}
             <div className="grid gap-4 md:grid-cols-2">
                 {/* Module Workload */}
                 <Card>
-                    <CardHeader>
-                        <CardTitle>My Modules</CardTitle>
-                        <CardDescription>Modules you're teaching this semester</CardDescription>
+                    <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0">
+                        <div>
+                            <CardTitle>My Modules</CardTitle>
+                            <CardDescription>Modules you&apos;re teaching this semester</CardDescription>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href="/dashboard/staff/modules">View all</Link>
+                        </Button>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {moduleWorkload.map((module) => (
-                                <div key={module.name} className="space-y-2">
+                            {moduleWorkload.map((module, index) => (
+                                <div key={module.assignmentId ?? `${module.moduleId}-${index}`} className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2">
@@ -195,14 +232,19 @@ export function StaffDashboardView({
                                                 <Badge variant="outline">{module.students} students</Badge>
                                             </div>
                                             <p className="text-sm text-muted-foreground">
-                                                {module.fullName} • {module.assignments} pending assignments
+                                                {module.name}
+                                                {module.academicYear ? ` • ${module.academicYear}` : ''}
+                                                {' • '}
+                                                {module.pendingGrades} pending grades
                                             </p>
                                         </div>
-                                        <Button size="sm" variant="outline">View</Button>
+                                        <Button size="sm" variant="outline" asChild>
+                                            <Link href={`/dashboard/staff/modules/${module.moduleId}`}>View</Link>
+                                        </Button>
                                     </div>
                                     <Progress value={module.completion} className="h-2" />
-                                    <p className="text-xs text-muted-foreground text-right">
-                                        {module.completion}% semester complete
+                                    <p className="text-xs text-muted-foreground text-right italic font-medium">
+                                        {module.completion}% grading progress
                                     </p>
                                 </div>
                             ))}
@@ -224,7 +266,7 @@ export function StaffDashboardView({
                                         {activity.type === 'grade' && <CheckCircle className="h-4 w-4 text-green-600" />}
                                         {activity.type === 'upload' && <FileText className="h-4 w-4 text-blue-600" />}
                                         {activity.type === 'meeting' && <Calendar className="h-4 w-4 text-purple-600" />}
-                                        {activity.type === 'assignment' && <BookOpen className="h-4 w-4 text-orange-600" />}
+                                        {activity.type === 'system' && <Users className="h-4 w-4 text-orange-600" />}
                                         {activity.type === 'feedback' && <Award className="h-4 w-4 text-yellow-600" />}
                                     </div>
                                     <div className="flex-1">
@@ -246,21 +288,27 @@ export function StaffDashboardView({
                 </CardHeader>
                 <CardContent>
                     <div className="grid gap-4 md:grid-cols-4">
-                        <Button className="h-24 flex-col gap-2" variant="outline">
-                            <FileText className="h-6 w-6" />
-                            <span className="text-xs">Grade Assignments</span>
+                        <Button className="h-24 flex-col gap-2 rounded-2xl bg-primary/5 border-primary/10 hover:bg-primary/10 text-primary transition-all" variant="outline" asChild>
+                            <Link href="/dashboard/staff/modules">
+                                <BookOpen className="h-6 w-6" />
+                                <span className="text-xs font-bold uppercase tracking-tighter">My Modules</span>
+                            </Link>
                         </Button>
-                        <Button className="h-24 flex-col gap-2" variant="outline">
-                            <Calendar className="h-6 w-6" />
-                            <span className="text-xs">Schedule Class</span>
+                        <Button className="h-24 flex-col gap-2 rounded-2xl hover:bg-accent/50 transition-all" variant="outline" asChild>
+                            <Link href="/dashboard/staff/schedule">
+                                <Calendar className="h-6 w-6" />
+                                <span className="text-xs font-bold uppercase tracking-tighter">Global Schedule</span>
+                            </Link>
                         </Button>
-                        <Button className="h-24 flex-col gap-2" variant="outline">
-                            <Users className="h-6 w-6" />
-                            <span className="text-xs">View Students</span>
+                        <Button className="h-24 flex-col gap-2 rounded-2xl hover:bg-accent/50 transition-all" variant="outline" asChild>
+                            <Link href="/dashboard/staff/analytics">
+                                <BarChart3 className="h-6 w-6" />
+                                <span className="text-xs font-bold uppercase tracking-tighter">Academic Insights</span>
+                            </Link>
                         </Button>
-                        <Button className="h-24 flex-col gap-2" variant="outline">
-                            <BarChart3 className="h-6 w-6" />
-                            <span className="text-xs">Generate Report</span>
+                        <Button className="h-24 flex-col gap-2 rounded-2xl hover:bg-accent/50 transition-all" variant="outline" disabled>
+                            <Settings className="h-6 w-6" />
+                            <span className="text-xs font-bold uppercase tracking-tighter">Profile Settings</span>
                         </Button>
                     </div>
                 </CardContent>
@@ -291,8 +339,8 @@ export function StaffDashboardView({
                                             </p>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="sm" className="rounded-xl text-[10px] font-black uppercase tracking-tighter">
-                                        Prepare
+                                    <Button variant="ghost" size="sm" className="rounded-xl text-[10px] font-black uppercase tracking-tighter" asChild>
+                                        <Link href={`/dashboard/staff/modules/${deadline.moduleId}`}>Prepare</Link>
                                     </Button>
                                 </div>
                             ))

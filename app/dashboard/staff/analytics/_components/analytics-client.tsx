@@ -1,7 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -51,11 +54,56 @@ type ModuleData = {
     registrations: any[];
 };
 
-export default function AnalyticsClient({ initialModules }: { initialModules: ModuleData[] }) {
+type FilterYear = {
+    academic_year_id: string;
+    label: string;
+    semesters: { semester_id: string; label: string }[];
+};
+
+export default function AnalyticsClient({
+    initialModules,
+    filterYears,
+    initialAcademicYearId = 'all',
+    initialSemesterId = 'all',
+}: {
+    initialModules: ModuleData[];
+    filterYears: FilterYear[];
+    initialAcademicYearId?: string;
+    initialSemesterId?: string;
+}) {
+    const router = useRouter();
+    const pathname = usePathname();
     const [selectedModule, setSelectedModule] = useState<string>('');
-    const [selectedPeriod, setSelectedPeriod] = useState('current');
 
     const staffModules = initialModules;
+
+    const semestersForYear = useMemo(() => {
+        if (initialAcademicYearId === 'all') {
+            return filterYears.flatMap((y) =>
+                y.semesters.map((s) => ({
+                    ...s,
+                    yearLabel: y.label,
+                    academic_year_id: y.academic_year_id,
+                }))
+            );
+        }
+        const y = filterYears.find((x) => x.academic_year_id === initialAcademicYearId);
+        return y
+            ? y.semesters.map((s) => ({
+                  ...s,
+                  yearLabel: y.label,
+                  academic_year_id: y.academic_year_id,
+              }))
+            : [];
+    }, [filterYears, initialAcademicYearId]);
+
+    const pushFilters = (year: string, semester: string) => {
+        const p = new URLSearchParams();
+        if (year !== 'all') p.set('year', year);
+        if (semester !== 'all') p.set('semester', semester);
+        const q = p.toString();
+        router.push(q ? `${pathname}?${q}` : pathname);
+    };
     const currentModule = staffModules.find(m => m.id === selectedModule);
 
     const getAnalyticsData = () => {
@@ -135,8 +183,27 @@ export default function AnalyticsClient({ initialModules }: { initialModules: Mo
         toast.success('Analytics report exported successfully!');
     };
 
+    const builderParams = new URLSearchParams();
+    if (initialAcademicYearId !== 'all') builderParams.set('year', initialAcademicYearId);
+    if (initialSemesterId !== 'all') builderParams.set('semester', initialSemesterId);
+    const builderHref = `/dashboard/staff/analytics/builder${builderParams.toString() ? `?${builderParams.toString()}` : ''}`;
+
     return (
         <div className="space-y-6">
+            <Card>
+                <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p className="text-sm font-medium">Report builder</p>
+                        <p className="text-xs text-muted-foreground">
+                            Full-page canvas: add visuals, map fields, save reports. Current filters carry over.
+                        </p>
+                    </div>
+                    <Button variant="default" size="sm" asChild>
+                        <Link href={builderHref}>Open report builder</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+            <div className="space-y-6">
             <div className="flex justify-between items-start">
                 <div>
                     <h1 className="text-3xl font-bold">Module Analytics</h1>
@@ -160,9 +227,9 @@ export default function AnalyticsClient({ initialModules }: { initialModules: Mo
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
-                            <label htmlFor="module">Module</label>
+                            <Label htmlFor="module">Module</Label>
                             <Select value={selectedModule} onValueChange={setSelectedModule}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a module" />
@@ -177,15 +244,42 @@ export default function AnalyticsClient({ initialModules }: { initialModules: Mo
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <label htmlFor="period">Time Period</label>
-                            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                                <SelectTrigger>
+                            <Label htmlFor="year">Academic year</Label>
+                            <Select
+                                value={initialAcademicYearId}
+                                onValueChange={(y) => pushFilters(y, 'all')}
+                            >
+                                <SelectTrigger id="year">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="current">Current Semester</SelectItem>
-                                    <SelectItem value="year">Academic Year</SelectItem>
-                                    <SelectItem value="all">All Time</SelectItem>
+                                    <SelectItem value="all">All years</SelectItem>
+                                    {filterYears.map((y) => (
+                                        <SelectItem key={y.academic_year_id} value={y.academic_year_id}>
+                                            {y.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="semester">Semester</Label>
+                            <Select
+                                value={initialSemesterId}
+                                onValueChange={(s) => pushFilters(initialAcademicYearId, s)}
+                                disabled={initialAcademicYearId === 'all' && semestersForYear.length === 0}
+                            >
+                                <SelectTrigger id="semester">
+                                    <SelectValue placeholder="All semesters" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All semesters</SelectItem>
+                                    {semestersForYear.map((s) => (
+                                        <SelectItem key={s.semester_id} value={s.semester_id}>
+                                            {s.yearLabel ? `${s.yearLabel} · ` : ''}
+                                            {s.label}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -388,6 +482,7 @@ export default function AnalyticsClient({ initialModules }: { initialModules: Mo
                     </CardContent>
                 </Card>
             )}
+            </div>
         </div>
     );
 }

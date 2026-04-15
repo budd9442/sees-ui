@@ -7,6 +7,11 @@ import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
+export const metadata = {
+  title: 'GPA & grading defaults (admin) | SEES',
+  description: 'Institution-wide GPA calculation, class thresholds, and default mark-to-grade bands.',
+};
+
 export default async function AdminGpaConfigPage() {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== 'admin') {

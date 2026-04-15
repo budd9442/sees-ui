@@ -14,6 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { csvUtils } from '@/lib/export';
+import { getAcademicClass } from '@/lib/gpa-utils';
 import {
     Table,
     TableBody,
@@ -135,13 +136,6 @@ export default function RecordsClient({ initialData }: { initialData: any }) {
 
         csvUtils.downloadCSV(exportData, { filename: `advisor_records_${new Date().toISOString().split('T')[0]}.csv` });
         toast.success('Academic records exported successfully!');
-    };
-
-    const getAcademicClass = (gpa: number) => {
-        if (gpa >= 3.7) return 'First Class';
-        if (gpa >= 3.0) return 'Second Upper';
-        if (gpa >= 2.5) return 'Second Lower';
-        return 'Third/Pass';
     };
 
     const getGpaTrendData = (studentId: string) => {

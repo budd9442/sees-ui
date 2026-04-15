@@ -31,13 +31,20 @@ interface CreditsClientProps {
     studentGrades: any[];
 }
 
+/** Released module counts toward credit using grade points (letter-only ok) or legacy marks ≥ 50. */
+function earnsModuleCredit(g: any) {
+    if (!g.isReleased) return false;
+    const pts = g.gradePoint ?? g.points ?? 0;
+    if (pts >= 2) return true;
+    const m = g.marks ?? (typeof g.grade === 'number' ? g.grade : null);
+    return m != null && typeof m === 'number' && m >= 50;
+}
+
 export function CreditsClient({ studentGrades }: CreditsClientProps) {
     const [selectedSemester, setSelectedSemester] = useState('all');
 
     // Calculate credit totals
-    const totalCreditsEarned = studentGrades
-        .filter(g => g.isReleased && g.grade >= 50)
-        .reduce((sum, g) => sum + g.credits, 0);
+    const totalCreditsEarned = studentGrades.filter(earnsModuleCredit).reduce((sum, g) => sum + g.credits, 0);
 
     const totalCreditsAttempted = studentGrades
         .filter(g => g.isReleased)
@@ -66,7 +73,7 @@ export function CreditsClient({ studentGrades }: CreditsClientProps) {
 
         if (grade.isReleased) {
             acc[key].creditsAttempted += grade.credits;
-            if (grade.grade >= 50) {
+            if (earnsModuleCredit(grade)) {
                 acc[key].creditsEarned += grade.credits;
             }
             acc[key].grades.push(grade);
@@ -296,7 +303,7 @@ export function CreditsClient({ studentGrades }: CreditsClientProps) {
                             <div className="space-y-4">
                                 {Object.entries(yearRequirements).map(([year, req]) => {
                                     const yearCredits = studentGrades
-                                        .filter(g => g.academicYear === year && g.isReleased && g.grade >= 50)
+                                        .filter((g) => g.academicYear === year && earnsModuleCredit(g))
                                         .reduce((sum, g) => sum + g.credits, 0);
 
                                     const isComplete = yearCredits >= req.min;
@@ -382,8 +389,16 @@ export function CreditsClient({ studentGrades }: CreditsClientProps) {
                                                 <TableCell className="font-medium">{grade.moduleCode}</TableCell>
                                                 <TableCell>{grade.moduleTitle}</TableCell>
                                                 <TableCell>{grade.credits}</TableCell>
-                                                <TableCell className={getGradeColor(grade.grade)}>
-                                                    {grade.grade}
+                                                <TableCell
+                                                    className={
+                                                        grade.marks != null && typeof grade.marks === 'number'
+                                                            ? getGradeColor(grade.marks)
+                                                            : 'text-muted-foreground'
+                                                    }
+                                                >
+                                                    {grade.marks != null && typeof grade.marks === 'number'
+                                                        ? grade.marks
+                                                        : '—'}
                                                 </TableCell>
                                                 <TableCell className={getLetterGradeColor(grade.letterGrade)}>
                                                     {grade.letterGrade}

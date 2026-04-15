@@ -36,8 +36,14 @@ export async function submitSpecializationSelection(specializationCode: string) 
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
-    const spec = await prisma.specialization.findUnique({
-        where: { code: specializationCode }
+    const student = await prisma.student.findUnique({
+        where: { student_id: session.user.id },
+        select: { degree_path_id: true },
+    });
+    if (!student) throw new Error('Student not found');
+
+    const spec = await prisma.specialization.findFirst({
+        where: { code: specializationCode, program_id: student.degree_path_id },
     });
 
     if (!spec) throw new Error("Invalid specialization code.");

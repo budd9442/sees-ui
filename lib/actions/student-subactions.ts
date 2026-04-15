@@ -41,9 +41,11 @@ export async function getCreditsData() {
         moduleCode: g.module.code,
         moduleTitle: g.module.name,
         credits: g.module.credits,
-        grade: g.marks || 0,
+        marks: g.marks ?? null,
+        grade: g.marks ?? null,
         letterGrade: g.letter_grade,
         points: g.grade_point,
+        gradePoint: g.grade_point,
         semester: g.semester.label || 'Unknown',
         academicYear: g.module.level || 'L1', // Fallback to module level
         isReleased: !!g.released_at
@@ -180,8 +182,8 @@ export async function getPathwayData() {
 
     if (!studentRecord) throw new Error("Student profile not found");
 
-    const mitProgram = await prisma.degreeProgram.findUnique({ where: { code: 'MIT' } });
-    const itProgram = await prisma.degreeProgram.findUnique({ where: { code: 'IT' } });
+    const mitProgram = await prisma.degreeProgram.findFirst({ where: { code: 'MIT' } });
+    const itProgram = await prisma.degreeProgram.findFirst({ where: { code: 'IT' } });
 
     const totalL1 = await prisma.student.count({ where: { current_level: 'Level 1' } });
     const mitDemandCount = mitProgram ? await prisma.student.count({ where: { current_level: 'Level 1', degree_path_id: mitProgram.program_id } }) : 0;
@@ -288,7 +290,7 @@ export async function updateStudentPathway(programCode: string) {
     if (!studentRecord) throw new Error("Student profile not found");
     if (studentRecord.pathway_locked) throw new Error("Pathway is already locked");
 
-    const targetProgram = await prisma.degreeProgram.findUnique({ where: { code: programCode } });
+    const targetProgram = await prisma.degreeProgram.findFirst({ where: { code: programCode } });
     if (!targetProgram) throw new Error("Invalid program code");
 
     await prisma.student.update({
@@ -318,11 +320,11 @@ export async function updateStudentSpecialization(specCode: string) {
         if (!student) throw new Error("Student profile not found");
 
         // 2. Resolve specialization code to ID and verify it belongs to the same program
-        const targetSpec = await tx.specialization.findUnique({
-            where: { 
+        const targetSpec = await tx.specialization.findFirst({
+            where: {
                 code: specCode,
-                program_id: student.degree_path_id // Ensure it belongs to the student's program
-            }
+                program_id: student.degree_path_id,
+            },
         });
 
         if (!targetSpec) throw new Error("Invalid specialization for your program");
@@ -390,7 +392,7 @@ export async function getInternshipData() {
             startDate: internship.start_date.toISOString(),
             endDate: internship.end_date.toISOString(),
             status: internship.status as any,
-            supervisorName: internship.supervisor_name,
+            supervisorName: internship.supervisorName,
             supervisorEmail: internship.supervisor_email,
             supervisorPhone: internship.supervisor_phone,
             description: internship.description,
@@ -440,7 +442,7 @@ export async function saveInternship(data: {
                 start_date: new Date(data.startDate),
                 end_date: new Date(data.endDate),
                 status: data.status,
-                supervisor_name: data.supervisorName,
+                supervisorName: data.supervisorName,
                 supervisor_email: data.supervisorEmail,
                 supervisor_phone: data.supervisorPhone,
                 description: data.description,
@@ -457,7 +459,7 @@ export async function saveInternship(data: {
                 start_date: new Date(data.startDate),
                 end_date: new Date(data.endDate),
                 status: data.status,
-                supervisor_name: data.supervisorName,
+                supervisorName: data.supervisorName,
                 supervisor_email: data.supervisorEmail,
                 supervisor_phone: data.supervisorPhone,
                 description: data.description,
@@ -585,8 +587,14 @@ export async function getStudentProfile() {
             enrollmentDate: new Date(studentRecord.admission_year, 8, 1).toISOString(),
             expectedGraduation: new Date(studentRecord.admission_year + 4, 5, 1).toISOString(),
             currentGPA: studentRecord.current_gpa,
-            cumulativeCredits: grades.reduce((sum, g) => sum + (g.marks >= 50 ? 3 : 0), 0), // Use real credit weight if available
-            completedCredits: grades.filter(g => g.marks >= 50).length * 3
+            cumulativeCredits: grades.reduce(
+                (sum, g) => sum + ((g.grade_point ?? 0) >= 2.0 || (g.marks != null && g.marks >= 50) ? 3 : 0),
+                0
+            ),
+            completedCredits:
+                grades.filter(
+                    (g) => (g.grade_point ?? 0) >= 2.0 || (g.marks != null && g.marks >= 50)
+                ).length * 3
         }
     };
 }
@@ -659,7 +667,11 @@ export async function getRankingsData() {
         const gpa = student.current_gpa || 0;
 
         // Calculate other metrics
-        const totalCreditsEarned = studentGrades.filter(g => g.marks >= 50).reduce((sum, g) => sum + g.module.credits, 0);
+        const totalCreditsEarned = studentGrades
+            .filter(
+                (g) => (g.grade_point ?? 0) >= 2.0 || (g.marks != null && g.marks >= 50)
+            )
+            .reduce((sum, g) => sum + g.module.credits, 0);
         const totalCreditsAttempted = studentGrades.reduce((sum, g) => sum + g.module.credits, 0);
         const passRate = totalCreditsAttempted > 0 ? (totalCreditsEarned / totalCreditsAttempted) * 100 : 0;
 
@@ -689,66 +701,16 @@ export async function getRankingsData() {
 // ----------------------------------------------------------------------
 
 export async function getStudentMessages() {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    const messages = await prisma.message.findMany({
-        where: {
-            OR: [
-                { sender_id: session.user.id },
-                { recipient_id: session.user.id }
-            ]
-        },
-        include: {
-            sender: {
-                select: {
-                    user_id: true,
-                    firstName: true,
-                    lastName: true,
-                    staff: true
-                }
-            },
-            recipient: {
-                select: {
-                    user_id: true,
-                    firstName: true,
-                    lastName: true,
-                    staff: true
-                }
-            }
-        },
-        orderBy: {
-            sent_at: 'desc'
-        }
-    });
-
-    const formattedMessages = messages.map(msg => ({
-        id: msg.message_id,
-        senderId: msg.sender_id,
-        receiverId: msg.recipient_id,
-        subject: msg.subject,
-        content: msg.content,
-        createdAt: msg.sent_at.toISOString(),
-        isRead: !!msg.read_at,
-        senderRole: msg.sender.staff ? msg.sender.staff.staff_type : 'student',
-        senderName: `${msg.sender.firstName || ''} ${msg.sender.lastName || ''}`.trim(),
-        receiverRole: msg.recipient.staff ? msg.recipient.staff.staff_type : 'student',
-        receiverName: `${msg.recipient.firstName || ''} ${msg.recipient.lastName || ''}`.trim()
-    }));
-
-    return formattedMessages;
+    const { getMyMessages } = await import('@/lib/actions/message-actions');
+    const { messages } = await getMyMessages({ limit: 200 });
+    return messages;
 }
 
 export async function sendStudentMessage(recipientId: string, subject: string, content: string) {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    return await prisma.message.create({
-        data: {
-            sender_id: session.user.id,
-            recipient_id: recipientId,
-            subject: subject,
-            content: content
-        }
+    const { sendDirectMessage } = await import('@/lib/actions/message-actions');
+    const result = await sendDirectMessage({ recipientId, subject, content });
+    const row = await prisma.message.findUniqueOrThrow({
+        where: { message_id: result.message_id },
     });
+    return row;
 }

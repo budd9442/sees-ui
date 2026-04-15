@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/common/stat-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,9 +71,13 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
         const colors: Record<string, string> = {
             'First Class': 'bg-green-100 text-green-800 border-green-200',
             'Second Class Upper': 'bg-blue-100 text-blue-800 border-blue-200',
+            'Second Upper': 'bg-blue-100 text-blue-800 border-blue-200',
             'Second Class Lower': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+            'Second Lower': 'bg-yellow-100 text-yellow-800 border-yellow-200',
             'Third Class': 'bg-orange-100 text-orange-800 border-orange-200',
+            'Third/Pass': 'bg-orange-100 text-orange-800 border-orange-200',
             'Pass': 'bg-gray-100 text-gray-800 border-gray-200',
+            Unassigned: 'bg-gray-100 text-gray-800 border-gray-200',
         };
         return colors[academicClass] || colors['Pass'];
     };
@@ -115,44 +120,56 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                     value={student.currentGPA.toFixed(2)}
                     icon={TrendingUp}
                     trend={{ value: Number(trendValue.toFixed(1)), isPositive }}
+                    href="/dashboard/student/grades"
                 />
                 <StatCard
                     title="Credits Earned"
                     value={student.totalCredits}
                     icon={BookOpen}
+                    href="/dashboard/student/credits"
                 />
                 <StatCard
                     title="Academic Year"
                     value={student.academicYear}
                     icon={GraduationCap}
+                    href="/dashboard/student/schedule"
                 />
-                <Card className="transition-all hover:shadow-lg">
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-2">
-                                <p className="text-sm font-medium text-muted-foreground">
-                                    Academic Class
-                                </p>
-                                <Badge
-                                    variant="outline"
-                                    className={`text-base px-3 py-1 ${getClassColor(
-                                        student.academicClass
-                                    )}`}
-                                >
-                                    {student.academicClass}
-                                </Badge>
+                <Link
+                    href="/dashboard/student/grades"
+                    className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-all hover:shadow-lg hover:border-primary/35 cursor-pointer">
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-2">
+                                    <p className="text-sm font-medium text-muted-foreground">
+                                        Academic Class
+                                    </p>
+                                    <Badge
+                                        variant="outline"
+                                        className={`text-base px-3 py-1 ${getClassColor(
+                                            student.academicClass
+                                        )}`}
+                                    >
+                                        {student.academicClass}
+                                    </Badge>
+                                </div>
+                                <div className="p-3 rounded-full bg-primary/10">
+                                    <Award className="w-6 h-6 text-primary" />
+                                </div>
                             </div>
-                            <div className="p-3 rounded-full bg-primary/10">
-                                <Award className="w-6 h-6 text-primary" />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
 
             <div className="grid gap-6 md:grid-cols-3 mb-8">
                 {/* GPA Trend */}
-                <Card className="md:col-span-2">
+                <Link
+                    href="/dashboard/student/grades"
+                    className="md:col-span-2 block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-all hover:shadow-lg hover:border-primary/35 cursor-pointer">
                     <CardHeader>
                         <CardTitle>GPA Trend</CardTitle>
                         <CardDescription>Your academic performance over time</CardDescription>
@@ -205,10 +222,15 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                             </AreaChart>
                         </ResponsiveContainer>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
                 {/* Credit Distribution */}
-                <Card>
+                <Link
+                    href="/dashboard/student/credits"
+                    className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-all hover:shadow-lg hover:border-primary/35 cursor-pointer">
                     <CardHeader>
                         <CardTitle>Credit Progress</CardTitle>
                         <CardDescription>
@@ -249,7 +271,8 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                             ))}
                         </div>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
@@ -295,7 +318,11 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Link
+                    href="/dashboard/student/schedule"
+                    className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-all hover:shadow-lg hover:border-primary/35 cursor-pointer">
                     <CardHeader>
                         <CardTitle>Upcoming Events</CardTitle>
                         <CardDescription>Important dates and deadlines</CardDescription>
@@ -326,10 +353,15 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                             )}
                         </div>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
                 {/* Recent Notifications */}
-                <Card>
+                <Link
+                    href="/dashboard/student/messages"
+                    className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Card className="h-full transition-all hover:shadow-lg hover:border-primary/35 cursor-pointer">
                     <CardHeader>
                         <CardTitle>Recent Notifications</CardTitle>
                         <CardDescription>
@@ -371,11 +403,16 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                             )}
                         </div>
                     </CardContent>
-                </Card>
+                    </Card>
+                </Link>
 
                 {/* Pathway Status */}
                 {student.degreeProgram && (
-                    <Card>
+                    <Link
+                        href="/dashboard/student/pathway"
+                        className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                        <Card className="h-full transition-all hover:shadow-lg hover:border-primary/35 cursor-pointer">
                         <CardHeader>
                             <CardTitle>Pathway Information</CardTitle>
                             <CardDescription>Your selected academic path</CardDescription>
@@ -407,7 +444,8 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                                 </Badge>
                             </div>
                         </CardContent>
-                    </Card>
+                        </Card>
+                    </Link>
                 )}
             </div>
         </div >

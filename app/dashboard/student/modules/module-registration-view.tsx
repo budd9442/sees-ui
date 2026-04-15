@@ -28,6 +28,17 @@ interface RegistrationSemester {
     modules: any[];
 }
 
+interface RegistrationWindowProps {
+    canEdit: boolean;
+    windowOk: boolean;
+    message?: string;
+    label?: string;
+    status?: string;
+    opensAt: string | null;
+    closesAt: string | null;
+    studentMessage: string | null;
+}
+
 interface ModuleRegistrationViewProps {
     student: {
         academicYear: string;
@@ -37,7 +48,7 @@ interface ModuleRegistrationViewProps {
     semesters: RegistrationSemester[];
     registeredModuleIds: string[];
     completedModuleCodes: string[];
-    registrationDeadline?: string | Date | null;
+    registrationWindow: RegistrationWindowProps;
 }
 
 export function ModuleRegistrationView({
@@ -45,8 +56,10 @@ export function ModuleRegistrationView({
     semesters,
     registeredModuleIds,
     completedModuleCodes,
-    registrationDeadline,
+    registrationWindow,
 }: ModuleRegistrationViewProps) {
+    const canEdit = registrationWindow.canEdit;
+    const closesAt = registrationWindow.closesAt ? new Date(registrationWindow.closesAt) : null;
     const router = useRouter();
 
     // 1. Initial selection: registered + compulsory across all semesters
@@ -76,6 +89,10 @@ export function ModuleRegistrationView({
     };
 
     const toggleModule = (moduleId: string, semester: RegistrationSemester) => {
+        if (!canEdit) {
+            toast.error(registrationWindow.message || 'Module registration is closed.');
+            return;
+        }
         const module = semester.modules.find(m => m.id === moduleId);
         if (!module) return;
 
@@ -107,6 +124,10 @@ export function ModuleRegistrationView({
     };
 
     const handleSubmitRegistration = async () => {
+        if (!canEdit) {
+            toast.error(registrationWindow.message || 'Module registration is closed.');
+            return;
+        }
         // Validate ALL semesters
         for (const sem of semesters) {
             const credits = getSemCredits(sem);
@@ -140,14 +161,26 @@ export function ModuleRegistrationView({
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
+            {!canEdit && (
+                <Alert className="border-amber-300 bg-amber-50/90 text-amber-950">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                        <strong>View only.</strong> {registrationWindow.message || 'You cannot change module selections right now.'}
+                        {registrationWindow.studentMessage && (
+                            <span className="block mt-2 text-amber-900/90">{registrationWindow.studentMessage}</span>
+                        )}
+                    </AlertDescription>
+                </Alert>
+            )}
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <PageHeader
                     title="Annual Module Registration"
-                    description={`Planning for academic year ${student.academicYear}`}
+                    description={`Planning for academic year ${student.academicYear}${registrationWindow.label ? ` · ${registrationWindow.label}` : ''}`}
                 />
-                
-                {registrationDeadline && (
-                    <motion.div 
+
+                {canEdit && closesAt && (
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="flex items-center gap-3 px-4 py-2 bg-blue-50 text-blue-700 rounded-2xl border border-blue-100 shadow-sm"
@@ -156,13 +189,12 @@ export function ModuleRegistrationView({
                             <Hourglass className="h-4 w-4" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70 leading-none mb-1">Time Remaining</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-70 leading-none mb-1">Time remaining</p>
                             <p className="text-sm font-bold leading-none">
                                 {(() => {
-                                    const end = new Date(registrationDeadline);
                                     const now = new Date();
-                                    const days = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                                    return days > 0 ? `${days} days left to register` : 'Window Closing Soon';
+                                    const days = Math.ceil((closesAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                    return days > 0 ? `${days} days left to register` : 'Window closing soon';
                                 })()}
                             </p>
                         </div>
@@ -177,13 +209,13 @@ export function ModuleRegistrationView({
                             </p>
                         </div>
                         <div className="h-8 w-px bg-primary/20" />
-                        <Button 
+                        <Button
                             className="font-bold shadow-lg shadow-primary/20"
                             size="sm"
-                            disabled={!isGlobalValid || isSubmitting}
+                            disabled={!canEdit || !isGlobalValid || isSubmitting}
                             onClick={handleSubmitRegistration}
                         >
-                            {isSubmitting ? "Processing..." : "Submit Annual Plan"}
+                            {isSubmitting ? 'Processing…' : 'Submit annual plan'}
                         </Button>
                     </CardContent>
                 </Card>
@@ -308,7 +340,9 @@ export function ModuleRegistrationView({
                                                 isSelected={selectedModules.includes(module.id)}
                                                 isInitiallySelected={registeredModuleIds.includes(module.id)}
                                                 prerequisitesMet={checkPrerequisites(module)}
-                                                onToggleSelect={() => toggleModule(module.id, sem)}
+                                                onToggleSelect={
+                                                    canEdit ? () => toggleModule(module.id, sem) : undefined
+                                                }
                                             />
                                         ))}
                                     </div>

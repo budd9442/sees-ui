@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+import { isWithinRegistrationWindow, SELECTION_ROUND_WINDOW_COPY } from '@/lib/registration-time-window';
 
 /**
  * Fetch available specialized paths for the current student
@@ -18,13 +19,29 @@ export async function getAvailableSpecializedPaths() {
 
     if (!student) throw new Error("Student profile not found");
 
-    // 1. Get Deadline from Feature Flag
-    const deadlineFlag = await prisma.featureFlag.findUnique({
-        where: { key: 'pathway_selection' }
-    });
-    
-    const closingDate = deadlineFlag?.endDate || null;
-    const isWindowOpen = closingDate ? new Date() < closingDate : (deadlineFlag?.isEnabled || false);
+    // Window follows HOD-managed selection rounds (OPEN + dates), not feature flags
+    let closingDate: Date | null = null;
+    let isWindowOpen = false;
+    if (student.current_level) {
+        const openRound = await prisma.selectionRound.findFirst({
+            where: {
+                type: 'PATHWAY',
+                status: 'OPEN',
+                level: student.current_level,
+            },
+            orderBy: { created_at: 'desc' },
+        });
+        if (openRound) {
+            closingDate = openRound.closes_at;
+            const w = isWithinRegistrationWindow(
+                openRound.opens_at,
+                openRound.closes_at,
+                new Date(),
+                SELECTION_ROUND_WINDOW_COPY
+            );
+            isWindowOpen = w.ok;
+        }
+    }
 
     // 2. Identify Academic Year
     const activeYear = await prisma.academicYear.findFirst({ where: { active: true } });

@@ -279,11 +279,17 @@ export function UserTable({ initialUsers, totalPages, degreePrograms, role, curr
                                                 onClick={async () => {
                                                     if (confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
                                                         try {
-                                                            await deleteUser(user.user_id);
-                                                            setUsers(users.filter(u => u.user_id !== user.user_id));
-                                                            toast.success("User deleted successfully");
+                                                            const result = await deleteUser(user.user_id);
+                                                            if (result.success) {
+                                                                setUsers(users.filter(u => u.user_id !== user.user_id));
+                                                                toast.success("User deleted successfully");
+                                                            } else {
+                                                                toast.error(result.error || "Failed to delete user");
+                                                                router.refresh(); // Refresh to restore UI state
+                                                            }
                                                         } catch (error) {
-                                                            toast.error("Failed to delete user");
+                                                            toast.error("An error occurred during deletion");
+                                                            router.refresh();
                                                         }
                                                     }
                                                 }}

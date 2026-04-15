@@ -1,5 +1,5 @@
-
 import { prisma } from '@/lib/db';
+import { gradeContributesToGpa } from '@/lib/gpa-utils';
 
 export interface SemesterGPA {
     semesterId: string;
@@ -38,10 +38,12 @@ export class GPAMonitoringService {
         const semesterGroups = grades.reduce((acc, g) => {
             const sId = g.semester_id;
             if (!acc[sId]) acc[sId] = { points: 0, credits: 0, label: g.semester.label || 'Unknown' };
-            
+
+            if (!gradeContributesToGpa(g.module)) return acc;
+
             const points = g.grade_point || 0;
             const credits = g.module.credits || 0;
-            
+
             acc[sId].points += (points * credits);
             acc[sId].credits += credits;
             return acc;

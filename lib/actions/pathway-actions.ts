@@ -22,8 +22,8 @@ export async function submitPathwayPreferences(preferences: {
 
     // 1. Resolve codes to IDs if necessary
     const [p1, p2] = await Promise.all([
-        prisma.degreeProgram.findUnique({ where: { code: preferences.preference1 } }),
-        prisma.degreeProgram.findUnique({ where: { code: preferences.preference2 } })
+        prisma.degreeProgram.findFirst({ where: { code: preferences.preference1 } }),
+        prisma.degreeProgram.findFirst({ where: { code: preferences.preference2 } }),
     ]);
 
     if (!p1 || !p2) throw new Error("Invalid degree program selected.");

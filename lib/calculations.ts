@@ -1,5 +1,7 @@
 // Calculation utility functions for SEES application
 
+import { getAcademicClass } from '@/lib/gpa-utils';
+
 export interface GPAConfig {
   method: 'weighted' | 'cumulative' | 'custom';
   gradePoints: Record<string, number>;
@@ -111,14 +113,9 @@ export const gpaCalculations = {
 // Academic Class Calculations
 export const academicClassCalculations = {
   /**
-   * Determine academic class based on GPA
+   * Determine academic class based on GPA (default ladder; server uses programme rules when configured).
    */
-  determineAcademicClass: (gpa: number): string => {
-    if (gpa >= 3.7) return 'First Class';
-    if (gpa >= 3.0) return 'Second Upper';
-    if (gpa >= 2.5) return 'Second Lower';
-    return 'Third/Pass';
-  },
+  determineAcademicClass: (gpa: number): string => getAcademicClass(gpa),
 
   /**
    * Calculate class distribution

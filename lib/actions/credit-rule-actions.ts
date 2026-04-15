@@ -19,13 +19,12 @@ export async function getAcademicCreditRules() {
  * Fetch a specific rule for a context
  */
 export async function getCreditRuleForContext(level: string, semesterNumber: number) {
-    return await prisma.academicCreditRule.findUnique({
+    return await prisma.academicCreditRule.findFirst({
         where: {
-            level_semester_number: {
-                level,
-                semester_number: semesterNumber
-            }
-        }
+            level,
+            semester_number: semesterNumber,
+            academic_year_id: null,
+        },
     });
 }
 
@@ -38,24 +37,31 @@ export async function saveCreditRule(data: {
     min_credits: number;
     max_credits: number;
 }) {
-    const res = await prisma.academicCreditRule.upsert({
+    const existing = await prisma.academicCreditRule.findFirst({
         where: {
-            level_semester_number: {
-                level: data.level,
-                semester_number: data.semester_number
-            }
-        },
-        update: {
-            min_credits: data.min_credits,
-            max_credits: data.max_credits
-        },
-        create: {
             level: data.level,
             semester_number: data.semester_number,
-            min_credits: data.min_credits,
-            max_credits: data.max_credits
-        }
+            academic_year_id: null,
+        },
     });
+
+    const res = existing
+        ? await prisma.academicCreditRule.update({
+              where: { id: existing.id },
+              data: {
+                  min_credits: data.min_credits,
+                  max_credits: data.max_credits,
+              },
+          })
+        : await prisma.academicCreditRule.create({
+              data: {
+                  level: data.level,
+                  semester_number: data.semester_number,
+                  academic_year_id: null,
+                  min_credits: data.min_credits,
+                  max_credits: data.max_credits,
+              },
+          });
 
     revalidatePath('/dashboard/admin/config/credits');
     return { success: true, rule: res };

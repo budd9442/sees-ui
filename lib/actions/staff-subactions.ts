@@ -2,86 +2,121 @@
 
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
+import {
+    registrationAcademicYearScope,
+    whereRegistrationsForStaffAssignment,
+} from '@/lib/staff-module-enrollment';
+import { resolveGradeFromUploadCell, type GradingBandRow } from '@/lib/grading/marks-to-grade';
+import { getEffectiveGradingBandsForModule } from '@/lib/grading/module-bands';
 
-export async function getStaffAnalytics() {
+export type StaffAnalyticsFilters = {
+    academicYearId?: string | null;
+    semesterId?: string | null;
+};
+
+export async function getStaffAnalyticsFilterOptions() {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error('Unauthorized');
+    if (!['staff', 'advisor', 'hod'].includes(session.user.role)) throw new Error('Unauthorized');
+
+    return prisma.academicYear.findMany({
+        select: {
+            academic_year_id: true,
+            label: true,
+            semesters: { select: { semester_id: true, label: true }, orderBy: { start_date: 'asc' } },
+        },
+        orderBy: { start_date: 'desc' },
+    });
+}
+
+export async function getStaffAnalytics(filters?: StaffAnalyticsFilters) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
     const userId = session.user.id;
 
-    // Find all modules assigned to this staff member
     const staffRecord = await prisma.staff.findUnique({
         where: { staff_id: userId },
         include: {
             assignments: {
                 include: {
-                    module: {
-                        include: {
-                            grades: {
-                                include: {
-                                    student: {
-                                        include: {
-                                            degree_path: true
-                                        }
-                                    }
-                                }
-                            },
-                            module_registrations: {
-                                include: {
-                                    semester: true,
-                                    student: {
-                                        include: {
-                                            degree_path: true
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+                    academic_year: true,
+                    module: true,
+                },
+            },
+        },
     });
 
     if (!staffRecord) throw new Error("Staff profile not found");
 
-    // Format the data to match what the analytics page needs
-    const staffModulesMap = new Map();
+    const staffModulesMap = new Map<string, any>();
 
-    staffRecord.assignments.forEach(assignment => {
-        if (assignment.module && !staffModulesMap.has(assignment.module.module_id)) {
-            const m = assignment.module;
-            staffModulesMap.set(m.module_id, {
-                id: m.module_id,
-                title: m.name,
-                code: m.code,
-                academicYear: m.level || 'L1',
-                semester: m.module_registrations[0]?.semester?.label || 'S1', // Fetch from real DB record
-                grades: m.grades.map(g => ({
-                    studentId: g.student_id,
-                    points: g.grade_point, // Use real grade_point from DB
-                    letterGrade: g.letter_grade,
-                    studentPathway: g.student.degree_path.name,
-                    studentYear: g.student.current_level || 'L1'
-                })),
-                registrations: m.module_registrations.map(r => ({
-                    studentId: r.student_id,
-                    studentPathway: r.student.degree_path.name,
-                    studentYear: r.student.current_level || 'L1'
-                }))
-            });
+    for (const assignment of staffRecord.assignments) {
+        if (!assignment.module || staffModulesMap.has(assignment.module.module_id)) continue;
+        const m = assignment.module;
+        const yearIds = await registrationAcademicYearScope(
+            assignment.academic_year_id,
+            m.academic_year_id,
+            m.code
+        );
+        const regs = await prisma.moduleRegistration.findMany({
+            where:
+                yearIds.length > 0
+                    ? whereRegistrationsForStaffAssignment({
+                          assignmentModuleId: m.module_id,
+                          moduleCode: m.code,
+                          academicYearIds: yearIds,
+                      })
+                    : {
+                          status: { not: 'DROPPED' },
+                          OR: [{ module_id: m.module_id }, { module: { code: { equals: m.code.trim(), mode: 'insensitive' } } }],
+                      },
+            include: {
+                semester: true,
+                student: {
+                    include: {
+                        degree_path: true,
+                        user: true,
+                    },
+                },
+                grade: true,
+            },
+        });
+
+        let regsFiltered = regs;
+        if (filters?.academicYearId) {
+            regsFiltered = regsFiltered.filter(
+                (r) => r.semester.academic_year_id === filters.academicYearId
+            );
         }
-    });
+        if (filters?.semesterId) {
+            regsFiltered = regsFiltered.filter((r) => r.semester_id === filters.semesterId);
+        }
+
+        staffModulesMap.set(m.module_id, {
+            id: m.module_id,
+            title: m.name,
+            code: m.code,
+            academicYear: m.level || 'L1',
+            semester: regsFiltered[0]?.semester?.label || regs[0]?.semester?.label || 'S1',
+            grades: regsFiltered
+                .filter((r) => r.grade)
+                .map((r) => ({
+                    studentId: r.student_id,
+                    points: r.grade!.grade_point,
+                    letterGrade: r.grade!.letter_grade,
+                    studentPathway: r.student.degree_path.name,
+                    studentYear: r.student.current_level || 'L1',
+                })),
+            registrations: regsFiltered.map((r) => ({
+                studentId: r.student_id,
+                studentPathway: r.student.degree_path.name,
+                studentYear: r.student.current_level || 'L1',
+            })),
+        });
+    }
 
     return Array.from(staffModulesMap.values());
-}
-
-function getLetterGrade(marks: number) {
-    if (marks >= 80) return 'A';
-    if (marks >= 65) return 'B';
-    if (marks >= 50) return 'C';
-    if (marks >= 40) return 'D';
-    return 'F';
 }
 
 // ----------------------------------------------------------------------
@@ -92,66 +127,83 @@ export async function getStaffModuleRoster(moduleId: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
-    // First check if staff owns or is assigned to this module
     const assignment = await prisma.staffAssignment.findFirst({
         where: {
             staff_id: session.user.id,
             module_id: moduleId,
-            active: true
-        }
-    });
-
-    if (!assignment) throw new Error("Unauthorized access to this module roster");
-
-    const moduleData = await prisma.module.findUnique({
-        where: { module_id: moduleId },
+            active: true,
+        },
         include: {
-            module_registrations: {
-                include: {
-                    semester: true,
-                    student: {
-                        include: {
-                            user: true,
-                            degree_path: true,
-                            specialization: true,
-                            grades: {
-                                where: { module_id: moduleId }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+            module: true,
+        },
     });
 
-    if (!moduleData) throw new Error("Module not found");
+    if (!assignment?.module) throw new Error("Unauthorized access to this module roster");
 
-    // Format for client
+    const moduleData = assignment.module;
+    const yearIds = await registrationAcademicYearScope(
+        assignment.academic_year_id,
+        moduleData.academic_year_id,
+        moduleData.code
+    );
+
+    const regInclude = {
+        semester: true,
+        student: {
+            include: {
+                user: true,
+                degree_path: true,
+                specialization: true,
+            },
+        },
+        grade: true,
+    };
+
+    const regs =
+        yearIds.length > 0
+            ? await prisma.moduleRegistration.findMany({
+                  where: whereRegistrationsForStaffAssignment({
+                      assignmentModuleId: moduleData.module_id,
+                      moduleCode: moduleData.code,
+                      academicYearIds: yearIds,
+                  }),
+                  include: regInclude,
+              })
+            : await prisma.moduleRegistration.findMany({
+                  where: {
+                      module_id: moduleData.module_id,
+                      status: { not: 'DROPPED' },
+                  },
+                  include: regInclude,
+              });
+
     return {
         id: moduleData.module_id,
         title: moduleData.name,
         code: moduleData.code,
         credits: moduleData.credits,
         academicYear: moduleData.level || 'L1',
-        semester: moduleData.module_registrations[0]?.semester?.label || 'S1',
-        capacity: moduleData.max_students, // Use real capacity
-        students: moduleData.module_registrations.map(reg => {
-            const gradeRecord = reg.student.grades[0];
+        semester: regs[0]?.semester?.label || 'S1',
+        capacity: 60,
+        students: regs.map((reg) => {
+            const gradeRecord = reg.grade;
             return {
                 id: reg.student.student_id,
                 name: `${reg.student.user.firstName} ${reg.student.user.lastName}`,
                 email: reg.student.user.email,
                 academicYear: reg.student.current_level || 'L1',
                 specialization: reg.student.specialization?.name || reg.student.degree_path.name,
-                grade: gradeRecord ? {
-                    points: gradeRecord.grade_point,
-                    letterGrade: gradeRecord.letter_grade,
-                    isReleased: !!gradeRecord.released_at
-                } : null,
-                attendance: 100, // Default to 100 to remove random fluctuations
-                lastActive: reg.student.user.last_login_date?.toISOString() || null
+                grade: gradeRecord
+                    ? {
+                          points: gradeRecord.grade_point,
+                          letterGrade: gradeRecord.letter_grade,
+                          isReleased: !!gradeRecord.released_at,
+                      }
+                    : null,
+                attendance: 100,
+                lastActive: reg.student.user.last_login_date?.toISOString() || null,
             };
-        })
+        }),
     };
 }
 
@@ -168,25 +220,35 @@ export async function getStaffSchedules() {
         where: { staff_id: session.user.id },
         include: {
             assignments: {
+                where: { active: true },
                 include: {
-                    module: true
-                }
-            }
-        }
+                    module: {
+                        include: {
+                            academic_year: { select: { academic_year_id: true, label: true } },
+                        },
+                    },
+                    academic_year: { select: { academic_year_id: true, label: true } },
+                },
+            },
+        },
     });
 
     if (!staffRecord) throw new Error("Staff not found");
 
+    /** One row per staff assignment — keys stay unique even if module_id repeats in bad data; year disambiguates offerings. */
     const modules = staffRecord.assignments
-        .filter(a => a.module !== null)
-        .map(a => ({
+        .filter((a) => a.module !== null)
+        .map((a) => ({
+            assignmentId: a.assignment_id,
             id: a.module!.module_id,
             title: a.module!.name,
             code: a.module!.code,
+            academicYearLabel:
+                a.module!.academic_year?.label ?? a.academic_year?.label ?? null,
         }));
 
     // Fetch schedules for these modules
-    const moduleIds = modules.map(m => m.id);
+    const moduleIds = [...new Set(modules.map((m) => m.id))];
     const schedules = await prisma.lectureSchedule.findMany({
         where: { module_id: { in: moduleIds } }
     });
@@ -274,22 +336,11 @@ export async function getStaffGradesData() {
         include: {
             assignments: {
                 include: {
-                    module: {
-                        include: {
-                            module_registrations: {
-                                include: {
-                                    semester: true,
-                                    student: {
-                                        include: { user: true }
-                                    },
-                                    grade: true
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+                    academic_year: true,
+                    module: true,
+                },
+            },
+        },
     });
 
     if (!staffRecord) throw new Error("Staff not found");
@@ -298,50 +349,97 @@ export async function getStaffGradesData() {
     const grades: any[] = [];
     const studentsMap = new Map<string, any>();
 
-    staffRecord.assignments.forEach(assignment => {
-        if (!assignment.module) return;
+    for (const assignment of staffRecord.assignments) {
+        if (!assignment.module) continue;
 
         const mod = assignment.module;
+        const yearIds = await registrationAcademicYearScope(
+            assignment.academic_year_id,
+            mod.academic_year_id,
+            mod.code
+        );
+
+        const regs = await prisma.moduleRegistration.findMany({
+            where:
+                yearIds.length > 0
+                    ? whereRegistrationsForStaffAssignment({
+                          assignmentModuleId: mod.module_id,
+                          moduleCode: mod.code,
+                          academicYearIds: yearIds,
+                      })
+                    : {
+                          status: { not: 'DROPPED' },
+                          OR: [
+                              { module_id: mod.module_id },
+                              { module: { code: { equals: mod.code.trim(), mode: 'insensitive' } } },
+                          ],
+                      },
+            include: {
+                semester: true,
+                student: { include: { user: true } },
+                grade: true,
+            },
+        });
+
         if (!modules.has(mod.module_id)) {
             modules.set(mod.module_id, {
                 id: mod.module_id,
                 title: mod.name,
                 code: mod.code,
                 credits: mod.credits,
-                academicYear: mod.level || "L1", // Use real level
-                semester: mod.module_registrations[0]?.semester?.label || "S1" // Fetch from reg
+                academicYear: mod.level || 'L1',
+                semester: regs[0]?.semester?.label || 'S1',
             });
         }
 
-        mod.module_registrations.forEach(reg => {
+        for (const reg of regs) {
             if (!studentsMap.has(reg.student_id)) {
                 studentsMap.set(reg.student_id, {
                     id: reg.student_id,
-                    name: reg.student.user.firstName + " " + reg.student.user.lastName,
-                    email: reg.student.user.email
+                    name: reg.student.user.firstName + ' ' + reg.student.user.lastName,
+                    email: reg.student.user.email,
                 });
             }
 
             if (reg.grade) {
                 grades.push({
                     id: reg.grade.grade_id,
+                    gradeId: reg.grade.grade_id,
+                    registrationId: reg.reg_id,
                     studentId: reg.student_id,
                     moduleId: mod.module_id,
-                    grade: reg.grade.marks,
+                    grade: reg.grade.marks ?? null,
                     letterGrade: reg.grade.letter_grade,
                     points: reg.grade.grade_point,
                     credits: mod.credits,
                     isReleased: reg.grade.released_at !== null,
-                    releasedAt: reg.grade.released_at?.toISOString() || null
+                    releasedAt: reg.grade.released_at?.toISOString() || null,
+                    hasGradeRecord: true,
+                });
+            } else {
+                // Roster has registrations but Grade row not created yet — UI still needs a row
+                grades.push({
+                    id: `reg:${reg.reg_id}`,
+                    gradeId: null,
+                    registrationId: reg.reg_id,
+                    studentId: reg.student_id,
+                    moduleId: mod.module_id,
+                    grade: null,
+                    letterGrade: '—',
+                    points: 0,
+                    credits: mod.credits,
+                    isReleased: false,
+                    releasedAt: null,
+                    hasGradeRecord: false,
                 });
             }
-        });
-    });
+        }
+    }
 
     return {
         modules: Array.from(modules.values()),
         grades,
-        students: Array.from(studentsMap.values())
+        students: Array.from(studentsMap.values()),
     };
 }
 
@@ -349,34 +447,67 @@ export async function uploadStaffGrades(gradesData: any[]) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
+    const bandsCache = new Map<string, GradingBandRow[]>();
+    const bandsForModule = async (mid: string) => {
+        if (!bandsCache.has(mid)) {
+            bandsCache.set(mid, await getEffectiveGradingBandsForModule(mid));
+        }
+        return bandsCache.get(mid)!;
+    };
+
     let count = 0;
     await prisma.$transaction(async (tx) => {
         for (const g of gradesData) {
-            // Find module registration first
-            const reg = await tx.moduleRegistration.findFirst({
-                where: { 
+            // g format: { studentId, moduleId, grade: number (marks) | string (letter from scale) }
+
+            let reg = await tx.moduleRegistration.findFirst({
+                where: {
                     student_id: g.studentId,
-                    module_id: g.moduleId
-                }
+                    module_id: g.moduleId,
+                },
             });
 
+            if (!reg && g.moduleId) {
+                const teachMod = await tx.module.findUnique({
+                    where: { module_id: g.moduleId },
+                    select: { code: true },
+                });
+                if (teachMod) {
+                    reg = await tx.moduleRegistration.findFirst({
+                        where: {
+                            student_id: g.studentId,
+                            module: { code: teachMod.code },
+                        },
+                        orderBy: { registration_date: 'desc' },
+                    });
+                }
+            }
+
             if (reg) {
+                const bands = await bandsForModule(reg.module_id);
+                let resolved: { marks: number | null; letter_grade: string; grade_point: number };
+                try {
+                    resolved = resolveGradeFromUploadCell(g.grade as string | number, bands);
+                } catch {
+                    continue;
+                }
+
                 await tx.grade.upsert({
                     where: { reg_id: reg.reg_id },
                     update: {
-                        marks: parseFloat(g.grade),
-                        grade_point: parseFloat(g.points),
-                        letter_grade: g.letterGrade,
+                        marks: resolved.marks,
+                        grade_point: resolved.grade_point,
+                        letter_grade: resolved.letter_grade,
                     },
                     create: {
                         reg_id: reg.reg_id,
                         student_id: g.studentId,
-                        module_id: g.moduleId,
+                        module_id: reg.module_id,
                         semester_id: reg.semester_id,
-                        marks: parseFloat(g.grade),
-                        grade_point: parseFloat(g.points),
-                        letter_grade: g.letterGrade,
-                    }
+                        marks: resolved.marks,
+                        grade_point: resolved.grade_point,
+                        letter_grade: resolved.letter_grade,
+                    },
                 });
                 count++;
             }

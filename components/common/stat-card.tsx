@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,8 @@ interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
+  /** When set, the whole card navigates to this route. */
+  href?: string;
   className?: string;
 }
 
@@ -20,10 +23,17 @@ export function StatCard({
   value,
   icon: Icon,
   trend,
+  href,
   className,
 }: StatCardProps) {
-  return (
-    <Card className={cn('transition-all hover:shadow-lg', className)}>
+  const inner = (
+    <Card
+      className={cn(
+        'h-full transition-all hover:shadow-lg',
+        href && 'hover:border-primary/35 cursor-pointer',
+        className
+      )}
+    >
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
@@ -48,4 +58,17 @@ export function StatCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
+        {inner}
+      </Link>
+    );
+  }
+
+  return inner;
 }

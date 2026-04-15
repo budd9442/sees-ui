@@ -81,15 +81,16 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
     const [emailTemplate, setEmailTemplate] = useState('');
 
     const getStudentAcademicClass = (student: any) => {
+        if (student.academicClass) return student.academicClass;
         const studentGrades = grades.filter((g: any) => g.studentId === student.id && g.isReleased);
         const totalPoints = studentGrades.reduce((sum: number, grade: any) => sum + (grade.points * grade.credits), 0);
         const totalCredits = studentGrades.reduce((sum: number, grade: any) => sum + grade.credits, 0);
         const gpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
-
         if (gpa >= 3.7) return 'First Class';
-        if (gpa >= 3.0) return 'Second Upper';
-        if (gpa >= 2.5) return 'Second Lower';
-        return 'Third/Pass';
+        if (gpa >= 3.3) return 'Second Upper';
+        if (gpa >= 3.0) return 'Second Lower';
+        if (gpa >= 2.5) return 'Third/Pass';
+        return 'Pass';
     };
 
     const getStudentsByClass = () => {
@@ -102,7 +103,11 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
 
         students.forEach((student: any) => {
             const academicClass = getStudentAcademicClass(student);
-            classGroups[academicClass as keyof typeof classGroups].push(student);
+            const key =
+                academicClass in classGroups
+                    ? (academicClass as keyof typeof classGroups)
+                    : 'Third/Pass';
+            classGroups[key].push(student);
         });
 
         return classGroups;

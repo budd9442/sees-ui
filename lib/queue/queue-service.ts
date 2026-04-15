@@ -1,7 +1,10 @@
 import amqp from 'amqplib';
 
-let connection: amqp.Connection | null = null;
-let channel: amqp.Channel | null = null;
+/** amqplib typings do not always align with runtime `connect` / `createChannel` shapes across versions. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let connection: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let channel: any = null;
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
 
@@ -15,7 +18,7 @@ async function getChannel() {
         if (!connection) {
             connection = await amqp.connect(RABBITMQ_URL);
             
-            connection.on('error', (err) => {
+            connection.on('error', (err: unknown) => {
                 console.error('RabbitMQ Connection Error:', err);
                 connection = null;
                 channel = null;

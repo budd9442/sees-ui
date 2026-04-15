@@ -92,8 +92,8 @@ export async function getUsers({
                 details = {
                     gpa: u.student.current_gpa,
                     level: u.student.current_level,
-                    degree: u.student.degree_path.code,
-                    degreeId: u.student.degree_path.program_id,
+                    degree: u.student.degree_path?.code,
+                    degreeId: u.student.degree_path?.program_id,
                     admissionYear: u.student.admission_year,
                     enrollmentStatus: u.student.enrollment_status
                 };
@@ -344,14 +344,55 @@ export async function toggleUserStatus(userId: string, currentStatus: string) {
 
 export async function deleteUser(userId: string) {
     try {
-        // Hard delete implementation
-        await prisma.user.delete({
-            where: { user_id: userId },
+        // Deep cascade delete using a transaction to ensure data integrity
+        await prisma.$transaction(async (tx) => {
+            // 1. Identify user and relations
+            const user = await tx.user.findUnique({
+                where: { user_id: userId },
+                include: { student: true, staff: true }
+            });
+
+            if (!user) return;
+
+            // 2. Clean up common records (System-level)
+            await tx.message.deleteMany({ where: { OR: [{ sender_id: userId }, { recipient_id: userId }] } });
+            await tx.notification.deleteMany({ where: { user_id: userId } });
+            await tx.registrationToken.deleteMany({ where: { user_id: userId } });
+            await tx.passwordResetToken.deleteMany({ where: { user_id: userId } });
+
+            // 3. Clean up role-specific records (Academic/Staff-level)
+            if (user.student) {
+                // Student-specific downstream relations
+                await tx.grade.deleteMany({ where: { student_id: userId } });
+                await tx.moduleRegistration.deleteMany({ where: { student_id: userId } });
+                await tx.gPAHistory.deleteMany({ where: { student_id: userId } });
+                await tx.academicGoal.deleteMany({ where: { student_id: userId } });
+                await tx.ranking.deleteMany({ where: { student_id: userId } });
+                await tx.anonymousReport.deleteMany({ where: { student_id: userId } });
+                await tx.internship.deleteMany({ where: { student_id: userId } });
+            }
+
+            if (user.staff) {
+                // Staff-specific downstream relations
+                await tx.staffAssignment.deleteMany({ where: { staff_id: userId } });
+                await tx.lectureSchedule.deleteMany({ where: { staff_id: userId } });
+                
+                // HOD/Advisor roles (should cascade from Staff schema but ensuring safety)
+                await tx.hOD.deleteMany({ where: { hod_id: userId } });
+                await tx.advisor.deleteMany({ where: { advisor_id: userId } });
+            }
+
+            // 4. Finally delete the user (Downstream Staff/Student should also cascade from here as per schema)
+            await tx.user.delete({
+                where: { user_id: userId },
+            });
         });
+
         revalidatePath('/dashboard/admin/users');
         return { success: true };
     } catch (error) {
-        return { success: false, error: 'Failed to delete user' };
+        console.error(`Failed to delete user ${userId}:`, error);
+        return { success: false, error: 'Database constraint or system error occurred during deletion.' };
     }
 }
 

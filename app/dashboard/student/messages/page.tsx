@@ -1,9 +1,9 @@
 import { Suspense } from 'react';
-import { getStudentMessages } from '@/lib/actions/student-subactions';
-import MessagesClient from './_components/messages-client';
-import Loading from '../loading';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
+import { getMyMessages } from '@/lib/actions/message-actions';
+import DirectMessagesClient from '@/components/messaging/direct-messages-client';
+import Loading from '../loading';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,11 +13,17 @@ export default async function MessagesPage() {
     redirect('/login');
   }
 
-  const data = await getStudentMessages();
+  const { messages, nextCursor } = await getMyMessages({ limit: 100 });
 
   return (
     <Suspense fallback={<Loading />}>
-      <MessagesClient initialMessages={data} currentUserId={session.user.id} />
+      <DirectMessagesClient
+        initialMessages={messages}
+        initialNextCursor={nextCursor}
+        currentUserId={session.user.id}
+        currentUserName={session.user.name || 'You'}
+        listDescription="Message advisors, staff, and other users. New messages appear instantly."
+      />
     </Suspense>
   );
 }

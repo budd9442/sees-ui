@@ -13,13 +13,39 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const formData = await req.formData();
-        const file = formData.get('file') as File;
-        const programId = formData.get('programId') as string;
-        const level = formData.get('level') as string;
+        let records: any[] = [];
+        let filename = 'unknown.csv';
+        let programId: string;
+        let level: string;
 
-        if (!file) {
-            return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+        const contentType = req.headers.get('content-type') || '';
+        
+        if (contentType.includes('application/json')) {
+            const body = await req.json();
+            records = body.records.filter((r: any) => r.status !== 'INVALID');
+            programId = body.programId;
+            level = body.level;
+            filename = body.filename || 'manual_entry.csv';
+        } else {
+            const formData = await req.formData();
+            const file = formData.get('file') as File;
+            programId = formData.get('programId') as string;
+            level = formData.get('level') as string;
+
+            if (!file) {
+                return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+            }
+            filename = file.name;
+
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const content = buffer.toString();
+
+            records = parse(content, {
+                columns: true,
+                skip_empty_lines: true,
+                trim: true,
+                bom: true,
+            }).filter((r: any) => r.email && (r.firstName || r.lastName));
         }
 
         if (!programId || !level) {
@@ -34,16 +60,6 @@ export async function POST(req: Request) {
         if (!program) {
             return NextResponse.json({ error: 'Invalid program selected' }, { status: 400 });
         }
-
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const content = buffer.toString();
-
-        const records = parse(content, {
-            columns: true,
-            skip_empty_lines: true,
-            trim: true,
-            bom: true,
-        }).filter((r: any) => r.email && (r.firstName || r.lastName));
 
         // Calculate admission year based on level
         const currentYear = new Date().getFullYear();
@@ -68,7 +84,7 @@ export async function POST(req: Request) {
         const batch = await prisma.bulkEnrollmentBatch.create({
             data: {
                 uploaded_by: (session.user as any).id || session.user.email || 'unknown',
-                filename: file.name,
+                filename: filename,
                 program_id: programId,
                 level: level,
                 total_records: records.length,
@@ -108,16 +124,25 @@ export async function POST(req: Request) {
             }
 
             try {
-                // Simplified username generation
-                const username = email.split('@')[0];
+                // Use custom identifiers provided via interactive UI, with fallbacks
+                const finalStudentId = record.studentId || record.email.split('@')[0].toUpperCase();
+                const finalUsername = (record.username || email.split('@')[0]).toLowerCase();
                 const tempPassword = generateTempPassword();
                 const passwordHash = await hash(tempPassword, 10);
 
                 const user = await prisma.$transaction(async (tx) => {
+                    // Final safety check for existing user (check both email and studentId)
+                    const existingEmail = await tx.user.findUnique({ where: { email: email.toLowerCase() } });
+                    if (existingEmail) throw new Error("Account already exists.");
+
+                    const existingId = await tx.user.findUnique({ where: { user_id: finalStudentId } });
+                    if (existingId) throw new Error(`Student ID ${finalStudentId} is already in use.`);
+
                     const newUser = await tx.user.create({
                         data: {
+                            user_id: finalStudentId, // Using institutional ID as the PK
                             email: email.toLowerCase(),
-                            username: username.toLowerCase(),
+                            username: finalUsername,
                             firstName: firstName,
                             lastName: lastName,
                             password_hash: passwordHash,
@@ -143,7 +168,7 @@ export async function POST(req: Request) {
                 let emailSentAt = null;
 
                 try {
-                    const emailTemplate = getWelcomeEmail(firstName, username, tempPassword);
+                    const emailTemplate = getWelcomeEmail(firstName, finalUsername, tempPassword);
                     await sendEmail({
                         to: email,
                         toName: firstName,
