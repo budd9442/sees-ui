@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,7 @@ import {
 import { format, formatDistanceToNow } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface SpecializationClientProps {
     initialData: {
@@ -53,6 +54,9 @@ interface SpecializationClientProps {
 
 export function SpecializationClient({ initialData }: SpecializationClientProps) {
     const { currentSpecialization, availableSpecializations, isMIT } = initialData;
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const hasAutoRunTriggered = useRef(false);
     const [isPending, startTransition] = useTransition();
     const [loadingAI, setLoadingAI] = useState(false);
     const [aiAdvice, setAIAdvice] = useState<any>(null);
@@ -138,13 +142,22 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
         return () => { cancel = true; };
     }, [isMIT]);
 
-    const fetchSenseiAdvise = async () => {
+    const fetchSenseiAdvise = useCallback(async () => {
         setLoadingAI(true);
         try {
             const advice = await getSpecializationGuidance();
-            if (advice.isEligible) {
+            if (advice.isEligible && advice.hasRequiredPreferences === false) {
+                setAIAdvice(null);
+                toast.error(advice.message || "Please complete specialization preferences first.");
+                const returnTo = encodeURIComponent('/dashboard/student/specialization?autorun=1');
+                router.push(`/dashboard/student/specialization-preferences?next=${returnTo}`);
+            } else if (advice.isEligible) {
                 setAIAdvice(advice);
-                toast.success("Specialization Sensei analysis complete.");
+                if (advice.decision_source === 'GEMINI') {
+                    toast.success("Specialization Sensei analysis complete (Gemini).");
+                } else {
+                    toast.warning("Analysis completed using fallback logic. Gemini response was unavailable.");
+                }
             } else {
                 toast.error(advice.message);
             }
@@ -153,7 +166,14 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
         } finally {
             setLoadingAI(false);
         }
-    };
+    }, [router]);
+
+    useEffect(() => {
+        if (!isMIT || aiAdvice || loadingAI || hasAutoRunTriggered.current) return;
+        if (searchParams.get('autorun') !== '1') return;
+        hasAutoRunTriggered.current = true;
+        void fetchSenseiAdvise();
+    }, [aiAdvice, fetchSenseiAdvise, isMIT, loadingAI, searchParams]);
 
     const handleConfirmSelection = async () => {
         if (!selectedSpec) return;
@@ -172,10 +192,11 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
     };
 
     // Skills data for Radar Chart
+    const skillVector = aiAdvice?.skill_vector || {};
     const radarData = aiAdvice ? [
-        { subject: 'Technical', A: aiAdvice.skill_vector.Technical, fullMark: 100 },
-        { subject: 'Strategic', A: aiAdvice.skill_vector.Strategic, fullMark: 100 },
-        { subject: 'Operations', A: aiAdvice.skill_vector.Operations, fullMark: 100 },
+        { subject: 'Technical', A: Number(skillVector.Technical ?? 60), fullMark: 100 },
+        { subject: 'Strategic', A: Number(skillVector.Strategic ?? 60), fullMark: 100 },
+        { subject: 'Operations', A: Number(skillVector.Operations ?? 60), fullMark: 100 },
         { subject: 'Analytics', A: 90, fullMark: 100 }
     ] : [
         { subject: 'Technical', A: 60, fullMark: 100 },
@@ -190,6 +211,8 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
     const [chg1, setChg1] = useState<string | null>(null);
     const [chg2, setChg2] = useState<string | null>(null);
     const [chgReason, setChgReason] = useState('');
+    const fitScore = Number(aiAdvice?.fit_score ?? 0);
+    const confidence = fitScore >= 75 ? 'High' : fitScore >= 50 ? 'Medium' : 'Emerging';
 
     useEffect(() => {
         if (!activeRound) return;
@@ -317,9 +340,19 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
                             </div>
 
                             {!aiAdvice && !loadingAI && (
-                                <Button className="w-full" onClick={fetchSenseiAdvise}>
-                                    Run Sensei Analysis
-                                </Button>
+                                <div className="space-y-2">
+                                    <Button className="w-full" onClick={fetchSenseiAdvise}>
+                                        Run Sensei Analysis
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={() => router.push('/dashboard/student/specialization-preferences')}
+                                    >
+                                        Retake / Update Details
+                                    </Button>
+                                </div>
                             )}
                             {loadingAI && <Button disabled className="w-full"><Loader2 className="h-4 w-4 animate-spin mr-2" />Analyzing...</Button>}
 
@@ -327,10 +360,13 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
                                 <div className="p-4 bg-white/50 rounded-xl space-y-3 border border-primary/10">
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs font-bold uppercase text-muted-foreground">Match Found</span>
-                                        <Badge variant="default" className="bg-primary">{aiAdvice.fit_score}% Fit</Badge>
+                                        <Badge variant="default" className="bg-primary">{confidence} Confidence</Badge>
                                     </div>
                                     <h4 className="text-xl font-bold text-primary">{aiAdvice.recommended_specialization} Branch</h4>
                                     <p className="text-xs italic text-muted-foreground">"{aiAdvice.insight}"</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Confidence improves as more academic results and profile signals become available.
+                                    </p>
                                 </div>
                             )}
                         </CardContent>

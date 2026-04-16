@@ -127,6 +127,7 @@ model DegreeProgram {
   source_of_transitions AcademicPathTransition[] @relation("SourceProgram")
   target_of_transitions AcademicPathTransition[] @relation("TargetProgram")
   selection_configs              SelectionRoundConfig[]           @relation("ProgramSelectionConfig")
+  target_selection_rounds        SelectionRound[]                 @relation("SelectionRoundTargetProgram")
   graduation_eligibility_profile GraduationEligibilityProfile?
 
   @@unique([code, academic_year_id])
@@ -669,7 +670,8 @@ model SelectionRound {
   academic_year_id String
   type             String                 // "PATHWAY" | "SPECIALIZATION"
   label            String
-  level            String                 // "L2" | "L3"
+  level            String?                // "L1" | "L2" | "L3" (nullable when targeting by program only)
+  target_program_id String?
   status           String                 @default("DRAFT") // DRAFT | OPEN | CLOSED | APPROVED
   selection_mode   String                 @default("AUTO")  // "AUTO" | "GPA" | "FREE" — AUTO: GPA only when a pathway slot is oversubscribed
   opens_at         DateTime?
@@ -683,7 +685,9 @@ model SelectionRound {
   applications     SelectionApplication[]
   allocation_change_requests SelectionAllocationChangeRequest[]
   academic_year    AcademicYear           @relation(fields: [academic_year_id], references: [academic_year_id])
+  target_program   DegreeProgram?         @relation("SelectionRoundTargetProgram", fields: [target_program_id], references: [program_id])
 
+  @@index([target_program_id])
   @@map("selection_rounds")
 }
 

@@ -1,15 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthStore } from '@/stores/authStore';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -28,13 +25,14 @@ import {
   Network,
   BarChart3,
   CheckCircle,
-  AlertCircle,
   Info,
   Lightbulb,
   Target,
   TrendingUp,
 } from 'lucide-react';
 import type { SpecializationPreference, Specialization } from '@/types';
+import { getSpecializationPreferences, submitSpecializationPreferences } from '@/lib/actions/specialization-actions';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const specializations = [
   {
@@ -67,48 +65,51 @@ const specializations = [
 ];
 
 const technicalInterests = [
-  { id: 'programming', label: 'Programming & Development', description: 'Software development, coding, application building' },
-  { id: 'data', label: 'Data Management & Analytics', description: 'Database design, data analysis, business intelligence' },
-  { id: 'systems', label: 'Systems Integration', description: 'Connecting different systems, enterprise architecture' },
-  { id: 'security', label: 'Information Security', description: 'Cybersecurity, risk management, data protection' },
-  { id: 'networking', label: 'Network Management', description: 'Network administration, infrastructure management' },
-  { id: 'cloud', label: 'Cloud Computing', description: 'Cloud platforms, distributed systems, scalability' },
+  { id: 'business_process', label: 'Business Process Improvement', description: 'Optimizing workflows, redesigning operations, and improving service quality' },
+  { id: 'operations_planning', label: 'Operations Planning', description: 'Capacity planning, scheduling, and performance improvement in operations' },
+  { id: 'supply_chain', label: 'Supply Chain and Logistics', description: 'Procurement, warehousing, transportation, and network coordination' },
+  { id: 'enterprise_systems', label: 'Enterprise Systems', description: 'ERP-enabled business process integration and enterprise coordination' },
+  { id: 'information_governance', label: 'Information and Governance', description: 'Information quality, policy compliance, controls, and assurance' },
+  { id: 'data_decision', label: 'Data-Driven Decision Making', description: 'Managerial analytics, KPI tracking, and evidence-based decisions' },
 ];
 
 const careerFocus = [
-  { id: 'technical', label: 'Technical Roles', description: 'Hands-on technical work, development, implementation' },
-  { id: 'management', label: 'Management Roles', description: 'Leading teams, strategic planning, decision making' },
-  { id: 'consulting', label: 'Consulting Roles', description: 'Advising clients, problem solving, strategic advice' },
-  { id: 'research', label: 'Research & Development', description: 'Innovation, new technology exploration, academic research' },
+  { id: 'process_improvement', label: 'Process Improvement and Optimization', description: 'Improving organizational workflows, efficiency, and service quality' },
+  { id: 'operations_coordination', label: 'Operations Planning and Coordination', description: 'Planning resources, schedules, and execution across teams' },
+  { id: 'logistics_decisions', label: 'Logistics and Distribution Decisions', description: 'Supporting movement of goods/services, inventory, and fulfillment decisions' },
+  { id: 'enterprise_integration', label: 'Enterprise Integration and Digitalization', description: 'Using organization-wide systems to integrate departments and data' },
+  { id: 'governance_risk_controls', label: 'Governance, Risk, and Controls', description: 'Ensuring compliance, controls, and information assurance in organizations' },
+  { id: 'data_for_management', label: 'Data for Managerial Decision-Making', description: 'Using analytics and reporting to support strategic and operational choices' },
 ];
 
 const projectTypes = [
-  { id: 'web_apps', label: 'Web Applications', description: 'Building web-based solutions and platforms' },
-  { id: 'mobile_apps', label: 'Mobile Applications', description: 'Developing mobile apps and responsive solutions' },
-  { id: 'enterprise', label: 'Enterprise Systems', description: 'Large-scale business systems and integrations' },
-  { id: 'data_projects', label: 'Data Projects', description: 'Data analysis, visualization, and insights' },
-  { id: 'automation', label: 'Process Automation', description: 'Automating business processes and workflows' },
-  { id: 'infrastructure', label: 'Infrastructure Projects', description: 'System setup, maintenance, and optimization' },
+  { id: 'process_redesign', label: 'Process Redesign Projects', description: 'Improving cross-functional workflows and service delivery' },
+  { id: 'operations_optimization', label: 'Operations Optimization', description: 'Improving throughput, planning, scheduling, and efficiency' },
+  { id: 'supply_chain_analytics', label: 'Supply Chain Analytics', description: 'Forecasting, inventory decisions, and logistics performance analytics' },
+  { id: 'enterprise_implementation', label: 'Enterprise System Implementation', description: 'ERP/enterprise tool rollout and business integration support' },
+  { id: 'governance_assurance', label: 'Governance and Assurance', description: 'Risk, controls, compliance, and information assurance initiatives' },
+  { id: 'innovation_strategy', label: 'Digital Innovation Strategy', description: 'Technology strategy, innovation, and business model improvement' },
 ];
 
 const learningGoals = [
-  { id: 'technical_skills', label: 'Technical Skills', description: 'Programming, system design, technical implementation' },
-  { id: 'business_skills', label: 'Business Skills', description: 'Business analysis, project management, communication' },
-  { id: 'leadership', label: 'Leadership Skills', description: 'Team management, strategic thinking, decision making' },
-  { id: 'problem_solving', label: 'Problem Solving', description: 'Analytical thinking, creative solutions, troubleshooting' },
+  { id: 'strategic_decision_making', label: 'Strategic Decision Making', description: 'Using business and operational evidence for strategic choices' },
+  { id: 'operations_excellence', label: 'Operations Excellence', description: 'Designing resilient and efficient operating models' },
+  { id: 'supply_chain_resilience', label: 'Supply Chain Resilience', description: 'Building adaptive, reliable, and cost-effective supply networks' },
+  { id: 'information_strategy', label: 'Information Systems Strategy', description: 'Aligning information systems with organizational goals' },
 ];
 
 const skillDevelopment = [
-  { id: 'programming', label: 'Programming Languages', description: 'Java, Python, JavaScript, SQL, etc.' },
-  { id: 'tools', label: 'Development Tools', description: 'IDEs, version control, testing frameworks' },
-  { id: 'frameworks', label: 'Frameworks & Libraries', description: 'React, Spring, Django, etc.' },
-  { id: 'databases', label: 'Database Technologies', description: 'SQL, NoSQL, data modeling' },
-  { id: 'cloud', label: 'Cloud Platforms', description: 'AWS, Azure, Google Cloud' },
-  { id: 'methodologies', label: 'Development Methodologies', description: 'Agile, DevOps, CI/CD' },
+  { id: 'business_analysis', label: 'Business Analysis', description: 'Requirement analysis, stakeholder mapping, and process diagnostics' },
+  { id: 'analytics_reporting', label: 'Analytics and Reporting', description: 'Dashboards, KPI analysis, and managerial reporting' },
+  { id: 'project_program_management', label: 'Project and Program Management', description: 'Planning, risk management, and delivery governance' },
+  { id: 'quality_improvement', label: 'Quality and Continuous Improvement', description: 'Lean thinking, quality controls, and performance improvement' },
+  { id: 'enterprise_tools', label: 'Enterprise Platform Literacy', description: 'ERP and enterprise information platform fluency' },
+  { id: 'leadership_communication', label: 'Leadership and Communication', description: 'Cross-functional coordination, influence, and communication' },
 ];
 
 export default function SpecializationPreferencesPage() {
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [preferences, setPreferences] = useState<Partial<SpecializationPreference>>({
     academicInterests: [],
     careerAspirations: [],
@@ -126,9 +127,37 @@ export default function SpecializationPreferencesPage() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [isLoadingExisting, setIsLoadingExisting] = useState(true);
 
-  const totalSteps = 5;
+  const totalSteps = 4;
+  const returnToRaw = searchParams.get('next');
+  const returnTo = returnToRaw && returnToRaw.startsWith('/')
+    ? returnToRaw
+    : '/dashboard/student/specialization?autorun=1';
+
+  useEffect(() => {
+    let canceled = false;
+    (async () => {
+      try {
+        const existing = await getSpecializationPreferences();
+        if (canceled || !existing.success || !existing.data) return;
+        setPreferences((prev) => ({
+          ...prev,
+          ...existing.data,
+          preferredSpecialization: existing.data.preferredSpecialization ?? undefined,
+          alternativeSpecialization: existing.data.alternativeSpecialization ?? undefined,
+          workEnvironment: existing.data.workEnvironment || undefined,
+          additionalNotes: existing.data.additionalNotes || '',
+        }));
+      } finally {
+        if (!canceled) setIsLoadingExisting(false);
+      }
+    })();
+
+    return () => {
+      canceled = true;
+    };
+  }, []);
 
   const handleArrayChange = (field: keyof SpecializationPreference, value: string, checked: boolean) => {
     setPreferences(prev => ({
@@ -140,13 +169,29 @@ export default function SpecializationPreferencesPage() {
   };
 
   const handleSubmit = async () => {
+    if (!canProceed()) return;
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setSubmitted(true);
+      await submitSpecializationPreferences({
+        academicInterests: preferences.academicInterests || [],
+        careerAspirations: preferences.careerAspirations || [],
+        preferredSpecialization: null,
+        alternativeSpecialization: null,
+        reasoning: preferences.reasoning || '',
+        technicalInterests: preferences.technicalInterests || [],
+        careerFocus: Array.isArray(preferences.careerFocus) ? preferences.careerFocus : [],
+        projectTypes: preferences.projectTypes || [],
+        learningGoals: preferences.learningGoals || [],
+        skillDevelopment: preferences.skillDevelopment || [],
+        workEnvironment: preferences.workEnvironment || '',
+        additionalNotes: preferences.additionalNotes || '',
+      });
+      // Immediately return and auto-run specialization analysis.
+      router.push(returnTo);
     } catch (error) {
       console.error('Error submitting preferences:', error);
+      const message = error instanceof Error ? error.message : 'Failed to submit specialization preferences';
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -156,47 +201,18 @@ export default function SpecializationPreferencesPage() {
     switch (currentStep) {
       case 1: return (preferences.academicInterests?.length || 0) >= 2;
       case 2: return (preferences.careerAspirations?.length || 0) >= 2;
-      case 3: return preferences.preferredSpecialization !== undefined;
+      case 3: return (preferences.careerFocus?.length || 0) >= 1;
       case 4: return preferences.reasoning && preferences.reasoning.length >= 50;
-      case 5: return true;
       default: return false;
     }
   };
 
-  if (submitted) {
+  if (isLoadingExisting) {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <CheckCircle className="h-16 w-16 text-green-600" />
-            </div>
-            <CardTitle className="text-2xl text-green-800">Specialization Preferences Submitted!</CardTitle>
-            <CardDescription className="text-green-700">
-              Your specialization preferences have been recorded and will be used to provide personalized guidance for your academic journey.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <div className="space-y-4">
-              <p className="text-green-700">
-                Based on your preferences, we recommend:
-              </p>
-              <div className="bg-white p-4 rounded-lg border border-green-200 max-w-md mx-auto">
-                <h3 className="font-medium text-green-800 mb-2">Recommended Specialization</h3>
-                <Badge variant="default" className="text-lg px-4 py-2">
-                  {specializations.find(s => s.id === preferences.preferredSpecialization)?.name}
-                </Badge>
-                <p className="text-sm text-green-700 mt-2">
-                  {specializations.find(s => s.id === preferences.preferredSpecialization)?.description}
-                </p>
-              </div>
-              <Button 
-                onClick={() => window.location.href = '/dashboard/student/specialization-selection'}
-                className="mt-6"
-              >
-                Continue to Specialization Selection
-              </Button>
-            </div>
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Loading your previously submitted details...
           </CardContent>
         </Card>
       </div>
@@ -208,7 +224,7 @@ export default function SpecializationPreferencesPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Specialization Preference Collection</h1>
         <p className="text-gray-600">
-          Help us understand your academic interests and career aspirations to recommend the best specialization for you.
+          Share your MIT management and information systems interests so we can recommend the best-fit specialization stream for you.
         </p>
         
         {/* Progress Bar */}
@@ -324,90 +340,37 @@ export default function SpecializationPreferencesPage() {
         </Card>
       )}
 
-      {/* Step 3: Specialization Selection */}
+      {/* Step 3: Specialization Exploration Areas */}
       {currentStep === 3 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Code className="h-5 w-5" />
-              Step 3: Preferred Specialization
+              Step 3: Areas You Want to Explore
             </CardTitle>
             <CardDescription>
-              Based on your interests and career goals, select your preferred specialization.
+              Select the management and information capability areas you want to develop most. The system will infer the best specialization from these signals.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <RadioGroup
-              value={preferences.preferredSpecialization}
-              onValueChange={(value) => setPreferences(prev => ({ ...prev, preferredSpecialization: value as Specialization }))}
-              className="space-y-6"
-            >
-              {specializations.map((specialization) => {
-                const IconComponent = specialization.icon;
-                return (
-                  <div key={specialization.id} className="flex items-start space-x-4 p-6 border rounded-lg hover:bg-gray-50">
-                    <RadioGroupItem value={specialization.id} id={specialization.id} />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <IconComponent className="h-6 w-6 text-blue-600" />
-                        <Label htmlFor={specialization.id} className="font-medium cursor-pointer text-lg">
-                          {specialization.name}
-                        </Label>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-4">{specialization.description}</p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <p className="font-medium text-gray-700 mb-2">Key Skills:</p>
-                          <ul className="space-y-1">
-                            {specialization.skills.map(skill => (
-                              <li key={skill} className="text-gray-600">• {skill}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-700 mb-2">Career Paths:</p>
-                          <ul className="space-y-1">
-                            {specialization.careers.map(career => (
-                              <li key={career} className="text-gray-600">• {career}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-700 mb-2">Key Modules:</p>
-                          <ul className="space-y-1">
-                            {specialization.modules.map(module => (
-                              <li key={module} className="text-gray-600">• {module}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {careerFocus.map((focus) => (
+                <div key={focus.id} className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-gray-50">
+                  <Checkbox
+                    id={focus.id}
+                    checked={preferences.careerFocus?.includes(focus.id) || false}
+                    onCheckedChange={(checked) => handleArrayChange('careerFocus', focus.id, checked as boolean)}
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor={focus.id} className="font-medium cursor-pointer">
+                      {focus.label}
+                    </Label>
+                    <p className="text-sm text-gray-600 mt-1">{focus.description}</p>
                   </div>
-                );
-              })}
-            </RadioGroup>
-
-            {/* Alternative Specialization */}
-            <div className="mt-6">
-              <Label className="text-sm font-medium">Alternative Specialization (Optional)</Label>
-              <p className="text-xs text-gray-600 mb-3">Select a backup option in case your preferred specialization is full</p>
-              <Select
-                value={preferences.alternativeSpecialization}
-                onValueChange={(value) => setPreferences(prev => ({ ...prev, alternativeSpecialization: value as Specialization }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select alternative specialization" />
-                </SelectTrigger>
-                <SelectContent>
-                  {specializations.map(spec => (
-                    <SelectItem key={spec.id} value={spec.id}>
-                      {spec.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                </div>
+              ))}
             </div>
+            <p className="text-xs text-muted-foreground">Select at least one exploration area.</p>
           </CardContent>
         </Card>
       )}
@@ -429,7 +392,7 @@ export default function SpecializationPreferencesPage() {
               <Label htmlFor="reasoning">Why did you choose this specialization? (Minimum 50 characters)</Label>
               <Textarea
                 id="reasoning"
-                placeholder="Explain your reasoning for choosing this specialization..."
+                placeholder="Explain your strengths, preferred module themes, and the type of management/IS work you want to do..."
                 value={preferences.reasoning}
                 onChange={(e) => setPreferences(prev => ({ ...prev, reasoning: e.target.value }))}
                 className="mt-2"
@@ -518,20 +481,15 @@ export default function SpecializationPreferencesPage() {
         </Card>
       )}
 
-      {/* Step 5: Review & Submit */}
-      {currentStep === 5 && (
-        <Card>
+      {currentStep === 4 && (
+        <Card className="mt-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Step 5: Review & Submit
-            </CardTitle>
+            <CardTitle className="text-base">Review Snapshot</CardTitle>
             <CardDescription>
-              Review your specialization preferences before submitting.
+              This profile will be used with your academic record to suggest the best specialization.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
+          <CardContent className="space-y-6">
               <div>
                 <h3 className="font-medium mb-2">Academic Interests</h3>
                 <div className="flex flex-wrap gap-2">
@@ -561,15 +519,17 @@ export default function SpecializationPreferencesPage() {
               </div>
 
               <div>
-                <h3 className="font-medium mb-2">Preferred Specialization</h3>
-                <Badge variant="default" className="text-lg px-4 py-2">
-                  {specializations.find(s => s.id === preferences.preferredSpecialization)?.name}
-                </Badge>
-                {preferences.alternativeSpecialization && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-600">Alternative: {specializations.find(s => s.id === preferences.alternativeSpecialization)?.name}</p>
-                  </div>
-                )}
+                <h3 className="font-medium mb-2">Exploration Areas</h3>
+                <div className="flex flex-wrap gap-2">
+                  {preferences.careerFocus?.map(focusId => {
+                    const focus = careerFocus.find(c => c.id === focusId);
+                    return (
+                      <Badge key={focusId} variant="outline">
+                        {focus?.label}
+                      </Badge>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>
@@ -619,7 +579,6 @@ export default function SpecializationPreferencesPage() {
                   </p>
                 </div>
               )}
-            </div>
           </CardContent>
         </Card>
       )}
@@ -657,8 +616,7 @@ export default function SpecializationPreferencesPage() {
         <Info className="h-4 w-4" />
         <AlertTitle>Need Help?</AlertTitle>
         <AlertDescription>
-          If you're unsure about your specialization choice, you can always update your preferences later. 
-          This information helps us provide better guidance and recommend suitable modules for your specialization.
+          You are not selecting your final specialization here. This profile is used together with your transcript and GPA to generate a recommendation.
         </AlertDescription>
       </Alert>
     </div>

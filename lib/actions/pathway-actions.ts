@@ -3,6 +3,209 @@
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import { GeminiService } from '@/lib/services/gemini-service';
+
+const pathwayGuidancePreferenceSchema = z.object({
+    interests: z.array(z.string().trim()).min(2),
+    strengths: z.array(z.string().trim()).min(2),
+    careerGoals: z.array(z.string().trim()).min(2),
+    reasoning: z.string().trim().min(50),
+    workStyle: z.string().trim().optional(),
+    learningStyle: z.string().trim().optional(),
+    industryInterest: z.array(z.string().trim()).optional(),
+    additionalNotes: z.string().trim().optional(),
+});
+
+function getPathwayPreferencePayload(metadata: unknown) {
+    if (!metadata || typeof metadata !== 'object') return null;
+    const container = metadata as Record<string, unknown>;
+    const raw = container.pathwayPreferences;
+    if (!raw || typeof raw !== 'object') return null;
+    return raw as Record<string, unknown>;
+}
+
+function normalizeList(input?: string[] | null) {
+    return (input ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
+
+function calcKeywordFit(text: string, keywords: string[]) {
+    if (!keywords.length) return 0;
+    const t = text.toLowerCase();
+    const hits = keywords.filter((kw) => t.includes(kw.toLowerCase())).length;
+    return hits / keywords.length;
+}
+
+function clampScore(n: number) {
+    return Math.max(0, Math.min(100, Number(n.toFixed(2))));
+}
+
+export async function submitPathwayGuidancePreferences(input: unknown) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error('Unauthorized');
+
+    const parsed = pathwayGuidancePreferenceSchema.safeParse(input);
+    if (!parsed.success) {
+        throw new Error('Invalid pathway preference payload.');
+    }
+
+    const student = await prisma.student.findUnique({
+        where: { student_id: session.user.id },
+    });
+    if (!student) throw new Error('Student not found.');
+
+    const metadata = (student.metadata ?? {}) as Record<string, unknown>;
+    await prisma.student.update({
+        where: { student_id: session.user.id },
+        data: {
+            metadata: {
+                ...metadata,
+                pathwayPreferences: {
+                    ...parsed.data,
+                    submittedAt: new Date().toISOString(),
+                    source: 'student_pathway_preferences',
+                },
+            },
+        },
+    });
+
+    revalidatePath('/dashboard/student/pathway-preferences');
+    revalidatePath('/dashboard/student/pathway');
+    return { success: true };
+}
+
+export async function getPathwayGuidancePreferences() {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error('Unauthorized');
+
+    const student = await prisma.student.findUnique({
+        where: { student_id: session.user.id },
+    });
+    if (!student) throw new Error('Student not found.');
+
+    const raw = getPathwayPreferencePayload(student.metadata);
+    const parsed = pathwayGuidancePreferenceSchema.safeParse(raw ?? {});
+    if (!parsed.success) return { success: true, data: null };
+    return { success: true, data: parsed.data };
+}
+
+export async function getPathwayGuidance() {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error('Unauthorized');
+
+    const student = await prisma.student.findUnique({
+        where: { student_id: session.user.id },
+        include: {
+            module_registrations: {
+                include: {
+                    module: true,
+                    grade: true,
+                },
+            },
+        },
+    });
+    if (!student) throw new Error('Student not found.');
+
+    const rawPrefs = getPathwayPreferencePayload(student.metadata);
+    const parsedPrefs = pathwayGuidancePreferenceSchema.safeParse(rawPrefs ?? {});
+    if (!parsedPrefs.success) {
+        return {
+            isEligible: true,
+            hasRequiredPreferences: false,
+            message: 'Complete your pathway preference form to get personalized guidance.',
+        };
+    }
+
+    const prefs = parsedPrefs.data;
+    const transcriptRows = student.module_registrations.filter((mr) => !!mr.grade?.released_at);
+    const transcriptText = transcriptRows
+        .map((mr) => `${mr.module.code} ${mr.module.name} ${mr.grade?.letter_grade ?? ''}`)
+        .join(' ')
+        .toLowerCase();
+
+    const preferenceText = [
+        ...normalizeList(prefs.interests),
+        ...normalizeList(prefs.strengths),
+        ...normalizeList(prefs.careerGoals),
+        ...normalizeList(prefs.industryInterest),
+        (prefs.workStyle ?? '').toLowerCase(),
+        (prefs.learningStyle ?? '').toLowerCase(),
+        prefs.reasoning.toLowerCase(),
+        (prefs.additionalNotes ?? '').toLowerCase(),
+    ].join(' ');
+
+    const mitKeywords = [
+        'business', 'management', 'project', 'operations', 'process', 'consulting', 'strategy', 'leadership',
+    ];
+    const itKeywords = [
+        'programming', 'software', 'development', 'technical', 'systems', 'engineering', 'network', 'infrastructure',
+    ];
+
+    const mitScore = clampScore((calcKeywordFit(preferenceText, mitKeywords) * 70) + (calcKeywordFit(transcriptText, mitKeywords) * 30));
+    const itScore = clampScore((calcKeywordFit(preferenceText, itKeywords) * 70) + (calcKeywordFit(transcriptText, itKeywords) * 30));
+
+    const deterministicBreakdown = [
+        {
+            code: 'MIT' as const,
+            score: mitScore,
+            breakdown: {
+                preferenceFit: clampScore(calcKeywordFit(preferenceText, mitKeywords) * 100),
+                transcriptFit: clampScore(calcKeywordFit(transcriptText, mitKeywords) * 100),
+            },
+        },
+        {
+            code: 'IT' as const,
+            score: itScore,
+            breakdown: {
+                preferenceFit: clampScore(calcKeywordFit(preferenceText, itKeywords) * 100),
+                transcriptFit: clampScore(calcKeywordFit(transcriptText, itKeywords) * 100),
+            },
+        },
+    ].sort((a, b) => b.score - a.score);
+
+    const transcriptPayload = transcriptRows.map((mr) => ({
+        moduleCode: mr.module.code,
+        moduleName: mr.module.name,
+        letterGrade: mr.grade?.letter_grade ?? null,
+        marks: mr.grade?.marks ?? null,
+    }));
+
+    const decision = await GeminiService.generatePathwayDecision({
+        currentGpa: student.current_gpa ?? 0,
+        preferences: prefs,
+        transcript: transcriptPayload,
+        deterministicBreakdown,
+    });
+
+    const recommended = deterministicBreakdown.find((s) => s.code === decision.primary_recommendation) ?? deterministicBreakdown[0];
+    const explanation = await GeminiService.generatePathwayGuidanceExplanation({
+        currentGpa: student.current_gpa ?? 0,
+        recommendedPathway: recommended.code,
+        score: decision.fit_score,
+        preferences: prefs,
+        transcript: transcriptPayload,
+    });
+
+    const deterministicSkillVector = {
+        Technical: recommended.code === 'IT' ? 82 : 62,
+        Strategic: recommended.code === 'MIT' ? 86 : 58,
+        Operations: recommended.code === 'MIT' ? 80 : 60,
+    };
+
+    return {
+        isEligible: true,
+        hasRequiredPreferences: true,
+        primary_recommendation: recommended.code,
+        fit_score: decision.fit_score,
+        skill_vector: decision.skill_vector ?? deterministicSkillVector,
+        skill_vector_source: decision.skill_vector ? 'GEMINI' : 'DETERMINISTIC_FALLBACK',
+        supporting_reasons: [...decision.supporting_reasons, ...explanation.supporting_reasons].slice(0, 5),
+        insight: explanation.insight,
+        deterministic_breakdown: deterministicBreakdown,
+        decision_source: decision.modelUsed ? 'GEMINI' : 'DETERMINISTIC_FALLBACK',
+        decision_failure_reason: decision.failureReason,
+    };
+}
 
 /**
  * Submit ranked pathway preferences for a student.

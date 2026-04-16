@@ -6,14 +6,24 @@ import { prisma } from '@/lib/db';
  * Handles direct communication with the Google Gemini API for academic analysis.
  */
 export class GeminiService {
-    private static API_KEY = process.env.GEMINI_API_KEY;
-    private static API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    private static getApiKey() {
+        return process.env.GEMINI_API_KEY?.trim() ?? '';
+    }
+
+    private static getApiUrl() {
+        return (
+            process.env.GEMINI_API_URL?.trim() ||
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
+        );
+    }
 
     /**
      * Generate Pathway Guidance based on Student Transcript
      */
     static async generatePathwayAdvice(studentId: string) {
-        if (!this.API_KEY) {
+        const apiKey = this.getApiKey();
+        const apiUrl = this.getApiUrl();
+        if (!apiKey) {
             console.error("GEMINI_API_KEY is not configured.");
             return this.getFallbackAdvice();
         }
@@ -69,7 +79,7 @@ export class GeminiService {
             `;
 
             // 4. Call Gemini API
-            const response = await fetch(`${this.API_URL}?key=${this.API_KEY}`, {
+            const response = await fetch(`${apiUrl}?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -94,7 +104,9 @@ export class GeminiService {
      * Generate Specialization Guidance for MIT Students
      */
     static async generateSpecializationAdvice(studentId: string) {
-        if (!this.API_KEY) return this.getFallbackSpecializationAdvice();
+        const apiKey = this.getApiKey();
+        const apiUrl = this.getApiUrl();
+        if (!apiKey) return this.getFallbackSpecializationAdvice();
 
         try {
             const student = await prisma.student.findUnique({
@@ -129,7 +141,7 @@ export class GeminiService {
                 }
             `;
 
-            const response = await fetch(`${this.API_URL}?key=${this.API_KEY}`, {
+            const response = await fetch(`${apiUrl}?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -150,6 +162,240 @@ export class GeminiService {
     }
 
     /**
+     * Generate explanation text for a deterministic specialization recommendation.
+     * The model is used for narrative quality only; it does not choose the specialization.
+     */
+    static async generateSpecializationGuidanceExplanation(input: {
+        studentId: string;
+        currentGpa: number;
+        recommendedSpecialization: 'BSE' | 'OSCM' | 'IS';
+        score: number;
+        scoreBreakdown: {
+            preferenceFit: number;
+            transcriptFit: number;
+            careerFit: number;
+            gpaReadiness: number;
+        };
+        preferences: Record<string, unknown>;
+        transcript: Array<{
+            moduleCode: string;
+            moduleName: string;
+            letterGrade: string | null;
+            marks: number | null;
+        }>;
+    }) {
+        const fallback = {
+            insight: `Your profile aligns with ${input.recommendedSpecialization} based on preferences, transcript signals, and GPA readiness.`,
+            reasons: [
+                `Deterministic fit score: ${input.score.toFixed(1)}%.`,
+                `Strongest factor: transcript/preference alignment for ${input.recommendedSpecialization}.`,
+            ],
+        };
+
+        const apiKey = this.getApiKey();
+        const apiUrl = this.getApiUrl();
+        if (!apiKey) return fallback;
+
+        try {
+            const prompt = `
+You are an academic advisor assistant.
+The specialization recommendation has ALREADY been decided by deterministic rules.
+Do not change the recommendation. Only explain it clearly.
+
+Recommendation (fixed): ${input.recommendedSpecialization}
+Overall score: ${input.score}
+Current GPA: ${input.currentGpa}
+Score breakdown: ${JSON.stringify(input.scoreBreakdown)}
+Student preferences: ${JSON.stringify(input.preferences)}
+Transcript summary: ${JSON.stringify(input.transcript)}
+
+Return strict JSON:
+{
+  "insight": "2-3 sentence explanation",
+  "reasons": ["reason 1", "reason 2", "reason 3"]
+}
+`;
+
+            const response = await fetch(`${apiUrl}?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        response_mime_type: 'application/json',
+                        temperature: 0.2,
+                    },
+                }),
+            });
+
+            if (!response.ok) return fallback;
+            const result = await response.json();
+            const rawBody = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawBody) return fallback;
+            const parsed = JSON.parse(rawBody) as { insight?: string; reasons?: string[] };
+            return {
+                insight: parsed.insight || fallback.insight,
+                reasons: Array.isArray(parsed.reasons) && parsed.reasons.length > 0 ? parsed.reasons : fallback.reasons,
+            };
+        } catch {
+            return fallback;
+        }
+    }
+
+    /**
+     * Use Gemini to choose the best specialization from deterministic candidates.
+     * Falls back to deterministic top choice when Gemini is unavailable/invalid.
+     */
+    static async generateSpecializationDecision(input: {
+        currentGpa: number;
+        preferences: Record<string, unknown>;
+        transcript: Array<{
+            moduleCode: string;
+            moduleName: string;
+            letterGrade: string | null;
+            marks: number | null;
+        }>;
+        deterministicBreakdown: Array<{
+            code: 'BSE' | 'OSCM' | 'IS';
+            score: number;
+            breakdown: {
+                preferenceFit: number;
+                transcriptFit: number;
+                careerFit: number;
+                gpaReadiness: number;
+            };
+        }>;
+    }) {
+        const fallbackTop = input.deterministicBreakdown[0];
+        const fallback = {
+            recommended_specialization: fallbackTop.code,
+            fit_score: fallbackTop.score,
+            skill_vector: null as null | { Technical: number; Strategic: number; Operations: number },
+            reasons: [
+                'Gemini decision unavailable; deterministic ranking used.',
+                `Top deterministic candidate: ${fallbackTop.code}.`,
+            ],
+            modelUsed: false,
+            failureReason: 'GEMINI_UNAVAILABLE',
+        };
+
+        const apiKey = this.getApiKey();
+        const apiUrl = this.getApiUrl();
+        if (!apiKey) {
+            return { ...fallback, failureReason: 'MISSING_API_KEY' as const };
+        }
+
+        try {
+            const prompt = `
+You are an academic advisor for BSc (Hons) MIT specialization guidance.
+Choose the BEST specialization among BSE, OSCM, IS using BOTH student profile + transcript + deterministic ranking evidence.
+
+Current GPA: ${input.currentGpa}
+Student profile/preferences: ${JSON.stringify(input.preferences)}
+Transcript summary: ${JSON.stringify(input.transcript)}
+Deterministic ranking evidence: ${JSON.stringify(input.deterministicBreakdown)}
+
+Rules:
+- Return ONLY one recommendation: BSE, OSCM, or IS.
+- Use deterministic evidence as strong signal, but you may choose another branch if profile+transcript justify it.
+- Keep reasons concise and evidence-based.
+
+Return strict JSON:
+{
+  "recommended_specialization": "BSE" | "OSCM" | "IS",
+  "fit_score": 0-100,
+  "skill_vector": { "Technical": 0-100, "Strategic": 0-100, "Operations": 0-100 },
+  "reasons": ["reason 1", "reason 2", "reason 3"]
+}
+`;
+
+            const response = await fetch(`${apiUrl}?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        response_mime_type: 'application/json',
+                        temperature: 0.2,
+                    },
+                }),
+            });
+
+            if (!response.ok) {
+                return {
+                    ...fallback,
+                    failureReason: `HTTP_${response.status}`,
+                };
+            }
+            const result = await response.json();
+            const rawBody = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawBody) return { ...fallback, failureReason: 'EMPTY_MODEL_RESPONSE' as const };
+
+            const parsed = JSON.parse(rawBody) as {
+                recommended_specialization?: string;
+                fit_score?: number;
+                skill_vector?: {
+                    Technical?: number;
+                    Strategic?: number;
+                    Operations?: number;
+                };
+                reasons?: string[];
+            };
+
+            const rec = parsed.recommended_specialization;
+            if (rec !== 'BSE' && rec !== 'OSCM' && rec !== 'IS') {
+                return { ...fallback, failureReason: 'INVALID_MODEL_RECOMMENDATION' as const };
+            }
+
+            const rawSkill = parsed.skill_vector ?? {};
+            const technical =
+                typeof rawSkill.Technical === 'number' && Number.isFinite(rawSkill.Technical)
+                    ? Math.max(0, Math.min(100, Number(rawSkill.Technical.toFixed(2))))
+                    : null;
+            const strategic =
+                typeof rawSkill.Strategic === 'number' && Number.isFinite(rawSkill.Strategic)
+                    ? Math.max(0, Math.min(100, Number(rawSkill.Strategic.toFixed(2))))
+                    : null;
+            const operations =
+                typeof rawSkill.Operations === 'number' && Number.isFinite(rawSkill.Operations)
+                    ? Math.max(0, Math.min(100, Number(rawSkill.Operations.toFixed(2))))
+                    : null;
+
+            const skillVector =
+                technical !== null && strategic !== null && operations !== null
+                    ? {
+                          Technical: technical,
+                          Strategic: strategic,
+                          Operations: operations,
+                      }
+                    : null;
+
+            return {
+                recommended_specialization: rec,
+                fit_score:
+                    typeof parsed.fit_score === 'number' && Number.isFinite(parsed.fit_score)
+                        ? Math.max(0, Math.min(100, Number(parsed.fit_score.toFixed(2))))
+                        : fallbackTop.score,
+                reasons:
+                    Array.isArray(parsed.reasons) && parsed.reasons.length > 0
+                        ? parsed.reasons
+                        : fallback.reasons,
+                skill_vector: skillVector,
+                modelUsed: true,
+                failureReason: null,
+            };
+        } catch (error) {
+            return {
+                ...fallback,
+                failureReason:
+                    error instanceof Error && error.message
+                        ? `EXCEPTION_${error.message}`
+                        : 'EXCEPTION_UNKNOWN',
+            };
+        }
+    }
+
+    /**
      * Fallback for Specialization Advice
      */
     private static getFallbackSpecializationAdvice() {
@@ -166,7 +412,9 @@ export class GeminiService {
      * Generate Academic Recovery Advice for At-Risk Students
      */
     static async generateAcademicRecoveryAdvice(studentId: string, dipAmount: number) {
-        if (!this.API_KEY) return this.getFallbackRecoveryAdvice();
+        const apiKey = this.getApiKey();
+        const apiUrl = this.getApiUrl();
+        if (!apiKey) return this.getFallbackRecoveryAdvice();
 
         try {
             const student = await prisma.student.findUnique({
@@ -209,7 +457,7 @@ export class GeminiService {
                 }
             `;
 
-            const response = await fetch(`${this.API_URL}?key=${this.API_KEY}`, {
+            const response = await fetch(`${apiUrl}?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

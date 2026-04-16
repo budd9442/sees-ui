@@ -75,6 +75,7 @@ export async function getSelectionRounds(academicYearId?: string) {
             where,
             include: {
                 academic_year: { select: { label: true } },
+                target_program: { select: { program_id: true, code: true, name: true } },
                 configs: {
                     include: {
                         program: { select: { code: true, name: true } },
@@ -102,6 +103,7 @@ export async function getSelectionRoundDetail(roundId: string) {
             where: { round_id: roundId },
             include: {
                 academic_year: true,
+                target_program: { select: { program_id: true, code: true, name: true } },
                 configs: {
                     include: {
                         program: true,
@@ -221,6 +223,7 @@ export async function getHODSelectionData() {
         const allRounds = await prisma.selectionRound.findMany({
             include: {
                 academic_year: { select: { label: true } },
+                target_program: { select: { program_id: true, code: true, name: true } },
                 configs: {
                     include: {
                         program: { select: { code: true, name: true } },
@@ -411,7 +414,8 @@ export async function createSelectionRound(data: {
     academic_year_id: string;
     type: RoundType;
     label: string;
-    level: string;
+    level?: string | null;
+    target_program_id?: string | null;
     selection_mode: SelectionMode;
     opens_at?: string;
     closes_at?: string;
@@ -423,12 +427,27 @@ export async function createSelectionRound(data: {
         if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
+        const normalizedLevel = data.level?.trim() || null;
+        const normalizedTargetProgramId = data.target_program_id?.trim() || null;
+        if (!normalizedLevel && !normalizedTargetProgramId) {
+            return { success: false, error: 'Set at least a target level or a target program.' };
+        }
+        if (normalizedTargetProgramId) {
+            const targetProgram = await prisma.degreeProgram.findFirst({
+                where: { program_id: normalizedTargetProgramId, active: true },
+                select: { program_id: true },
+            });
+            if (!targetProgram) {
+                return { success: false, error: 'Target program is invalid or inactive.' };
+            }
+        }
         const round = await prisma.selectionRound.create({
             data: {
                 academic_year_id: data.academic_year_id,
                 type: data.type,
                 label: data.label,
-                level: data.level,
+                level: normalizedLevel,
+                target_program_id: normalizedTargetProgramId,
                 selection_mode: data.selection_mode,
                 allocation_change_grace_days: data.allocation_change_grace_days ?? 0,
                 opens_at: data.opens_at ? new Date(data.opens_at) : null,
@@ -450,7 +469,12 @@ export async function createSelectionRound(data: {
             entityType: 'SELECTION_ROUND',
             entityId: round.round_id,
             category: 'STAFF',
-            metadata: { type: data.type, label: data.label, level: data.level },
+            metadata: {
+                type: data.type,
+                label: data.label,
+                level: normalizedLevel,
+                target_program_id: normalizedTargetProgramId,
+            },
         });
 
         revalidatePath('/dashboard/hod/pathways');
@@ -527,7 +551,8 @@ export async function updateSelectionRoundMeta(
         opens_at?: string | null;
         closes_at?: string | null;
         notes?: string | null;
-        level?: string;
+        level?: string | null;
+        target_program_id?: string | null;
         allocation_change_grace_days?: number;
     }
 ) {
@@ -538,11 +563,29 @@ export async function updateSelectionRoundMeta(
         }
         const round = await prisma.selectionRound.findUnique({
             where: { round_id: roundId },
-            select: { status: true },
+            select: { status: true, level: true, target_program_id: true },
         });
         if (!round) return { success: false, error: 'Round not found' };
         if (round.status === 'APPROVED') {
             return { success: false, error: 'Cannot edit an approved round' };
+        }
+        const targetLevel =
+            data.level !== undefined ? (data.level?.trim() || null) : round.level;
+        const targetProgramId =
+            data.target_program_id !== undefined
+                ? (data.target_program_id?.trim() || null)
+                : round.target_program_id;
+        if (!targetLevel && !targetProgramId) {
+            return { success: false, error: 'Set at least a target level or a target program.' };
+        }
+        if (targetProgramId) {
+            const targetProgram = await prisma.degreeProgram.findFirst({
+                where: { program_id: targetProgramId, active: true },
+                select: { program_id: true },
+            });
+            if (!targetProgram) {
+                return { success: false, error: 'Target program is invalid or inactive.' };
+            }
         }
 
         await prisma.selectionRound.update({
@@ -557,7 +600,10 @@ export async function updateSelectionRoundMeta(
                     ? { closes_at: data.closes_at ? new Date(data.closes_at) : null }
                     : {}),
                 ...(data.notes !== undefined ? { notes: data.notes } : {}),
-                ...(data.level !== undefined ? { level: data.level } : {}),
+                ...(data.level !== undefined ? { level: data.level?.trim() || null } : {}),
+                ...(data.target_program_id !== undefined
+                    ? { target_program_id: data.target_program_id?.trim() || null }
+                    : {}),
                 ...(data.allocation_change_grace_days !== undefined
                     ? { allocation_change_grace_days: Math.max(0, Math.floor(data.allocation_change_grace_days)) }
                     : {}),
@@ -1328,7 +1374,17 @@ export async function getStudentActiveSelectionRound(type: RoundType) {
             where: {
                 type,
                 status: 'OPEN',
-                level: student.current_level,
+                AND: [
+                    {
+                        OR: [{ level: { not: null } }, { target_program_id: { not: null } }],
+                    },
+                    {
+                        OR: [{ level: null }, { level: student.current_level }],
+                    },
+                    {
+                        OR: [{ target_program_id: null }, { target_program_id: student.degree_path.program_id }],
+                    },
+                ],
             },
             include: {
                 configs: {
@@ -1440,7 +1496,17 @@ export async function getStudentActiveSelectionRound(type: RoundType) {
             where: {
                 type,
                 status: 'APPROVED',
-                level: student.current_level,
+                AND: [
+                    {
+                        OR: [{ level: { not: null } }, { target_program_id: { not: null } }],
+                    },
+                    {
+                        OR: [{ level: null }, { level: student.current_level }],
+                    },
+                    {
+                        OR: [{ target_program_id: null }, { target_program_id: student.degree_path.program_id }],
+                    },
+                ],
                 approved_at: { not: null },
                 applications: { some: { student_id: studentId } },
             },
@@ -1837,11 +1903,21 @@ export async function submitSelectionApplication(data: {
 
         const student = await prisma.student.findUnique({
             where: { student_id: studentId },
-            select: { current_gpa: true, current_level: true },
+            select: {
+                current_gpa: true,
+                current_level: true,
+                degree_path: { select: { program_id: true } },
+            },
         });
         if (!student) return { success: false, error: 'Student not found' };
+        if (!round.level && !round.target_program_id) {
+            return { success: false, error: 'This round is misconfigured: no target level or program.' };
+        }
         if (round.level && student.current_level && round.level !== student.current_level) {
             return { success: false, error: 'You are not eligible for this selection round (level mismatch).' };
+        }
+        if (round.target_program_id && round.target_program_id !== student.degree_path.program_id) {
+            return { success: false, error: 'You are not eligible for this selection round (program mismatch).' };
         }
 
         const gpa_at_time = student.current_gpa;

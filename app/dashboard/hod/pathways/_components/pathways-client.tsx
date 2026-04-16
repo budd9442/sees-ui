@@ -97,7 +97,8 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
     const [newRound, setNewRound] = useState({
         type: 'PATHWAY' as RoundType,
         label: '',
-        level: 'L2',
+        level: '',
+        target_program_id: '',
         academic_year_id: academicYears[0]?.academic_year_id || '',
         selection_mode: 'AUTO',
         opens_at: '',
@@ -125,7 +126,8 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
     const [settingsRoundId, setSettingsRoundId] = useState<string>('');
     const [settingsMeta, setSettingsMeta] = useState({
         label: '',
-        level: 'L2',
+        level: '',
+        target_program_id: '',
         selection_mode: 'AUTO',
         opens_at: '',
         closes_at: '',
@@ -172,7 +174,8 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
             setSettingsType(r.type as RoundType);
             setSettingsMeta({
                 label: r.label,
-                level: r.level,
+                level: r.level || '',
+                target_program_id: r.target_program_id || '',
                 selection_mode: r.selection_mode,
                 opens_at: toDatetimeLocalValue(r.opens_at),
                 closes_at: toDatetimeLocalValue(r.closes_at),
@@ -227,6 +230,10 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
     const handleCreateRound = async () => {
         if (!newRound.label || !newRound.academic_year_id) {
             toast.error('Please fill in all required fields');
+            return;
+        }
+        if (!newRound.level && !newRound.target_program_id) {
+            toast.error('Set at least a target level or a target program');
             return;
         }
         startTransition(async () => {
@@ -342,6 +349,10 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
             toast.error('Select a round');
             return;
         }
+        if (!settingsMeta.level && !settingsMeta.target_program_id) {
+            toast.error('Set at least a target level or a target program');
+            return;
+        }
         startTransition(async () => {
             const metaRes = await updateSelectionRoundMeta(settingsRoundId, {
                 label: settingsMeta.label,
@@ -349,7 +360,8 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                 opens_at: settingsMeta.opens_at || null,
                 closes_at: settingsMeta.closes_at || null,
                 notes: settingsMeta.notes || null,
-                level: settingsMeta.level,
+                level: settingsMeta.level || null,
+                target_program_id: settingsMeta.target_program_id || null,
                 allocation_change_grace_days: settingsMeta.allocation_change_grace_days,
             });
             if (!metaRes.success) {
@@ -557,7 +569,7 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                                                         )}
                                                     </div>
                                                     <p className="text-xs text-muted-foreground mt-0.5">
-                                                        {round.academic_year?.label} · Level {round.level} ·
+                                                        {round.academic_year?.label} · Level {round.level || 'Any'} · Program {round.target_program?.code || 'Any'} ·
                                                         {round._count?.applications ?? 0} applications ·
                                                         {round.configs?.length ?? 0} slots configured
                                                     </p>
@@ -629,17 +641,35 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                                         <div className="flex justify-center py-12"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                                     ) : settingsRoundId ? (
                                         <>
-                                            <div className="grid md:grid-cols-2 gap-4">
+                                            <div className="grid md:grid-cols-3 gap-4">
                                                 <div className="space-y-1.5">
                                                     <Label>Label</Label>
                                                     <Input value={settingsMeta.label} onChange={e => setSettingsMeta(m => ({ ...m, label: e.target.value }))} />
                                                 </div>
                                                 <div className="space-y-1.5">
                                                     <Label>Target level</Label>
-                                                    <Select value={settingsMeta.level} onValueChange={v => setSettingsMeta(m => ({ ...m, level: v }))}>
+                                                    <Select value={settingsMeta.level || '__none'} onValueChange={v => setSettingsMeta(m => ({ ...m, level: v === '__none' ? '' : v }))}>
                                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                                         <SelectContent>
+                                                            <SelectItem value="__none">Any level</SelectItem>
                                                             {['L1', 'L2', 'L3', 'L4'].map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <Label>Target program</Label>
+                                                    <Select
+                                                        value={settingsMeta.target_program_id || '__none'}
+                                                        onValueChange={v => setSettingsMeta(m => ({ ...m, target_program_id: v === '__none' ? '' : v }))}
+                                                    >
+                                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="__none">Any program</SelectItem>
+                                                            {programs.map((p: any) => (
+                                                                <SelectItem key={p.program_id} value={p.program_id}>
+                                                                    {p.code} — {p.name}
+                                                                </SelectItem>
+                                                            ))}
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -774,7 +804,9 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                                                         <Badge variant="outline" className="text-[9px]">FCFS</Badge>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">{roundDetail.academic_year?.label} · Level {roundDetail.level}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {roundDetail.academic_year?.label} · Level {roundDetail.level || 'Any'} · Program {roundDetail.target_program?.code || 'Any'}
+                                                </p>
                                             </div>
                                         </div>
                                         <div className="flex gap-2">
@@ -1081,6 +1113,7 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                                         <TableHead>Type</TableHead>
                                         <TableHead>Academic Year</TableHead>
                                         <TableHead>Level</TableHead>
+                                        <TableHead>Program</TableHead>
                                         <TableHead>Mode</TableHead>
                                         <TableHead>Applications</TableHead>
                                         <TableHead>Status</TableHead>
@@ -1094,7 +1127,10 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                                             <TableCell className="font-medium">{round.label}</TableCell>
                                             <TableCell><TypeBadge type={round.type} /></TableCell>
                                             <TableCell className="text-sm">{round.academic_year?.label}</TableCell>
-                                            <TableCell><Badge variant="outline">{round.level}</Badge></TableCell>
+                                            <TableCell><Badge variant="outline">{round.level || 'Any'}</Badge></TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">{round.target_program?.code || 'Any'}</Badge>
+                                            </TableCell>
                                             <TableCell>
                                                 {round.selection_mode === 'AUTO' && (
                                                     <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 text-[10px]">Auto</Badge>
@@ -1372,15 +1408,33 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                             <Label>Round Label *</Label>
                             <Input className="min-w-0 max-w-full" placeholder="e.g. 2024/25 L2 Pathway Selection" value={newRound.label} onChange={e => setNewRound(r => ({ ...r, label: e.target.value }))} />
                         </div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <div className="min-w-0 space-y-1.5">
                                 <Label>Target Level</Label>
-                                <Select value={newRound.level} onValueChange={v => setNewRound(r => ({ ...r, level: v }))}>
+                                <Select value={newRound.level || '__none'} onValueChange={v => setNewRound(r => ({ ...r, level: v === '__none' ? '' : v }))}>
                                     <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="__none">Any level</SelectItem>
                                         <SelectItem value="L1">Level 1</SelectItem>
                                         <SelectItem value="L2">Level 2</SelectItem>
                                         <SelectItem value="L3">Level 3</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="min-w-0 space-y-1.5">
+                                <Label>Target Program</Label>
+                                <Select
+                                    value={newRound.target_program_id || '__none'}
+                                    onValueChange={v => setNewRound(r => ({ ...r, target_program_id: v === '__none' ? '' : v }))}
+                                >
+                                    <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="__none">Any program</SelectItem>
+                                        {programs.map((p: any) => (
+                                            <SelectItem key={p.program_id} value={p.program_id}>
+                                                {p.code} — {p.name}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
