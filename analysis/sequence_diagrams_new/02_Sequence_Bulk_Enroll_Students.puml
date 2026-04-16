@@ -1,0 +1,28 @@
+@startuml
+Title Bulk Enroll Students
+
+actor Admin
+control AdminController as Controller
+entity User
+entity Student
+
+== Upload ==
+Admin -> Controller: uploadEnrollmentFile()
+Controller -> Controller: validateSchema()
+Controller --> Admin: ack
+
+== Processing ==
+loop for each row
+  Controller -> Controller: validateRow()
+  Controller -> User: checkDuplicate()
+  User --> Controller: exists?
+  Controller -> User: createUserAccount()
+  User --> Controller: userId
+  Controller -> Student: createStudentProfile()
+  Student --> Controller: studentId
+end
+
+== Summary ==
+Controller -> Admin: returnSummary()
+
+@enduml

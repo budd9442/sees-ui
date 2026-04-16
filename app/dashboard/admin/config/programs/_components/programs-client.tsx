@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { exportTabularData } from '@/lib/export';
 import {
     createProgram,
     updateProgram,
@@ -142,8 +143,23 @@ export default function ProgramsConfigClient({ initialData }: { initialData: any
         }
     };
 
-    const exportPrograms = (format: 'pdf' | 'excel' | 'csv') => {
-        toast.success(`Programs exported as ${format.toUpperCase()} successfully!`);
+    const exportPrograms = async (format: 'pdf' | 'excel' | 'csv') => {
+        try {
+            const rows = degreePrograms.map((program: any) => ({
+                name: program.name,
+                code: program.code,
+                description: program.description || '',
+                durationYears: program.duration,
+                totalCredits: program.totalCredits,
+                status: program.status,
+                pathways: (program.pathways || []).join(', '),
+                moduleCount: (program.moduleMappings || []).length,
+            }));
+            await exportTabularData(rows, format, { filename: `programs-${Date.now()}` });
+            toast.success(`Programs exported as ${format.toUpperCase()}`);
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export programs');
+        }
     };
 
     const getStatusColor = (status: string) => {
@@ -163,7 +179,7 @@ export default function ProgramsConfigClient({ initialData }: { initialData: any
                     <p className="text-muted-foreground mt-1">Configure degree programs, pathways, and specializations</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => exportPrograms('csv')}><Download className="mr-2 h-4 w-4" />Export Programs</Button>
+                    <Button variant="outline" onClick={() => void exportPrograms('csv')}><Download className="mr-2 h-4 w-4" />Export Programs</Button>
                     <Button onClick={() => setShowCreateDialog(true)}><Plus className="mr-2 h-4 w-4" />Create Program</Button>
                 </div>
             </div>

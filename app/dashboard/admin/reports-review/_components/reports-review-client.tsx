@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateAdminAnonymousReport } from '@/lib/actions/admin-actions';
+import { exportTabularData } from '@/lib/export';
 
 export default function ReportsReviewClient({ initialData }: { initialData: any }) {
     const { user } = useAuthStore();
@@ -99,8 +100,22 @@ export default function ReportsReviewClient({ initialData }: { initialData: any 
         }
     };
 
-    const handleExportReports = (format: 'pdf' | 'excel' | 'csv') => {
-        toast.success(`Reports exported as ${format.toUpperCase()} successfully!`);
+    const handleExportReports = async (format: 'pdf' | 'excel' | 'csv') => {
+        try {
+            const rows = filteredReports.map((report: any) => ({
+                id: report.id,
+                title: report.title,
+                category: report.category,
+                priority: report.priority,
+                status: report.status,
+                assignedTo: report.assignedTo || '',
+                submittedAt: report.submittedAt,
+            }));
+            await exportTabularData(rows, format, { filename: `anonymous-reports-${Date.now()}` });
+            toast.success(`Reports exported as ${format.toUpperCase()}`);
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export reports');
+        }
     };
 
     const getStatusColor = (status: string) => {
@@ -174,7 +189,7 @@ export default function ReportsReviewClient({ initialData }: { initialData: any 
                     <p className="text-muted-foreground mt-1">Review and manage anonymous reports submitted by students</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => handleExportReports('pdf')}><Download className="mr-2 h-4 w-4" /> Export Reports</Button>
+                    <Button variant="outline" onClick={() => void handleExportReports('pdf')}><Download className="mr-2 h-4 w-4" /> Export Reports</Button>
                 </div>
             </div>
 

@@ -1,0 +1,70 @@
+<mxfile host="65bd71144e">
+    <diagram name="UC-06 Check Eligibility Activity" id="act-uc-06">
+        <mxGraphModel dx="442" dy="570" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="lane_staff" value="Staff/HOD" style="swimlane;whiteSpace=wrap" parent="1" vertex="1">
+                    <mxGeometry x="40" y="40" width="200" height="350" as="geometry"/>
+                </mxCell>
+                <mxCell id="start" value="" style="ellipse;shape=startState;fillColor=#FFFFFF;strokeColor=#000000;" parent="lane_staff" vertex="1">
+                    <mxGeometry x="80" y="30" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="a1" value="Retrieve Student &#10;Records" style="" parent="lane_staff" vertex="1">
+                    <mxGeometry x="40" y="100" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="a2" value="Check Requirements &#10;Manually" style="" parent="lane_staff" vertex="1">
+                    <mxGeometry x="40" y="180" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="a3" value="Document Eligibility" style="" parent="lane_staff" vertex="1">
+                    <mxGeometry x="40" y="260" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_staff" source="start" target="a1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_staff" source="a1" target="a2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_staff" source="a2" target="a3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane_manual" value="Manual Process" style="swimlane;whiteSpace=wrap" parent="1" vertex="1">
+                    <mxGeometry x="240" y="40" width="300" height="350" as="geometry"/>
+                </mxCell>
+                <mxCell id="a4" value="Verify Credits &amp; GPA" style="" parent="lane_manual" vertex="1">
+                    <mxGeometry x="40" y="60" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="d1" value="Eligible for&#10;Graduation?" style="rhombus;fillColor=#ffffff;strokeColor=#000000;fontColor=#272525;" parent="lane_manual" vertex="1">
+                    <mxGeometry x="50" y="142" width="100" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="a5" value="Determine &#10;Class Standing&#10;(First/Second..)" style="" parent="lane_manual" vertex="1">
+                    <mxGeometry x="174" y="100" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#000000;exitX=1.025;exitY=0.513;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="lane_manual" source="error1" target="end">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="error1" value="Not Eligible&#10;(Incomplete)" style="" parent="lane_manual" vertex="1">
+                    <mxGeometry x="50" y="289" width="100" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="end" value="" style="ellipse;shape=endState;fillColor=#f5f5f5;strokeColor=#666666" parent="lane_manual" vertex="1">
+                    <mxGeometry x="224" y="300" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;exitX=0.519;exitY=1.031;exitDx=0;exitDy=0;exitPerimeter=0;" parent="lane_manual" source="a4" target="d1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" value="[No]" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=0.497;entryY=0.001;entryDx=0;entryDy=0;entryPerimeter=0;" parent="lane_manual" source="d1" target="error1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" value="[Yes]" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=0.011;entryY=0.52;entryDx=0;entryDy=0;entryPerimeter=0;" parent="lane_manual" source="d1" target="a5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;exitX=0.541;exitY=1.013;exitDx=0;exitDy=0;exitPerimeter=0;" parent="lane_manual" source="a5" target="end" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;exitX=1.016;exitY=0.554;exitDx=0;exitDy=0;exitPerimeter=0;entryX=-0.02;entryY=0.492;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="a3" target="a4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

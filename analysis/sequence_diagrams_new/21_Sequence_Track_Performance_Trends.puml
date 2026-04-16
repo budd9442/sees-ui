@@ -1,0 +1,33 @@
+@startuml
+Title Track Performance Trends (HOD)
+
+actor "Head of Department" as HOD
+control HODController as Controller
+entity Student
+entity Ranking
+entity GPAHistory
+
+== Generate Performance Trends ==
+HOD -> Controller: generatePerformanceReport()
+Controller -> Student: getAllStudents()
+Student --> Controller: studentList
+Controller -> GPAHistory: getGPAHistory()
+GPAHistory --> Controller: gpaHistoryList
+Controller -> Ranking: getLatestRankings()
+Ranking --> Controller: rankingList
+Controller -> Controller: calculateTrends()
+Controller --> HOD: displayTrendReport()
+
+== Risk Analysis ==
+HOD -> Controller: getRiskAlerts()
+Controller -> GPAHistory: getDecliningGPA()
+GPAHistory --> Controller: decliningStudents
+Controller --> HOD: displayRiskAlerts()
+
+== Export Report ==
+opt export trends report
+  HOD -> Controller: exportReport()
+  Controller --> HOD: downloadFile()
+end
+
+@enduml

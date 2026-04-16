@@ -56,6 +56,7 @@ import {
     Mail,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportTabularData } from '@/lib/export';
 
 function safeLower(v: unknown): string {
     if (v == null) return '';
@@ -131,8 +132,22 @@ export default function LogsClient({ initialData }: { initialData: any }) {
         setShowLogDialog(true);
     };
 
-    const handleExportLogs = (format: 'csv' | 'json' | 'pdf') => {
-        toast.success(`Logs exported as ${format.toUpperCase()} successfully!`);
+    const handleExportLogs = async (format: 'csv' | 'json' | 'pdf') => {
+        try {
+            const rows = filteredLogs.map((log: Record<string, unknown>) => ({
+                timestamp: String(log.timestamp ?? ''),
+                user: logUserEmail(log),
+                userId: logUserId(log),
+                action: logAction(log),
+                resource: logResource(log),
+                level: logStatus(log),
+                details: logDetails(log),
+            }));
+            await exportTabularData(rows, format, { filename: `system-logs-${Date.now()}` });
+            toast.success(`Logs exported as ${format.toUpperCase()}`);
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export logs');
+        }
     };
 
     const getLevelColor = (level: string) => {
@@ -245,7 +260,7 @@ export default function LogsClient({ initialData }: { initialData: any }) {
                     <p className="text-muted-foreground mt-1">View and analyze system audit logs and activities</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => handleExportLogs('csv')}><Download className="mr-2 h-4 w-4" /> Export Logs</Button>
+                    <Button variant="outline" onClick={() => void handleExportLogs('csv')}><Download className="mr-2 h-4 w-4" /> Export Logs</Button>
                 </div>
             </div>
 

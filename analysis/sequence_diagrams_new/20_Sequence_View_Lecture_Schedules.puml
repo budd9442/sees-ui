@@ -1,0 +1,22 @@
+@startuml
+Title View Lecture Schedules
+
+actor Student
+control ScheduleController as Controller
+entity ModuleRegistration as ModReg
+entity Module
+
+== View Schedule ==
+Student -> Controller: viewLectureSchedules()
+Controller -> ModReg: getRegisteredModules()
+ModReg --> Controller: moduleList
+loop for each module
+  Controller -> Module: getSchedulesForModule()
+  Module --> Controller: scheduleList
+  Controller -> Module: getModuleInfo()
+  Module --> Controller: moduleInfo
+end
+Controller -> Controller: buildTimetable()
+Controller --> Student: displayTimetable()
+
+@enduml

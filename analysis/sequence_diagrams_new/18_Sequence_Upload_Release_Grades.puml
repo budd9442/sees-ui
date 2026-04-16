@@ -1,0 +1,39 @@
+@startuml
+Title Upload and Release Grades
+
+actor Staff
+control GradeController as Controller
+entity Grade
+entity GradingScheme as Scheme
+entity Student
+
+== Upload ==
+Staff -> Controller: accessGradeUpload()
+Controller -> Module: validateInstructor()
+Module --> Controller: authorized
+Controller -> Scheme: getActiveScheme()
+Scheme --> Controller: gradingScheme
+Controller --> Staff: displayUploadForm()
+
+Staff -> Controller: uploadGrades()
+loop for each student
+  Controller -> Scheme: getGradePoint()
+  Scheme --> Controller: gradePoint
+  Controller -> Grade: create()
+  Grade --> Controller: gradeId
+end
+Controller --> Staff: showValidationSummary()
+
+== Release ==
+Staff -> Controller: releaseGrades()
+Controller -> Grade: updateReleasedAt()
+Grade --> Controller: success
+loop for each student
+  Controller -> Student: calculateCurrentGpa()
+  Student --> Controller: newGpa
+  Controller -> Student: getAcademicClass()
+  Student --> Controller: newClass
+end
+Controller --> Staff: showReleaseConfirmation()
+
+@enduml

@@ -1,0 +1,25 @@
+@startuml
+Title Modify Lecture Schedules
+
+actor Staff
+control ScheduleController as Controller
+entity LectureSchedule as Schedule
+entity Module
+
+== View Current Schedule ==
+Staff -> Controller: viewModuleSchedule()
+Controller -> Module: validateInstructor()
+Module --> Controller: authorized
+Controller -> Schedule: getSchedules()
+Schedule --> Controller: scheduleList
+Controller --> Staff: displaySchedules()
+
+== Modify Schedule ==
+Staff -> Controller: updateSchedule()
+Controller -> Schedule: getConflicts()
+Schedule --> Controller: conflicts
+Controller -> Schedule: updateSchedule()
+Schedule --> Controller: updated
+Controller --> Staff: showConfirmation()
+
+@enduml

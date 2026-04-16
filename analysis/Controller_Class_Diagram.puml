@@ -1,0 +1,247 @@
+@startuml Controller_Class_Diagram
+!theme plain
+
+hide circle
+hide stereotype
+
+skinparam class {
+  AttributeIconSize 0
+  BackgroundColor white
+  BorderColor black
+  FontColor black
+  FontSize 9
+  FontStyle bold
+}
+skinparam shadowing false
+skinparam linetype ortho
+skinparam direction left to right
+skinparam packageStyle rectangle
+
+title Student Enrollment and Evaluation System (SEES) - Controller Class Diagram
+
+' ==========================================
+' CONTROLLER CLASSES
+' ==========================================
+
+class LoginController {
+    - email: String
+    - password: String
+    --
+    + getEmail(): String
+    + getPassword(): String
+    + validateCredential(): boolean
+    + setEmail(email): void
+    + setPassword(password): void
+    + authenticateUser(): User
+}
+
+class RegistrationController {
+    - firstName: String
+    - lastName: String
+    - email: String
+    - role: String
+    --
+    + registerStudent(): boolean
+    + registerStaff(): boolean
+    + validateRegistration(): boolean
+    + generateStudentId(): String
+    + setUserRole(role): void
+    + storeUserDetails(): void
+}
+
+class StudentController {
+    - studentId: String
+    - currentLevel: String
+    - enrollmentStatus: String
+    --
+    + registerStudent(): boolean
+    + loginStudent(): boolean
+    + selectDegreePath(): boolean
+    + selectSpecialization(): boolean
+    + registerForModules(): boolean
+    + viewGrades(): List<Grade>
+    + trackGPA(): Double
+    + submitAnonymousReport(): boolean
+    + getStudentId(): String
+    + setCurrentLevel(level): void
+}
+
+class PathwayController {
+    - degreePathId: String
+    - pathwayName: String
+    - capacity: int
+    --
+    + selectDegreePath(): boolean
+    + checkCapacity(): int
+    + allocateByGPA(): List<Student>
+    + validatePrerequisites(): boolean
+    + getDegreePathId(): String
+    + setCapacity(capacity): void
+}
+
+class SpecializationController {
+    - specializationId: String
+    - specializationName: String
+    - degreePathId: String
+    --
+    + selectSpecialization(): boolean
+    + checkCapacity(): int
+    + validatePrerequisites(): boolean
+    + getSpecializationId(): String
+    + setDegreePathId(pathId): void
+}
+
+class ModuleController {
+    - moduleId: String
+    - moduleName: String
+    - credits: int
+    - level: String
+    - capacity: int
+    --
+    + registerForModule(): boolean
+    + checkPrerequisites(): boolean
+    + validateCreditLimit(): boolean
+    + getModuleId(): String
+    + setCredits(credits): void
+}
+
+class GradeController {
+    - gradeId: String
+    - studentId: String
+    - moduleId: String
+    - semesterId: String
+    - marks: double
+    - attemptNo: int
+    --
+    + uploadGrades(): boolean
+    + releaseGrades(): boolean
+    + calculateGradePoint(): double
+    + getGradeId(): String
+    + setMarks(marks): void
+}
+
+class GPAController {
+    - studentId: String
+    - currentGPA: double
+    - academicClass: String
+    - calculationDate: Date
+    --
+    + calculateCurrentGPA(): double
+    + getAcademicClass(): String
+    + setAcademicGoal(): boolean
+    + trackProgress(): double
+    + getStudentId(): String
+    + setCurrentGPA(gpa): void
+}
+
+class StaffController {
+    - staffId: String
+    - staffName: String
+    - staffType: String
+    --
+    + registerStaff(): boolean
+    + loginStaff(): boolean
+    + uploadGrades(): boolean
+    + modifySchedule(): boolean
+    + manageModuleInfo(): boolean
+    + getStaffId(): String
+    + setStaffType(type): void
+}
+
+class ScheduleController {
+    - scheduleId: String
+    - moduleId: String
+    - dayOfWeek: String
+    - startTime: Time
+    --
+    + viewSchedule(): List<Schedule>
+    + updateSchedule(): boolean
+    + detectConflicts(): List<Conflict>
+    + notifyStudents(): boolean
+    + getScheduleId(): String
+    + setStartTime(time): void
+}
+
+class AdminController {
+    - adminId: String
+    - adminName: String
+    - permissions: List<String>
+    --
+    + bulkEnrollStudents(): boolean
+    + manageUserAccounts(): boolean
+    + configureSystemSettings(): boolean
+    + generateReports(): List<Report>
+    + getAdminId(): String
+    + setPermissions(perms): void
+}
+
+class ReportController {
+    - reportId: String
+    - reportName: String
+    - generateDate: Date
+    - priority: String
+    --
+    + generatePerformanceReport(): Report
+    + generateEnrollmentReport(): Report
+    + generateGradeReport(): Report
+    + exportReport(): File
+    + getReportId(): String
+    + setGenerateDate(date): void
+}
+
+class MessageController {
+    - messageId: String
+    - senderId: String
+    - recipientId: String
+    --
+    + sendMessage(): boolean
+    + receiveMessage(): Message
+    + markAsRead(): boolean
+    + getMessageId(): String
+    + setRecipientId(id): void
+}
+
+class NotificationController {
+    - notificationId: String
+    - recipientId: String
+    - notificationType: String
+    --
+    + sendNotification(): boolean
+    + getNotifications(): List<Notification>
+    + markAsRead(): boolean
+    + getNotificationId(): String
+    + setNotificationType(type): void
+}
+
+' ==========================================
+' RELATIONSHIPS (CLEAN VERSION)
+' ==========================================
+
+LoginController --> StudentController : authenticates
+LoginController --> StaffController : authenticates
+RegistrationController --> StudentController : creates
+RegistrationController --> StaffController : creates
+
+StudentController --> PathwayController : selects
+StudentController --> SpecializationController : selects
+StudentController --> ModuleController : registers
+StudentController --> GPAController : tracks
+PathwayController --> SpecializationController : enables
+
+GradeController --> GPAController : updates
+ModuleController --> GradeController : enables
+StaffController --> GradeController : manages
+StaffController --> ScheduleController : manages
+
+AdminController --> StudentController : manages
+AdminController --> StaffController : manages
+AdminController --> ReportController : generates
+ReportController --> GPAController : accesses
+ReportController --> GradeController : accesses
+
+MessageController ..> StudentController : notifies
+MessageController ..> StaffController : notifies
+NotificationController ..> StudentController : notifies
+NotificationController ..> StaffController : notifies
+
+@enduml

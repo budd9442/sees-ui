@@ -1,0 +1,38 @@
+@startuml
+Title Select Degree Path
+
+actor "L1 Student" as Student
+control PathwayController as Controller
+entity DegreePath as Path
+entity Student as Stu
+entity SystemSetting as Setting
+entity PathwayPreference as Preference
+
+== Browse Pathways ==
+Student -> Controller: accessPathwaySelection()
+Controller -> Setting: getValue("PATHWAY_SELECTION_ACTIVE")
+Setting --> Controller: selectionActive
+Controller -> Path: getAvailablePaths()
+Path --> Controller: pathList
+Controller --> Student: displayPaths()
+
+== Submit Preferences ==
+Student -> Controller: submitPathwayPreferences()
+Controller -> Preference: create()
+Preference --> Controller: preferenceId
+Controller -> Preference: storePreferences()
+Preference --> Controller: stored
+Controller --> Student: showConfirmation()
+
+== Bulk Processing (After Period Ends) ==
+Controller -> Preference: getAllPreferences()
+Preference --> Controller: allPreferences
+Controller -> Stu: getAllStudents()
+Stu --> Controller: studentList
+Controller -> Controller: calculateDemand()
+Controller -> Controller: rankStudentsByGpa()
+Controller -> Stu: setDegreePath()
+Stu --> Controller: updated
+Controller --> Student: showAllocationResult()
+
+@enduml

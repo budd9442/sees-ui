@@ -1,0 +1,36 @@
+@startuml
+Title Configure System Settings
+
+actor Admin
+control AdminController as Controller
+entity SystemSetting as Setting
+
+== Access Configuration ==
+Admin -> Controller: accessConfigurationInterface()
+Controller -> Setting: getAllSettings()
+Setting --> Controller: settingsList
+Controller --> Admin: displayConfigInterface()
+
+== Modify Settings ==
+Admin -> Controller: modifySettings()
+Controller -> Setting: setValue()
+Setting --> Controller: success
+Controller --> Admin: showConfirmation()
+
+== View Audit Trail ==
+opt admin views history
+  Admin -> Controller: viewAuditTrail()
+  Controller -> Setting: getChangeHistory()
+  Setting --> Controller: historyList
+  Controller --> Admin: displayHistory()
+end
+
+== Rollback ==
+opt admin performs rollback
+  Admin -> Controller: rollbackSetting()
+  Controller -> Setting: restorePreviousValue()
+  Setting --> Controller: restored
+  Controller --> Admin: showConfirmation()
+end
+
+@enduml

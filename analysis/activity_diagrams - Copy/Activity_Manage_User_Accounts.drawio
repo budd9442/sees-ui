@@ -1,0 +1,147 @@
+<mxfile host="65bd71144e">
+    <diagram name="Manage User Accounts Activity" id="act-uc-17">
+        <mxGraphModel dx="1060" dy="1277" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="lane_admin" value="System Administrator" style="swimlane;whiteSpace=wrap" parent="1" vertex="1">
+                    <mxGeometry x="60" y="40" width="280" height="680" as="geometry"/>
+                </mxCell>
+                <mxCell id="start" value="" style="ellipse;shape=startState;fillColor=#FFFFFF;strokeColor=#000000;" parent="lane_admin" vertex="1">
+                    <mxGeometry x="125" y="40" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="a1" value="Access user management&#10;interface" style="" parent="lane_admin" vertex="1">
+                    <mxGeometry x="60" y="110" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="d1" value="Create new or&#10;modify existing?" style="rhombus;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" parent="lane_admin" vertex="1">
+                    <mxGeometry x="70" y="200" width="140" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="a3a" value="Create new&#10;user account" style="" parent="lane_admin" vertex="1">
+                    <mxGeometry x="10" y="320" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a3b" value="Select existing&#10;user account" style="" parent="lane_admin" vertex="1">
+                    <mxGeometry x="150" y="320" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a4" value="Assign roles &amp;&#10;permissions" style="" parent="lane_admin" vertex="1">
+                    <mxGeometry x="60" y="460" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_admin" source="start" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="140" y="110" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e3a" value="[Create new]" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" parent="lane_admin" source="d1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="70" y="320" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="70" y="320"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e3b" value="[Modify existing]" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;exitX=1.012;exitY=0.555;exitDx=0;exitDy=0;exitPerimeter=0;" parent="lane_admin" source="d1" edge="1">
+                    <mxGeometry x="0.1062" relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="210" y="260"/>
+                        </Array>
+                        <mxPoint as="offset"/>
+                        <mxPoint x="210" y="320" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e4a" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;exitX=0.511;exitY=1.02;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.303;entryY=0.237;entryDx=0;entryDy=0;entryPerimeter=0;" parent="lane_admin" source="a3a" target="3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4b" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=0.755;entryY=0.191;entryDx=0;entryDy=0;entryPerimeter=0;" parent="lane_admin" target="3" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="210" y="370" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="4" value="" style="edgeStyle=none;html=1;entryX=0.445;entryY=0.006;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="lane_admin" source="3" target="a4">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="" style="line;strokeWidth=5;fillColor=#000000;strokeColor=#000000" vertex="1" parent="lane_admin">
+                    <mxGeometry x="80" y="410" width="100" height="10" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane_system" value="Student Enrollment &amp; Evaluation System" style="swimlane;whiteSpace=wrap" parent="1" vertex="1">
+                    <mxGeometry x="340" y="40" width="640" height="680" as="geometry"/>
+                </mxCell>
+                <mxCell id="a2" value="Display user management&#10;dashboard &amp; options" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="270" y="110" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a5" value="Validate role assignments&#10;against security policies" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="270" y="310" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="fork1" value="" style="line;strokeWidth=5;fillColor=#000000;strokeColor=#000000" parent="lane_system" vertex="1">
+                    <mxGeometry x="310" y="390" width="100" height="10" as="geometry"/>
+                </mxCell>
+                <mxCell id="a8" value="Activate account &amp;&#10;set security parameters" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="100" y="450" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a9" value="Send account details&#10;to user" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="290" y="450" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a10" value="Log account changes&#10;for audit trail" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="460" y="450" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=0.479;entryY=0.033;entryDx=0;entryDy=0;entryPerimeter=0;" parent="lane_system" target="a8" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="340" y="400" as="sourcePoint"/>
+                        <Array as="points"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e9" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=0.424;entryY=-0.05;entryDx=0;entryDy=0;entryPerimeter=0;" parent="lane_system" source="fork1" target="a9" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e10" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=0.549;entryY=0.017;entryDx=0;entryDy=0;entryPerimeter=0;" parent="lane_system" source="fork1" target="a10" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="end" value="" style="ellipse;shape=endState;fillColor=#f5f5f5;strokeColor=#666666" parent="lane_system" vertex="1">
+                    <mxGeometry x="345" y="640" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="ex1" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="280" y="175" as="sourcePoint"/>
+                        <mxPoint x="610" y="175" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ex2" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=0.006;entryY=0.467;entryDx=0;entryDy=0;entryPerimeter=0;exitX=1.039;exitY=0.533;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="a4" target="a5" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="280" y="485" as="sourcePoint"/>
+                        <mxPoint x="610" y="485" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="390" y="527"/>
+                            <mxPoint x="390" y="373"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ex3" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="1" source="a5" target="fork1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" target="d1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="700" y="200" as="sourcePoint"/>
+                        <mxPoint x="270" y="270" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="700" y="220"/>
+                            <mxPoint x="200" y="220"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="8" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="join1" target="end">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="join1" value="" style="line;strokeWidth=5;fillColor=#000000;strokeColor=#000000" parent="1" vertex="1">
+                    <mxGeometry x="650" y="610" width="100" height="10" as="geometry"/>
+                </mxCell>
+                <mxCell id="e11" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;exitX=0.488;exitY=1.017;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="a8" target="join1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e13" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;exitX=0.523;exitY=1.05;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="a10" target="join1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" style="edgeStyle=none;html=1;entryX=0.503;entryY=-0.083;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.439;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="a9" target="join1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

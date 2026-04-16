@@ -1,0 +1,22 @@
+@startuml
+Title Submit Anonymous Reports
+
+actor Student
+control StudentController as Controller
+entity AnonymousReport as Report
+entity SystemSetting as Setting
+
+== Submit Report ==
+Student -> Controller: openAnonymousReportForm()
+Controller -> Setting: getValue("REPORT_TEMPLATES")
+Setting --> Controller: templates
+Controller --> Student: displayForm()
+
+Student -> Controller: submitReport()
+Controller -> Controller: validateContent()
+Controller -> Report: create()
+Report --> Controller: reportId
+Controller -> Controller: anonymizeStudentId()
+Controller --> Student: showConfirmation()
+
+@enduml

@@ -70,6 +70,7 @@ import {
     User,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportTabularData } from '@/lib/export';
 
 export default function EligibleClient({ initialData }: { initialData: any }) {
     const { students, modules, grades } = initialData;
@@ -115,11 +116,14 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
 
     const studentsByClass = getStudentsByClass();
 
+    const pathwayOptions = Array.from(new Set(students.map((s: any) => s.specialization).filter(Boolean))).sort();
+    const yearOptions = Array.from(new Set(students.map((s: any) => s.academicYear).filter(Boolean))).sort();
+
     const filterStudents = (studentList: any[]) => {
         return studentList.filter(student => {
             const matchesPathway = filterPathway === 'all' || student.specialization === filterPathway;
             const matchesYear = filterYear === 'all' || student.academicYear === filterYear;
-            const matchesSpecialization = filterSpecialization === 'all' || true;
+            const matchesSpecialization = filterSpecialization === 'all' || student.specialization === filterSpecialization;
             return matchesPathway && matchesYear && matchesSpecialization;
         });
     };
@@ -190,8 +194,28 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
         return isEligible ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50';
     };
 
-    const exportStudents = (academicClass: string, format: 'pdf' | 'excel' | 'csv') => {
-        toast.success(`${academicClass} students exported as ${format.toUpperCase()} successfully!`);
+    const exportStudents = async (academicClass: string, format: 'pdf' | 'excel' | 'csv') => {
+        try {
+            const source = academicClass === 'All'
+                ? students
+                : studentsByClass[academicClass as keyof typeof studentsByClass] || [];
+            const rows = filterStudents(source).map((student: any) => {
+                const eligibility = getGraduationEligibility(student);
+                return {
+                    studentId: student.id,
+                    name: student.name || `${student.firstName} ${student.lastName}`,
+                    academicYear: student.academicYear,
+                    pathway: student.specialization,
+                    gpa: eligibility.gpa.toFixed(2),
+                    creditsCompleted: eligibility.creditsCompleted,
+                    eligibility: eligibility.isEligible ? 'Eligible' : 'Not Eligible',
+                };
+            });
+            await exportTabularData(rows, format, { filename: `eligible-${academicClass}-${Date.now()}` });
+            toast.success(`${academicClass} students exported as ${format.toUpperCase()}`);
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export students');
+        }
     };
 
     const sendBatchEmail = () => {
@@ -238,15 +262,15 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
                     <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
                             <Label htmlFor="pathway-filter">Pathway</Label>
-                            <Select value={filterPathway} onValueChange={setFilterPathway}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Pathways</SelectItem><SelectItem value="Software Engineering">Software Engineering</SelectItem><SelectItem value="Data Science">Data Science</SelectItem><SelectItem value="Cybersecurity">Cybersecurity</SelectItem></SelectContent></Select>
+                            <Select value={filterPathway} onValueChange={setFilterPathway}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Pathways</SelectItem>{pathwayOptions.map((pathway) => (<SelectItem key={pathway} value={pathway}>{pathway}</SelectItem>))}</SelectContent></Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="year-filter">Academic Year</Label>
-                            <Select value={filterYear} onValueChange={setFilterYear}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Years</SelectItem><SelectItem value="L1">L1</SelectItem><SelectItem value="L2">L2</SelectItem><SelectItem value="L3">L3</SelectItem></SelectContent></Select>
+                            <Select value={filterYear} onValueChange={setFilterYear}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Years</SelectItem>{yearOptions.map((year) => (<SelectItem key={year} value={year}>{year}</SelectItem>))}</SelectContent></Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="specialization-filter">Specialization</Label>
-                            <Select value={filterSpecialization} onValueChange={setFilterSpecialization}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Specializations</SelectItem><SelectItem value="Frontend Development">Frontend Development</SelectItem><SelectItem value="Backend Development">Backend Development</SelectItem></SelectContent></Select>
+                            <Select value={filterSpecialization} onValueChange={setFilterSpecialization}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Specializations</SelectItem>{pathwayOptions.map((pathway) => (<SelectItem key={`spec-${pathway}`} value={pathway}>{pathway}</SelectItem>))}</SelectContent></Select>
                         </div>
                     </div>
                 </CardContent>

@@ -1,0 +1,351 @@
+<mxfile host="65bd71144e">
+    <diagram name="SEES System Architecture Blueprint" id="system-architecture">
+        <mxGraphModel dx="1424" dy="803" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" background="#ffffff" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="Student Enrollment and Evaluation System - System Blueprint&lt;br&gt;Modular Monolithic Architecture (BSO-B: Web Platform Only)" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="20" width="800" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="user-layer-bg" value="USERS &amp; ACTORS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="100" width="1840" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="user-l1" value="L1 Students" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="120" y="130" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="user-l2" value="L2 Students" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="280" y="130" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="user-l3" value="L3 Students" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="440" y="130" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="user-staff" value="Academic Staff" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="620" y="130" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="user-advisor" value="Advisors" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="800" y="130" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="user-hod" value="Head of&#10;Department" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1000" y="130" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="user-admin" value="System&#10;Administrator" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="130" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="client-layer-bg" value="PRESENTATION LAYER (BSO-B Web Platform)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="280" width="1840" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="web-student" value="Web Portal (Students)&#10;&#10;• Student Features&#10;• Pathway Selection&#10;• Module Registration&#10;• GPA Tracking&#10;• Academic Goals&#10;• Schedule View&#10;• Responsive Design" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="310" width="240" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="web-staff" value="Web Portal (Staff/Advisors)&#10;&#10;• Module Management&#10;• Grade Upload&#10;• Student Communication&#10;• Performance Stats&#10;• Schedule Management" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="310" width="240" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="web-hod" value="Web Portal (HOD)&#10;&#10;• Live Dashboard (UCD-15)&#10;• Performance Trends&#10;• Risk Alerts&#10;• Downloadable Reports (UCD-09)&#10;• PDF/Excel/CSV Export" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="640" y="310" width="240" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="web-admin" value="Admin Portal&#10;&#10;• User Management (FR7.1)&#10;• Configuration (FR8.x)&#10;• System Monitoring (FR7.2)&#10;• Backup/Restore (FR7.2c)&#10;• Bulk Enrollment (FR1.1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="920" y="310" width="240" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="api-gateway-bg" value="API GATEWAY &amp; SECURITY" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="480" width="1840" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="api-gateway" value="• Authentication &amp;amp; Authorization (JWT/OAuth)&lt;br&gt;• Role-Based Access Control (6 Roles)&lt;br&gt;• Rate Limiting (NFR1: 400+ concurrent users)&lt;br&gt;• Request Routing&lt;br&gt;• Load Balancing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="505" width="640" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="session-mgmt" value="Session&#10;Management" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="920" y="510" width="100" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cache" value="Cache Layer&#10;(Redis)&#10;&#10;• Session Data&#10;• Config Cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="510" width="120" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="app-layer-bg" value="APPLICATION LAYER - MODULAR MONOLITHIC ARCHITECTURE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="640" width="1840" height="320" as="geometry"/>
+                </mxCell>
+                <mxCell id="module-student" value="STUDENT MANAGEMENT MODULE&#10;&#10;• Student Profiles &amp; Enrollment&#10;• Bulk Enrollment (FR1.1)&#10;• Academic Records&#10;• L1/L2/L3 Level Tracking&#10;• Student Progress Tracking" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="680" width="200" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="module-pathway" value="PATHWAY &amp; SPECIALIZATION MODULE&#10;&#10;• Preference Collection (FR1.2a)&#10;• Pathway Guidance (FR1.2b)&#10;• Demand Monitoring (FR1.2c)&#10;• GPA-Based Allocation (FR1.2d)&#10;• 60% Threshold Enforcement&#10;• Pathway Lock (FR1.2e)&#10;• Specialization Selection (FR2.x)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="680" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="module-registration" value="MODULE REGISTRATION MODULE&#10;&#10;• Module Registration (FR3.1)&#10;• Credit Planning (FR3.2a)&#10;• Prerequisite Validation (FR3.2b)&#10;• Credit Limit Enforcement&#10;• Planned vs Completed Credits&#10;• Lecture Schedule View (FR3.8)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="680" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="module-gpa" value="GPA &amp; PERFORMANCE MODULE&#10;&#10;• GPA Calculation Engine (FR3.3a)&#10;• Configurable Formulas (FR8.2)&#10;• Weighted Tie-Breaking (UCD-21)&#10;• Academic Class Calculation (FR3.4a)&#10;• Goal Setting (FR3.3b, FR3.4b)&#10;• Performance Alerts (FR3.5c)&#10;• Intervention Recommendations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="840" y="680" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="module-config" value="CONFIGURATION MANAGEMENT MODULE&#10;&#10;• Degree Program Config (FR8.1)&#10;• Academic Rules Engine&#10;• GPA Formula Config (FR8.2)&#10;• Capacity &amp; Threshold Config&#10;• Notification Templates&#10;• Version Control (FR8.3)&#10;• Rollback Mechanism&#10;• Real-time Propagation (NFR7)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1100" y="680" width="220" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="module-notification" value="NOTIFICATION &amp; COMMUNICATION MODULE&#10;&#10;• Grade Release Alerts (FR3.5a)&#10;• GPA/Class Change Alerts (FR3.5b)&#10;• Performance Interventions (FR3.5c)&#10;• Student-Advisor Messaging (FR3.6, FR4.1)&#10;• Anonymous Reporting (FR3.7)&#10;• Email/SMS Integration&#10;• In-App Notifications" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1360" y="680" width="240" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="module-staff" value="MODULE MANAGEMENT MODULE&#10;&#10;• Module Descriptions (FR5.1a)&#10;• Learning Outcomes (FR5.1b)&#10;• Prerequisites &amp; Credits (FR5.1c)&#10;• Grade Upload (FR5.2)&#10;• Grading Schemes&#10;• Schedule Management (FR5.4)&#10;• Module Statistics (FR5.3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="820" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="module-reporting" value="REPORTING &amp; ANALYTICS MODULE&#10;&#10;• Performance Trends (FR6.1)&#10;• Live Dashboard (UCD-15)&#10;• Risk Alerts &amp; Drill-Down&#10;• Eligible Student Lists (FR6.2)&#10;• Downloadable Reports (UCD-09)&#10;• Multi-Format Export (PDF/Excel/CSV)&#10;• Configurable Templates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="340" y="820" width="240" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="module-user" value="USER &amp; ACCESS MANAGEMENT MODULE&#10;&#10;• User Account Management (FR7.1)&#10;• Role Management (6 Roles)&#10;• Access Rights &amp; Permissions&#10;• RBAC Enforcement&#10;• Audit Logging (NFR9)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="620" y="820" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="module-monitoring" value="SYSTEM MONITORING MODULE&#10;&#10;• Performance Monitoring (FR7.2a)&#10;• Uptime Tracking (FR7.2b, NFR2)&#10;• Log Management&#10;• Alert System&#10;• Backup &amp; Restore (FR7.2c)&#10;• Health Checks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="880" y="820" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="shared-services" value="SHARED SERVICES&#10;&#10;• Email Service&#10;• SMS Service&#10;• PDF Generator&#10;• Excel Generator&#10;• File Storage&#10;• Logging Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1140" y="820" width="180" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="data-layer-bg" value="DATA LAYER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="1000" width="1840" height="250" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-primary" value="Primary Database - PostgreSQL&lt;br&gt;&lt;br&gt;• Student Records&lt;br&gt;• Academic Records (Grades, GPA, Class)&lt;br&gt;• Module Definitions&lt;br&gt;• Enrollments &amp;amp; Registrations&lt;br&gt;• Pathways &amp;amp; Specializations&lt;br&gt;• User Accounts&lt;br&gt;• Schedules" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="120" y="1030" width="280" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-config" value="Configuration Store&#10;&#10;• Degree Programs&#10;• Academic Rules&#10;• GPA Formulas&#10;• Capacity Thresholds&#10;• Notification Templates&#10;• System Settings&#10;• Version History" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="440" y="1030" width="240" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-audit" value="Audit Log Database&#10;&#10;• User Actions (NFR9)&#10;• Config Changes&#10;• Grade Changes&#10;• Pathway Allocations&#10;• System Events&#10;• Compliance Logs" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="720" y="1030" width="240" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="file-storage" value="File Storage&lt;br&gt;&lt;br&gt;• Generated Reports&lt;br&gt;• Uploaded Documents&lt;br&gt;• Export Files (PDF/Excel/CSV)&lt;br&gt;• Backup Files" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#000000;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1000" y="1030" width="260" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="external-bg" value="EXTERNAL INTEGRATIONS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1350" y="1010" width="480" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="ext-email" value="Email Provider&#10;(SendGrid/SES)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1440" y="1040" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="ext-sms" value="SMS Provider&#10;(Twilio)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1600" y="1040" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="ext-backup" value="Backup Service&#10;(Cloud Backup)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="1600" y="1100" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn1" value="" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" parent="1" source="user-l1" target="web-student" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="600" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn2" value="" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" parent="1" target="web-student" edge="1" source="user-l2">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="288" y="229" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn3" value="" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" parent="1" target="web-student" edge="1" source="user-l3">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="454" y="228" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn4" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" parent="1" source="user-staff" target="web-staff" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="600" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn5" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" parent="1" source="user-advisor" target="web-staff" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="600" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn6" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" parent="1" source="user-hod" target="web-hod" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="600" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn7" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;" parent="1" source="user-admin" target="web-admin" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="600" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn8" value="REST API&amp;nbsp;" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.1;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=9;entryPerimeter=0;strokeColor=#000000;fontColor=#000000;labelBackgroundColor=none;" parent="1" source="web-student" target="api-gateway" edge="1">
+                    <mxGeometry x="0.3946" y="20" width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="600" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn9" value="REST API&amp;nbsp;" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=9;strokeColor=#000000;fontColor=#000000;labelBackgroundColor=none;" parent="1" source="web-student" target="api-gateway" edge="1">
+                    <mxGeometry x="-0.217" y="23" width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="600" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn10" value="REST API&amp;nbsp;" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=9;strokeColor=#000000;fontColor=#000000;labelBackgroundColor=none;" parent="1" source="web-staff" target="api-gateway" edge="1">
+                    <mxGeometry x="-0.329" y="13" width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="600" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn11" value="REST API&amp;nbsp;" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=9;strokeColor=#000000;fontColor=#000000;labelBackgroundColor=none;" parent="1" source="web-hod" target="api-gateway" edge="1">
+                    <mxGeometry x="-0.3254" y="12" width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="600" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn12" value="REST API&amp;nbsp;" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.9;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=9;entryPerimeter=0;strokeColor=#000000;fontColor=#000000;labelBackgroundColor=none;" parent="1" source="web-admin" target="api-gateway" edge="1">
+                    <mxGeometry x="-0.1761" y="10" width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="600" as="sourcePoint"/>
+                        <mxPoint x="850" y="550" as="targetPoint"/>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn13" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;exitPerimeter=0;dashed=1;strokeColor=#000000;" parent="1" source="api-gateway" target="module-student" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="700" as="sourcePoint"/>
+                        <mxPoint x="850" y="650" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn14" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;strokeColor=#000000;" parent="1" source="api-gateway" target="module-pathway" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="700" as="sourcePoint"/>
+                        <mxPoint x="850" y="650" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn15" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.4;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;exitPerimeter=0;strokeColor=#000000;" parent="1" source="api-gateway" target="module-registration" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="700" as="sourcePoint"/>
+                        <mxPoint x="850" y="650" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn16" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.55;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;exitPerimeter=0;strokeColor=#000000;" parent="1" source="api-gateway" target="module-gpa" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="700" as="sourcePoint"/>
+                        <mxPoint x="850" y="650" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn17" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;exitPerimeter=0;strokeColor=#000000;" parent="1" source="api-gateway" target="module-config" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="700" as="sourcePoint"/>
+                        <mxPoint x="850" y="650" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn18" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.85;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;exitPerimeter=0;strokeColor=#000000;" parent="1" source="api-gateway" target="module-notification" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="700" as="sourcePoint"/>
+                        <mxPoint x="850" y="650" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn19" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;entryPerimeter=0;strokeColor=#000000;" parent="1" source="module-student" target="db-primary" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="900" as="sourcePoint"/>
+                        <mxPoint x="850" y="850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn20" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;entryPerimeter=0;strokeColor=#000000;" parent="1" source="module-pathway" target="db-primary" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="900" as="sourcePoint"/>
+                        <mxPoint x="850" y="850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn21" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;entryPerimeter=0;strokeColor=#000000;" parent="1" source="module-registration" target="db-primary" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="900" as="sourcePoint"/>
+                        <mxPoint x="850" y="850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn22" value="" style="endArrow=classic;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;entryPerimeter=0;strokeColor=#000000;" parent="1" source="module-gpa" target="db-primary" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="900" as="sourcePoint"/>
+                        <mxPoint x="850" y="850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn23" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;entryPerimeter=0;strokeColor=#000000;" parent="1" source="module-config" target="db-config" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="900" as="sourcePoint"/>
+                        <mxPoint x="850" y="850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn24" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;entryPerimeter=0;strokeColor=#000000;" parent="1" source="module-notification" target="db-audit" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="900" as="sourcePoint"/>
+                        <mxPoint x="850" y="850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn25" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeWidth=1;dashed=1;entryPerimeter=0;strokeColor=#000000;" parent="1" source="module-reporting" target="file-storage" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="800" y="900" as="sourcePoint"/>
+                        <mxPoint x="850" y="850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn26" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=1;strokeColor=#000000;exitX=0.293;exitY=1.01;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="module-notification" target="ext-email" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="1450" y="800" as="sourcePoint"/>
+                        <mxPoint x="1350" y="850" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="1420" y="1065"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn27" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=1;strokeColor=#000000;" parent="1" source="module-notification" target="ext-sms" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="1300" y="900" as="sourcePoint"/>
+                        <mxPoint x="1350" y="850" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="1670" y="740"/>
+                            <mxPoint x="1670" y="940"/>
+                            <mxPoint x="1760" y="940"/>
+                            <mxPoint x="1760" y="1065"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn28" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.144;exitY=1.022;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=1;strokeColor=#000000;exitPerimeter=0;" parent="1" source="module-notification" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="1300" y="900" as="sourcePoint"/>
+                        <mxPoint x="1350" y="850" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="1390" y="1125"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="legend-sync" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#000000;" parent="1" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="80" y="1215" as="sourcePoint"/>
+                        <mxPoint x="140" y="1215" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="legend-sync-label" value="User Interaction (HTTP/REST)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="150" y="1205" width="200" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-async" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;dashed=1;strokeColor=#000000;" parent="1" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="400" y="1215" as="sourcePoint"/>
+                        <mxPoint x="460" y="1215" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="legend-async-label" value="Internal Module Communication" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="1205" width="220" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="API Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontSize=10;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="510" width="100" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;exitPerimeter=0;" parent="1" source="user-l1" target="web-student" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="150" y="220" as="sourcePoint"/>
+                        <mxPoint x="190" y="320" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="5" value="" style="endArrow=classic;html=1;rounded=0;entryX=0.329;entryY=-0.016;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;entryPerimeter=0;" parent="1" target="web-student" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="306" y="226" as="sourcePoint"/>
+                        <mxPoint x="190" y="320" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="9" value="" style="endArrow=classic;html=1;rounded=0;entryX=0.614;entryY=-0.035;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#000000;entryPerimeter=0;" parent="1" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="464" y="238" as="sourcePoint"/>
+                        <mxPoint x="430" y="320" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

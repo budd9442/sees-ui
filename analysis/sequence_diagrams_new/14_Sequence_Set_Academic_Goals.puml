@@ -1,0 +1,30 @@
+@startuml
+Title Set Academic Goals
+
+actor Student
+control GPAController as Controller
+entity AcademicGoal as Goal
+entity Student as Stu
+entity SystemSetting as Setting
+
+== View Current Status ==
+Student -> Controller: openGoalSetting()
+Controller -> Stu: calculateCurrentGpa()
+Stu --> Controller: currentGpa
+Controller -> Stu: getAcademicClass()
+Stu --> Controller: currentClass
+Controller -> Goal: getGoals()
+Goal --> Controller: existingGoals
+Controller --> Student: displayCurrentStatus()
+
+== Set Goal ==
+Student -> Controller: setNewGoal()
+Controller -> Setting: getValue("GOAL_TEMPLATES")
+Setting --> Controller: templates
+Controller -> Goal: create()
+Goal --> Controller: goalId
+Controller -> Goal: checkProgress()
+Goal --> Controller: progressPercentage
+Controller --> Student: showConfirmation()
+
+@enduml

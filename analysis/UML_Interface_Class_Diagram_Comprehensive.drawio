@@ -1,0 +1,290 @@
+<mxfile host="65bd71144e">
+    <diagram id="uml-interface-diagram" name="UML Interface Class Diagram">
+        <mxGraphModel dx="2000" dy="1500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="8000" pageHeight="6000" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="background" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry width="8000" height="6000" as="geometry"/>
+                </mxCell>
+                <mxCell id="title" value="UML Interface Class Diagram - Academic Management System" style="text;html=1;strokeColor=#000000;fillColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="2800" y="40" width="900" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-box" value="UML INTERFACE NOTATION:&#10;&#10;• &lt;&lt;interface&gt;&gt; = Interface&#10;• ◄─── (hollow arrow) = Implementation&#10;• ────── (plain line) = Dependency&#10;• + = Public method&#10;• - = Private field&#10;• {abstract} = Abstract method&#10;• {static} = Static method" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;align=left;verticalAlign=top;fontSize=12;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="150" width="400" height="200" as="geometry"/>
+                </mxCell>
+
+                <!-- User Management Interfaces -->
+                <mxCell id="interface-user-repository" value="&lt;&lt;interface&gt;&gt;&#10;IUserRepository" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="800" y="200" width="280" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-user-repository-methods" value="+ getAllUsers(): List&lt;User&gt;&#10;+ checkDuplicate(email: String, username: String): boolean&#10;+ createUserAccount(userData: UserData, role: UserRole): Long&#10;+ updateAccount(userId: Long, updates: Map&lt;String, Object&gt;): boolean&#10;+ setStatus(userId: Long, status: UserStatus): boolean&#10;+ getUserById(userId: Long): User&#10;+ authenticateUser(credentials: LoginCredentials): User" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-user-repository" vertex="1">
+                    <mxGeometry y="40" width="280" height="160" as="geometry"/>
+                </mxCell>
+
+                <!-- Student Management Interfaces -->
+                <mxCell id="interface-student-service" value="&lt;&lt;interface&gt;&gt;&#10;IStudentService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="200" width="320" height="280" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-student-service-methods" value="+ createProfile(userId: Long): Long&#10;+ getCompletedModules(studentId: Long): List&lt;Long&gt;&#10;+ validateAcademicRules(studentId: Long, moduleId: Long): boolean&#10;+ calculateCurrentGpa(studentId: Long): Double&#10;+ getAcademicClass(gpa: Double): String&#10;+ getStudentsByPath(degreePathId: Long): List&lt;Student&gt;&#10;+ calculateWeightedAverage(studentId: Long, formula: String): Double&#10;+ setDegreePath(studentId: Long, degreePathId: Long): boolean&#10;+ setSpecialization(studentId: Long, specializationId: Long): boolean&#10;+ getAssignedAdvisor(studentId: Long): Long&#10;+ getAcademicRecords(studentId: Long): AcademicRecord" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-student-service" vertex="1">
+                    <mxGeometry y="40" width="320" height="240" as="geometry"/>
+                </mxCell>
+
+                <!-- Module Management Interfaces -->
+                <mxCell id="interface-module-service" value="&lt;&lt;interface&gt;&gt;&#10;IModuleService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="1600" y="200" width="300" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-module-service-methods" value="+ getAvailableModules(level: Integer, term: String): List&lt;Module&gt;&#10;+ checkPrerequisites(studentId: Long, moduleId: Long): boolean&#10;+ checkCapacity(moduleId: Long): boolean&#10;+ getModuleInfo(moduleId: Long): ModuleInfo&#10;+ getEnrolledStudents(moduleId: Long): List&lt;Long&gt;&#10;+ validateInstructor(staffId: Long, moduleId: Long): boolean&#10;+ getModuleSchedules(moduleId: Long): List&lt;LectureSchedule&gt;&#10;+ updateModuleInfo(moduleId: Long, updates: ModuleInfo): boolean" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-module-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="200" as="geometry"/>
+                </mxCell>
+
+                <!-- Registration Management Interfaces -->
+                <mxCell id="interface-registration-service" value="&lt;&lt;interface&gt;&gt;&#10;IModuleRegistrationService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="2000" y="200" width="300" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-registration-service-methods" value="+ createRegistration(studentId: Long, moduleId: Long, term: String): Long&#10;+ approveRegistration(registrationId: Long): boolean&#10;+ cancelRegistration(registrationId: Long): boolean&#10;+ getRegistrationStatus(registrationId: Long): RegistrationStatus&#10;+ getStudentRegistrations(studentId: Long): List&lt;ModuleRegistration&gt;&#10;+ validateCreditLimits(studentId: Long, moduleId: Long): boolean" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-registration-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="140" as="geometry"/>
+                </mxCell>
+
+                <!-- Grade Management Interfaces -->
+                <mxCell id="interface-grade-service" value="&lt;&lt;interface&gt;&gt;&#10;IGradeService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="2400" y="200" width="300" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-grade-service-methods" value="+ createGrade(studentId: Long, moduleId: Long, marks: Double, gradePoint: Double, letter: String): Long&#10;+ releaseGrades(moduleId: Long): boolean&#10;+ getGrades(studentId: Long): List&lt;Grade&gt;&#10;+ getModuleGrades(moduleId: Long): List&lt;Grade&gt;&#10;+ updateReleasedAt(gradeId: Long): boolean&#10;+ isGradeReleased(gradeId: Long): boolean&#10;+ getGradePoint(marks: Double): Double" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-grade-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="160" as="geometry"/>
+                </mxCell>
+
+                <!-- Pathway Management Interfaces -->
+                <mxCell id="interface-pathway-service" value="&lt;&lt;interface&gt;&gt;&#10;IDegreePathService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="800" y="500" width="300" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-pathway-service-methods" value="+ getAvailablePaths(): List&lt;DegreePath&gt;&#10;+ checkCapacity(pathId: Long): Integer&#10;+ checkCurrentDemand(pathId: Long): Double&#10;+ getAllApplicants(pathId: Long): List&lt;Student&gt;&#10;+ rankApplicantsByGpa(applicants: List&lt;Student&gt;): List&lt;Student&gt;&#10;+ getSpecializations(pathId: Long): List&lt;Specialization&gt;&#10;+ updateProgramRules(rules: String): boolean" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-pathway-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="160" as="geometry"/>
+                </mxCell>
+
+                <!-- Schedule Management Interfaces -->
+                <mxCell id="interface-schedule-service" value="&lt;&lt;interface&gt;&gt;&#10;IScheduleService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="500" width="300" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-schedule-service-methods" value="+ getSchedules(moduleId: Long): List&lt;LectureSchedule&gt;&#10;+ updateSchedule(scheduleId: Long, newTime: Time, newRoom: String): boolean&#10;+ getConflicts(newTime: Time, newRoom: String): List&lt;LectureSchedule&gt;&#10;+ notifyStudents(moduleId: Long): boolean&#10;+ validateInstructor(staffId: Long, moduleId: Long): boolean&#10;+ isConflicting(schedule1: LectureSchedule, schedule2: LectureSchedule): boolean" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-schedule-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="160" as="geometry"/>
+                </mxCell>
+
+                <!-- Messaging Interfaces -->
+                <mxCell id="interface-messaging-service" value="&lt;&lt;interface&gt;&gt;&#10;IMessagingService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="1600" y="500" width="300" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-messaging-service-methods" value="+ createMessage(senderId: Long, recipientId: Long, body: String): Long&#10;+ getConversation(userId1: Long, userId2: Long): List&lt;Message&gt;&#10;+ getUnreadMessages(userId: Long): List&lt;Message&gt;&#10;+ markAsRead(messageId: Long): boolean&#10;+ getAssignedStudents(advisorId: Long): List&lt;Student&gt;&#10;+ sendReply(senderId: Long, recipientId: Long, body: String): Long" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-messaging-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="160" as="geometry"/>
+                </mxCell>
+
+                <!-- Notification Interfaces -->
+                <mxCell id="interface-notification-service" value="&lt;&lt;interface&gt;&gt;&#10;INotificationService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="2000" y="500" width="300" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-notification-service-methods" value="+ notifyScheduleChange(studentId: Long, moduleId: Long): boolean&#10;+ sendGradeNotification(studentId: Long): boolean&#10;+ sendAcademicAlert(studentId: Long): boolean&#10;+ notifyAdvisor(degreePathId: Long, studentId: Long): boolean&#10;+ notifyStudent(studentId: Long): boolean&#10;+ sendEnrollmentConfirmation(studentId: Long): boolean" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-notification-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="160" as="geometry"/>
+                </mxCell>
+
+                <!-- Report Generation Interfaces -->
+                <mxCell id="interface-report-generator" value="&lt;&lt;interface&gt;&gt;&#10;IReportGenerator" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="2400" y="500" width="300" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-report-generator-methods" value="+ generateReport(templateId: Long, filters: Map&lt;String, Object&gt;): ReportData&#10;+ export(reportData: ReportData, format: String): ExportFile&#10;+ getReportTemplates(): List&lt;ReportTemplate&gt;&#10;+ calculateStatistics(studentList: List&lt;Student&gt;): Statistics&#10;+ rankStudents(studentList: List&lt;Student&gt;): List&lt;Ranking&gt;&#10;+ applyTieBreaker(rankings: List&lt;Ranking&gt;): List&lt;Ranking&gt;" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-report-generator" vertex="1">
+                    <mxGeometry y="40" width="300" height="160" as="geometry"/>
+                </mxCell>
+
+                <!-- Configuration Management Interfaces -->
+                <mxCell id="interface-config-service" value="&lt;&lt;interface&gt;&gt;&#10;IConfigurationService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="800" y="800" width="300" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-config-service-methods" value="+ getAllSettings(): List&lt;SystemSetting&gt;&#10;+ getValue(settingKey: String): String&#10;+ setValue(settingKey: String, value: String): boolean&#10;+ validate(settingKey: String, value: String): boolean&#10;+ getChangeHistory(settingKey: String): List&lt;AuditLog&gt;&#10;+ restorePreviousValue(settingKey: String, version: Integer): boolean&#10;+ logAuditTrail(userId: Long, settingKey: String, oldValue: String, newValue: String): void" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-config-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="160" as="geometry"/>
+                </mxCell>
+
+                <!-- Grading Scheme Interfaces -->
+                <mxCell id="interface-grading-service" value="&lt;&lt;interface&gt;&gt;&#10;IGradingSchemeService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="800" width="300" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-grading-service-methods" value="+ getActiveScheme(): GradingScheme&#10;+ getGradePoint(marks: Double): Double&#10;+ getBands(): List&lt;GradingBand&gt;&#10;+ updateCalculationMethod(formula: String): boolean&#10;+ isActive(): boolean&#10;+ getLetterGrade(marks: Double): String" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-grading-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="140" as="geometry"/>
+                </mxCell>
+
+                <!-- Academic Goal Interfaces -->
+                <mxCell id="interface-goal-service" value="&lt;&lt;interface&gt;&gt;&#10;IAcademicGoalService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="1600" y="800" width="300" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-goal-service-methods" value="+ createGoal(studentId: Long, targetGpa: Double, targetClass: String): Long&#10;+ getGoals(studentId: Long): List&lt;AcademicGoal&gt;&#10;+ checkProgress(currentGpa: Double, targetGpa: Double): Double&#10;+ isAchieved(goalId: Long): boolean&#10;+ updateGoal(goalId: Long, targetGpa: Double, targetClass: String): boolean" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-goal-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="140" as="geometry"/>
+                </mxCell>
+
+                <!-- GPA History Interfaces -->
+                <mxCell id="interface-gpa-service" value="&lt;&lt;interface&gt;&gt;&#10;IGPAHistoryService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="2000" y="800" width="300" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-gpa-service-methods" value="+ getHistory(studentId: Long): List&lt;GPAHistory&gt;&#10;+ createHistoryEntry(studentId: Long, gpa: Double, academicClass: String, reason: String): Long&#10;+ getGpa(studentId: Long): Double&#10;+ getAcademicClass(studentId: Long): String&#10;+ isFinalized(studentId: Long): boolean" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-gpa-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="140" as="geometry"/>
+                </mxCell>
+
+                <!-- Ranking Interfaces -->
+                <mxCell id="interface-ranking-service" value="&lt;&lt;interface&gt;&gt;&#10;IRankingService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="2400" y="800" width="300" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-ranking-service-methods" value="+ calculateRank(studentId: Long, degreePathId: Long, period: Period): Integer&#10;+ applyTieBreaker(rankings: List&lt;Ranking&gt;): List&lt;Ranking&gt;&#10;+ getWeightedAverage(studentId: Long): Double&#10;+ getPeriod(): Period&#10;+ createRanking(studentId: Long, degreePathId: Long, rank: Integer, gpa: Double): Long" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-ranking-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="140" as="geometry"/>
+                </mxCell>
+
+                <!-- Anonymous Report Interfaces -->
+                <mxCell id="interface-report-service" value="&lt;&lt;interface&gt;&gt;&#10;IAnonymousReportService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="800" y="1100" width="300" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-report-service-methods" value="+ submitReport(studentId: Long, content: String, priority: Priority): Long&#10;+ updateStatus(reportId: Long, status: ReportStatus): boolean&#10;+ getPriority(reportId: Long): Priority&#10;+ getReportsByStatus(status: ReportStatus): List&lt;AnonymousReport&gt;&#10;+ getReportsByPriority(priority: Priority): List&lt;AnonymousReport&gt;" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-report-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="120" as="geometry"/>
+                </mxCell>
+
+                <!-- Bulk Operations Interfaces -->
+                <mxCell id="interface-bulk-service" value="&lt;&lt;interface&gt;&gt;&#10;IBulkEnrollmentService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="1100" width="300" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-bulk-service-methods" value="+ uploadEnrollmentFile(data: List&lt;Map&lt;String, Object&gt;&gt;): UploadResult&#10;+ validateSchema(data: List&lt;Map&lt;String, Object&gt;&gt;): ValidationResult&#10;+ validateRow(row: Map&lt;String, Object&gt;): boolean&#10;+ createImportReport(totalCreated: Integer, errors: List&lt;String&gt;): ImportReport&#10;+ rollbackRowTransaction(): void&#10;+ setInitialLevelAndYear(level: String, year: Integer): void" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-bulk-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="120" as="geometry"/>
+                </mxCell>
+
+                <!-- System Performance Interfaces -->
+                <mxCell id="interface-performance-service" value="&lt;&lt;interface&gt;&gt;&#10;ISystemPerformanceService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="1600" y="1100" width="300" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-performance-service-methods" value="+ monitorSystemPerformance(): PerformanceMetrics&#10;+ getSystemHealth(): SystemHealth&#10;+ getResourceUsage(): ResourceUsage&#10;+ generatePerformanceReport(): PerformanceReport&#10;+ setPerformanceThresholds(thresholds: Map&lt;String, Double&gt;): boolean&#10;+ alertOnThresholdBreach(): List&lt;Alert&gt;" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-performance-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="120" as="geometry"/>
+                </mxCell>
+
+                <!-- Backup and Restore Interfaces -->
+                <mxCell id="interface-backup-service" value="&lt;&lt;interface&gt;&gt;&#10;IBackupRestoreService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1f5fe;strokeColor=#01579b;fontColor=#000000;strokeWidth=2;" parent="1" vertex="1">
+                    <mxGeometry x="2000" y="1100" width="300" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="interface-backup-service-methods" value="+ createBackup(backupType: String): BackupResult&#10;+ restoreFromBackup(backupId: Long): RestoreResult&#10;+ getBackupHistory(): List&lt;Backup&gt;&#10;+ validateBackup(backupId: Long): boolean&#10;+ scheduleBackup(schedule: BackupSchedule): boolean&#10;+ deleteBackup(backupId: Long): boolean" style="text;strokeColor=none;fillColor=#ffffff;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontColor=#000000;" parent="interface-backup-service" vertex="1">
+                    <mxGeometry y="40" width="300" height="120" as="geometry"/>
+                </mxCell>
+
+
+                <!-- Core Service Dependencies -->
+                <mxCell id="dep-user-student" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-user-repository" target="interface-student-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-student-module" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-student-service" target="interface-module-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-module-registration" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-module-service" target="interface-registration-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-registration-grade" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-registration-service" target="interface-grade-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-grade-gpa" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-grade-service" target="interface-gpa-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-gpa-ranking" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-gpa-service" target="interface-ranking-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-ranking-report" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-ranking-service" target="interface-report-generator" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Notification Service Dependencies -->
+                <mxCell id="dep-grade-notification" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-grade-service" target="interface-notification-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-schedule-notification" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-schedule-service" target="interface-notification-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-messaging-notification" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-messaging-service" target="interface-notification-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-pathway-notification" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-pathway-service" target="interface-notification-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-bulk-notification" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-bulk-service" target="interface-notification-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Configuration Service Dependencies -->
+                <mxCell id="dep-config-pathway" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-config-service" target="interface-pathway-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-config-grading" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-config-service" target="interface-grading-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-config-module" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-config-service" target="interface-module-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-config-student" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-config-service" target="interface-student-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Grading Service Dependencies -->
+                <mxCell id="dep-grading-grade" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-grading-service" target="interface-grade-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-grading-gpa" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-grading-service" target="interface-gpa-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Student Service Cross-Dependencies -->
+                <mxCell id="dep-student-pathway" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-student-service" target="interface-pathway-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-student-goal" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-student-service" target="interface-goal-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-student-messaging" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-student-service" target="interface-messaging-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-student-report" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-student-service" target="interface-report-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Module Service Dependencies -->
+                <mxCell id="dep-module-schedule" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-module-service" target="interface-schedule-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-module-grade" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-module-service" target="interface-grade-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Report Generator Dependencies -->
+                <mxCell id="dep-report-student" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-report-generator" target="interface-student-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-report-grade" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-report-generator" target="interface-grade-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-report-ranking" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-report-generator" target="interface-ranking-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Bulk Service Dependencies -->
+                <mxCell id="dep-bulk-user" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-bulk-service" target="interface-user-repository" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-bulk-student" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-bulk-service" target="interface-student-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Performance Service Dependencies -->
+                <mxCell id="dep-performance-config" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-performance-service" target="interface-config-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Backup Service Dependencies -->
+                <mxCell id="dep-backup-config" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-backup-service" target="interface-config-service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="dep-backup-user" value="" style="endArrow=block;dashed=1;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" source="interface-backup-service" target="interface-user-repository" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

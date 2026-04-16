@@ -1,0 +1,23 @@
+@startuml
+Title Manage Module Information
+
+actor Staff
+control ModuleController as Controller
+entity Module
+
+== View Modules ==
+Staff -> Controller: viewModules()
+Controller -> Module: getModulesByInstructor()
+Module --> Controller: moduleList
+Controller --> Staff: displayModules()
+
+== Upload Module Information ==
+Staff -> Controller: selectModule()
+Controller -> Module: validateInstructor()
+Module --> Controller: authorized
+Staff -> Controller: uploadModuleInfo()
+Controller -> Module: updateModuleInformation()
+Module --> Controller: updated
+Controller --> Staff: showConfirmation()
+
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+Title Track GPA and Academic Class
+
+actor Student
+control GPAController as Controller
+entity Student as Stu
+entity Grade
+entity GPAHistory as GPAHist
+entity AcademicGoal as Goal
+
+== View GPA ==
+Student -> Controller: viewGPAAndClass()
+Controller -> Stu: calculateCurrentGpa()
+Stu -> Grade: getGrades()
+Grade --> Stu: gradeList
+Stu -> Stu: applyGpaFormula()
+Stu --> Controller: currentGpa
+Controller -> Stu: getAcademicClass()
+Stu --> Controller: academicClass
+Controller -> GPAHist: getHistory()
+GPAHist --> Controller: historyList
+Controller -> Goal: getGoals()
+Goal --> Controller: goalList
+Controller -> Goal: checkProgress()
+Goal --> Controller: progressPercentage
+Controller --> Student: displayGpaData()
+
+== Set Goal ==
+opt student sets goal
+  Student -> Controller: setAcademicGoal()
+  Controller -> Goal: create()
+  Goal --> Controller: goalId
+  Controller --> Student: showConfirmation()
+end
+
+@enduml

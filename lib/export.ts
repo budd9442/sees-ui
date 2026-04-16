@@ -236,6 +236,100 @@ export const exportUtils = {
   },
 };
 
+export type ExportFormat = 'csv' | 'pdf' | 'excel' | 'json';
+
+/**
+ * Generates and downloads tabular exports in browser context.
+ * Uses real binary generation for PDF (jsPDF) and Excel (exceljs).
+ */
+export async function exportTabularData(
+  data: Record<string, unknown>[],
+  format: ExportFormat,
+  options: ExportOptions = {}
+): Promise<void> {
+  const filenameBase = options.filename || `export_${new Date().toISOString().split('T')[0]}`;
+
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error('No data available to export');
+  }
+
+  if (format === 'csv') {
+    csvUtils.downloadCSV(data, { ...options, filename: `${filenameBase}.csv` });
+    return;
+  }
+
+  if (format === 'json') {
+    jsonUtils.downloadJSON(data, { ...options, filename: `${filenameBase}.json` });
+    return;
+  }
+
+  if (format === 'excel') {
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet((options as ExcelExportOptions).sheetName || 'Sheet1');
+    const headers = Object.keys(data[0]);
+    sheet.columns = headers.map((h) => ({ header: h, key: h, width: Math.max(14, h.length + 2) }));
+    data.forEach((row) => {
+      const normalized: Record<string, unknown> = {};
+      headers.forEach((h) => {
+        const value = row[h];
+        normalized[h] = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : value;
+      });
+      sheet.addRow(normalized);
+    });
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filenameBase}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  if (format === 'pdf') {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({
+      orientation: (options as PDFExportOptions).orientation || 'portrait',
+      unit: 'pt',
+      format: (options as PDFExportOptions).pageSize?.toLowerCase() || 'a4',
+    });
+    const title = (options as PDFExportOptions).title || 'Export Report';
+    const headers = Object.keys(data[0]);
+    let y = 40;
+    doc.setFontSize(14);
+    doc.text(title, 40, y);
+    y += 20;
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 40, y);
+    y += 18;
+    doc.setFontSize(9);
+    doc.text(headers.join(' | '), 40, y);
+    y += 14;
+    for (const row of data) {
+      const rowText = headers
+        .map((h) => {
+          const value = row[h];
+          return String(value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : value);
+        })
+        .join(' | ');
+      const wrapped = doc.splitTextToSize(rowText, 520);
+      if (y + wrapped.length * 11 > 800) {
+        doc.addPage();
+        y = 40;
+      }
+      doc.text(wrapped, 40, y);
+      y += wrapped.length * 11 + 4;
+    }
+    doc.save(`${filenameBase}.pdf`);
+  }
+}
+
 // Helper Functions
 function escapeCSVField(field: any): string {
   if (field === null || field === undefined) {

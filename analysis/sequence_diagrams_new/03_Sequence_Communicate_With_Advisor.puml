@@ -1,0 +1,44 @@
+@startuml
+Title Communicate with Advisor
+
+actor Student
+actor Advisor
+control MessageController as Controller
+entity Message
+entity Student as Stu
+entity Advisor as Adv
+
+== Student Sends Message ==
+Student -> Controller: openAdvisorMessaging()
+Controller -> Stu: getAssignedAdvisor()
+Stu --> Controller: advisorId
+Controller -> Message: getConversation()
+Message --> Controller: messageHistory
+Controller --> Student: displayConversation()
+
+Student -> Controller: sendMessage()
+Controller -> Message: send()
+Message --> Controller: messageId
+Controller --> Student: showConfirmation()
+
+== Advisor Responds ==
+Advisor -> Controller: openStudentMessages()
+Controller -> Adv: getAssignedStudents()
+Adv --> Controller: studentList
+Controller -> Message: getUnreadMessages()
+Message --> Controller: messageList
+Controller --> Advisor: displayMessages()
+
+Advisor -> Controller: selectConversation()
+Controller -> Message: getConversation()
+Message --> Controller: conversation
+Controller -> Stu: getAcademicRecords()
+Stu --> Controller: academicData
+Controller --> Advisor: displayConversationAndRecords()
+
+Advisor -> Controller: sendReply()
+Controller -> Message: create()
+Message --> Controller: messageId
+Controller --> Advisor: showConfirmation()
+
+@enduml

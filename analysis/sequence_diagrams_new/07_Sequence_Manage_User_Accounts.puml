@@ -1,0 +1,49 @@
+@startuml
+Title Manage User Accounts
+
+actor Admin
+control AdminController as Controller
+entity User
+entity Student
+entity Staff
+entity Advisor
+
+== View Users ==
+Admin -> Controller: viewUserAccounts()
+Controller -> User: getAllUsers()
+User --> Controller: userList
+Controller --> Admin: displayUsers()
+
+== Create User ==
+Admin -> Controller: createUser()
+Controller -> User: checkDuplicate()
+User --> Controller: exists?
+Controller -> User: createUserAccount()
+User --> Controller: userId
+
+alt role is Student
+  Controller -> Student: createStudentProfile()
+  Student --> Controller: studentId
+else role is Staff
+  Controller -> Staff: createProfile()
+  Staff --> Controller: staffId
+else role is Advisor
+  Controller -> Advisor: createProfile()
+  Advisor --> Controller: advisorId
+end
+
+Controller --> Admin: showConfirmation()
+
+== Modify User ==
+Admin -> Controller: modifyUser()
+Controller -> User: updateAccount()
+User --> Controller: updated
+Controller --> Admin: showConfirmation()
+
+== Deactivate User ==
+Admin -> Controller: deactivateUser()
+Controller -> User: setStatus()
+User --> Controller: updated
+Controller --> Admin: showConfirmation()
+
+@enduml

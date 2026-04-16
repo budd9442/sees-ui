@@ -58,6 +58,7 @@ import {
     BookOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportTabularData } from '@/lib/export';
 
 export default function ReportsClient({ initialData }: { initialData: any }) {
     const { students, modules, grades, academicGoals, interventions } = initialData;
@@ -193,8 +194,35 @@ export default function ReportsClient({ initialData }: { initialData: any }) {
         toast.success('Report generated successfully!');
     };
 
-    const exportReport = (format: 'pdf' | 'excel' | 'csv') => {
-        toast.success(`Report exported as ${format.toUpperCase()} successfully!`);
+    const exportReport = async (format: 'pdf' | 'excel' | 'csv') => {
+        if (!generatedReport) {
+            toast.error('Generate a report first');
+            return;
+        }
+        try {
+            const rows = generatedReport.atRiskStudents?.length
+                ? generatedReport.atRiskStudents.map((student: any) => ({
+                    studentId: student.id,
+                    name: student.name,
+                    academicYear: student.academicYear,
+                    pathway: student.pathway,
+                    gpa: student.gpa?.toFixed?.(2) ?? student.gpa,
+                    interventions: student.interventionsCount,
+                }))
+                : [{
+                    totalStudents: generatedReport.departmentStats.totalStudents,
+                    averageGPA: generatedReport.departmentStats.avgGPA.toFixed(2),
+                    passRate: generatedReport.departmentStats.passRate.toFixed(1),
+                    atRiskStudents: generatedReport.departmentStats.atRiskStudents,
+                }];
+            await exportTabularData(rows, format, {
+                filename: `hod-report-${generatedReport.template}-${Date.now()}`,
+                title: 'HOD Report Export',
+            });
+            toast.success(`Report exported as ${format.toUpperCase()}`);
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export report');
+        }
     };
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];

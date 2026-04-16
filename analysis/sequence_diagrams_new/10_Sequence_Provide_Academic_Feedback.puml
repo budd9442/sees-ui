@@ -1,0 +1,38 @@
+@startuml
+Title Provide Academic Feedback and Suggestions
+
+actor Student
+control GPAController as Controller
+entity Student as Stu
+entity GPAHistory as GPAHist
+entity Grade
+entity Advisor as Adv
+
+== Trigger Feedback ==
+Controller -> GPAHist: detectGpaChange()
+GPAHist --> Controller: gpaDecreased
+Controller -> Stu: getStudent()
+Stu --> Controller: studentData
+Controller -> Grade: getRecentGrades()
+Grade --> Controller: recentGrades
+Controller -> Controller: generatePersonalizedSuggestions()
+Controller -> Adv: notifyAdvisor()
+Adv --> Controller: notified
+
+== Student Views Feedback ==
+Student -> Controller: viewAcademicFeedback()
+Controller -> Stu: getPerformanceData()
+Stu --> Controller: performanceData
+Controller -> Adv: getAdvisorContact()
+Adv --> Controller: advisorInfo
+Controller --> Student: displayFeedback()
+
+== Contact Advisor ==
+opt student contacts advisor
+  Student -> Controller: contactAdvisor()
+  Controller -> Adv: createAdvisorMeeting()
+  Adv --> Controller: meetingScheduled
+  Controller --> Student: showConfirmation()
+end
+
+@enduml

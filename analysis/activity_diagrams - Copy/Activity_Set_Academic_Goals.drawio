@@ -1,0 +1,179 @@
+<mxfile host="65bd71144e">
+    <diagram name="Set Academic Goals Activity" id="act-uc-08">
+        <mxGraphModel dx="1154" dy="993" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="lane_student" value="Student" style="swimlane;whiteSpace=wrap" parent="1" vertex="1">
+                    <mxGeometry x="60" y="40" width="280" height="880" as="geometry"/>
+                </mxCell>
+                <mxCell id="start" value="" style="ellipse;shape=startState;fillColor=#FFFFFF;strokeColor=#000000;" parent="lane_student" vertex="1">
+                    <mxGeometry x="125" y="40" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="a1" value="Access goal-setting&#10;interface" style="" parent="lane_student" vertex="1">
+                    <mxGeometry x="60" y="110" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a3" value="Set target GPA and&#10;desired academic class" style="" parent="lane_student" vertex="1">
+                    <mxGeometry x="60" y="240" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a8" value="Review system feedback&#10;&amp; suggested adjustments" style="" parent="lane_student" vertex="1">
+                    <mxGeometry x="60" y="420" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_student" value="Accept system&#10;suggestions?" style="rhombus;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="lane_student">
+                    <mxGeometry x="70" y="500" width="140" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="a9" value="Confirm final goals&#10;&amp; activate tracking" style="" parent="lane_student" vertex="1">
+                    <mxGeometry x="60" y="640" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a_cancel" value="Cancel goal setting&#10;( or keep existing goals)" style="" vertex="1" parent="lane_student">
+                    <mxGeometry x="60" y="720" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="end" value="" style="ellipse;shape=endState;fillColor=#f5f5f5;strokeColor=#666666" parent="lane_student" vertex="1">
+                    <mxGeometry x="125" y="820" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_student" source="start" target="a1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_student" target="d_student" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="140" y="470" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_accept" value="[Yes - Accept]" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" edge="1" parent="lane_student" source="d_student" target="a9">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_reject" value="[No - Revise]" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" edge="1" parent="lane_student" source="d_student">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="30" y="535"/>
+                            <mxPoint x="30" y="265"/>
+                        </Array>
+                        <mxPoint x="60" y="265" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_cancel" value="[Cancel]" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" edge="1" parent="lane_student" source="d_student">
+                    <mxGeometry x="-0.1071" relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="200" y="535"/>
+                            <mxPoint x="240" y="535"/>
+                            <mxPoint x="240" y="745"/>
+                        </Array>
+                        <mxPoint x="220" y="745" as="targetPoint"/>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_cancel_end" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" edge="1" parent="lane_student" target="end">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="140" y="770" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="lane_system" value="Student Enrollment &amp; Evaluation System" style="swimlane;whiteSpace=wrap" parent="1" vertex="1">
+                    <mxGeometry x="340" y="40" width="520" height="880" as="geometry"/>
+                </mxCell>
+                <mxCell id="a2" value="Load current academic&#10;performance &amp; progress" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="170" y="110" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a4" value="Validate goals against&#10;current performance&#10;&amp; academic rules" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="170" y="235" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="d1" value="Goals need&#10;adjustment?" style="rhombus;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" parent="lane_system" vertex="1">
+                    <mxGeometry x="190" y="330" width="140" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="a5_suggest" value="Generate suggestions&#10;&amp; realistic alternatives&#10;with explanations" style="" vertex="1" parent="lane_system">
+                    <mxGeometry x="30" y="420" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="a5" value="Calculate required&#10;performance &amp; create&#10;achievement roadmap" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="320" y="420" width="180" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="a6" value="Generate personalized &#10;plan with milestones" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="170" y="600" width="180" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="a7" value="Save goals &amp; activate&#10;progress monitoring&#10;with alerts" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="170" y="690" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;exitX=0.498;exitY=0.972;exitDx=0;exitDy=0;exitPerimeter=0;" parent="lane_system" source="a4" target="d1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="260" y="300" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e5a" value="[Yes - Need adjustment]" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=0.469;entryY=-0.01;entryDx=0;entryDy=0;entryPerimeter=0;" parent="lane_system" source="d1" target="a5_suggest" edge="1">
+                    <mxGeometry x="0.5793" y="-5" relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="105" y="365"/>
+                        </Array>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e5b" value="[No - Goals acceptable]" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_system" source="d1" edge="1">
+                    <mxGeometry x="0.5556" relative="1" as="geometry">
+                        <mxPoint x="410" y="420" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="410" y="365"/>
+                        </Array>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="merge1" value="" style="rhombus;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="lane_system">
+                    <mxGeometry x="250" y="550" width="20" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_suggest_merge" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;exitX=0.985;exitY=0.457;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="lane_system" source="a5_suggest" target="merge1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="260" y="452"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_accept_merge" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.55;exitY=1.01;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="lane_system" source="a5" target="merge1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="250" y="530" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="419" y="560"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_merge_plan" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" edge="1" parent="lane_system" source="merge1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="260" y="600" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ex1" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="1" source="a1" target="a2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ex2" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="280" y="305" as="sourcePoint"/>
+                        <mxPoint x="510" y="305" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ex3" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=1.017;entryY=0.419;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.009;exitY=0.543;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="a6" target="a8" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="470" y="678"/>
+                            <mxPoint x="470" y="600"/>
+                            <mxPoint x="320" y="600"/>
+                            <mxPoint x="320" y="480"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ex4" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=-0.016;entryY=0.473;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" target="a7" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="280" y="710" as="sourcePoint"/>
+                        <mxPoint x="570" y="790" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="430" y="710"/>
+                            <mxPoint x="430" y="760"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="3" style="edgeStyle=none;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" target="end">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="600" y="790" as="sourcePoint"/>
+                        <Array as="points">
+                            <mxPoint x="600" y="880"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

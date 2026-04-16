@@ -1,0 +1,32 @@
+@startuml
+Title Monitor System Performance
+
+actor Admin
+control AdminController as Controller
+entity SystemSetting as Setting
+
+== View Dashboard ==
+Admin -> Controller: openMonitoringDashboard()
+Controller -> Controller: collectSystemMetrics()
+Controller -> Setting: getValue("PERFORMANCE_THRESHOLDS")
+Setting --> Controller: thresholds
+Controller --> Admin: displayDashboard()
+
+== Configure Alerts ==
+Admin -> Controller: configureAlert()
+Controller -> Setting: setValue()
+Setting --> Controller: saved
+Controller --> Admin: showConfirmation()
+
+== Alert Triggered ==
+alt metric exceeds threshold
+  Controller -> Controller: detectThresholdBreach()
+  Controller --> Admin: showAlert()
+end
+
+== View Logs ==
+Admin -> Controller: viewSystemLogs()
+Controller -> Controller: filterLogs()
+Controller --> Admin: displayLogs()
+
+@enduml

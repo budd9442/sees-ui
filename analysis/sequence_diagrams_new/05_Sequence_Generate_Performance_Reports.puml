@@ -1,0 +1,43 @@
+@startuml
+Title Generate Performance Reports
+
+actor "Head of Department" as HOD
+control ReportController as Controller
+entity Student
+entity Grade
+entity Ranking
+
+== Select Template ==
+HOD -> Controller: openReportingInterface()
+Controller --> HOD: displayTemplates()
+HOD -> Controller: selectTemplate()
+
+== Generate Report ==
+Controller -> Controller: generateReport()
+
+alt Overall Performance Trends
+  Controller -> Student: getAllStudents()
+  Student --> Controller: studentList
+  Controller -> Controller: calculateStatistics()
+else Module Performance
+  Controller -> Grade: getModuleGrades()
+  Grade --> Controller: gradeList
+  Controller -> Controller: analyzePerformance()
+else High Performer Rankings
+  Controller -> Student: getStudentsByPath()
+  Student --> Controller: studentList
+  Controller -> Controller: rankStudents()
+else Eligible Students by Class
+  Controller -> Student: getAllStudents()
+  Student --> Controller: studentList
+  Controller -> Controller: groupByClass()
+end
+
+Controller -> Controller: compileReport()
+Controller --> HOD: displayReportPreview()
+
+== Export ==
+HOD -> Controller: exportReport()
+Controller --> HOD: downloadFile()
+
+@enduml

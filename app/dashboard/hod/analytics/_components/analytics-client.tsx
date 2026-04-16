@@ -37,6 +37,8 @@ import {
 import { Download } from 'lucide-react';
 import { ReportBuilderPanel } from '@/components/analytics/report-builder-panel';
 import { defaultHodReportDefinition } from '@/lib/analytics/default-reports';
+import { exportTabularData } from '@/lib/export';
+import { toast } from 'sonner';
 
 type HODAnalyticsClientProps = {
     initialData: {
@@ -194,8 +196,20 @@ export default function HODAnalyticsClient({
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
-    const exportAnalytics = () => {
-        console.log('Exporting analytics data...');
+    const exportAnalytics = async () => {
+        try {
+            const rows = students.map((student: any) => ({
+                studentId: student.id,
+                name: student.name,
+                pathway: student.specialization,
+                academicYear: student.academicYear,
+                currentGPA: Number(student.currentGPA ?? 0).toFixed(2),
+            }));
+            await exportTabularData(rows, 'excel', { filename: `hod-analytics-${Date.now()}` });
+            toast.success('Analytics exported as Excel');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export analytics');
+        }
     };
 
     const builderFilterContext = {

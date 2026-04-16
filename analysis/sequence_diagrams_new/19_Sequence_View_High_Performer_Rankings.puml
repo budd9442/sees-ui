@@ -1,0 +1,37 @@
+@startuml
+Title View High Performer Rankings
+
+actor HOD
+control ReportController as Controller
+entity Student
+entity Ranking
+entity DegreePath as Path
+entity SystemSetting as Setting
+
+== Select Criteria ==
+HOD -> Controller: openRankingsInterface()
+Controller -> Path: getDegreePaths()
+Path --> Controller: pathList
+Controller --> HOD: displayCriteriaSelection()
+
+HOD -> Controller: selectCriteria()
+
+== Generate Rankings ==
+Controller -> Student: getStudentsByPath()
+Student --> Controller: studentList
+loop for each student
+  Controller -> Student: calculateCurrentGpa()
+  Student --> Controller: gpa
+end
+Controller -> Controller: rankStudents()
+Controller -> Ranking: createRanking()
+Ranking --> Controller: rankingId
+Controller --> HOD: displayRankings()
+
+== Export ==
+opt export rankings
+  HOD -> Controller: exportReport()
+  Controller --> HOD: downloadFile()
+end
+
+@enduml

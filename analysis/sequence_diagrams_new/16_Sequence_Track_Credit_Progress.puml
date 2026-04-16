@@ -1,0 +1,29 @@
+@startuml
+Title Track Credit Progress
+
+actor Student
+control StudentController as Controller
+entity Student as Stu
+entity ModuleRegistration as ModReg
+entity Module
+entity Grade
+entity SystemSetting as Setting
+
+== View Credit Progress ==
+Student -> Controller: viewCreditProgress()
+Controller -> Stu: getStudent()
+Stu --> Controller: studentData
+Controller -> Setting: getValue("CREDIT_REQUIREMENTS")
+Setting --> Controller: requirements
+Controller -> ModReg: getPlannedModules()
+ModReg --> Controller: plannedModules
+Controller -> Module: getCredits()
+Module --> Controller: credits
+Controller -> Grade: getCompletedModules()
+Grade --> Controller: completedModules
+Controller -> Module: getCredits()
+Module --> Controller: credits
+Controller -> Controller: validateAgainstRules()
+Controller --> Student: displayProgress()
+
+@enduml

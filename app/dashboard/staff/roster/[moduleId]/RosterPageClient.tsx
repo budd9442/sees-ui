@@ -41,6 +41,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportTabularData } from '@/lib/export';
 
 type RosterData = {
   id: string;
@@ -146,8 +147,26 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
     setShowStudentDialog(true);
   };
 
-  const exportRoster = () => {
-    toast.success('Roster exported successfully!');
+  const exportRoster = async () => {
+    try {
+      const rows = filteredStudents.map((student) => {
+        const stats = getStudentStats(student.id);
+        return {
+          studentId: student.id,
+          name: student.name,
+          email: student.email,
+          academicYear: student.academicYear,
+          pathway: student.specialization,
+          gradePoints: stats.grade?.points ?? '',
+          letterGrade: stats.grade?.letterGrade ?? '',
+          status: stats.isAtRisk ? 'At Risk' : 'Good Standing',
+        };
+      });
+      await exportTabularData(rows, 'csv', { filename: `roster-${currentModule.code}-${Date.now()}` });
+      toast.success('Roster exported as CSV');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to export roster');
+    }
   };
 
   const getGradeColor = (points?: number) => {
@@ -176,7 +195,7 @@ export default function RosterPageClient({ initialRoster }: RosterPageClientProp
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportRoster}>
+          <Button variant="outline" onClick={() => void exportRoster()}>
             <Download className="mr-2 h-4 w-4" />
             Export Roster
           </Button>

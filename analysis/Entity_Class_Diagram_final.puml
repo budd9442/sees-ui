@@ -1,0 +1,392 @@
+startuml Entity_Class_Diagram_Final
+!theme plain
+
+' --- Disable all class / stereotype / attribute icons ---
+hide circle
+hide stereotype
+hide <<interface>> circle
+hide <<abstract>> circle
+hide <<enum>> circle
+
+' --- Force icon removal from class header ---
+skinparam class {
+  AttributeIconSize 0
+  BackgroundColor white
+  BorderColor black
+  FontColor black
+  FontSize 9
+  FontStyle bold
+}
+
+skinparam classIconSize 0
+skinparam classAttributeIconSize 0
+skinparam classStereotypeFontSize 0
+skinparam classStereotypeFontColor white
+skinparam classStereotypeBackgroundColor white
+skinparam classStereotypeBorderColor white
+skinparam shadowing false
+skinparam roundcorner 0
+
+skinparam linetype ortho
+skinparam direction top to bottom
+skinparam packageStyle rectangle
+
+title Student Enrollment and Evaluation System (SEES) - Entity Class Diagram
+
+' ==========================================
+' USER MANAGEMENT ENTITIES
+' ==========================================
+
+abstract class User {
+    - user_id: String
+    - email: String
+    - username: String
+    - password_hash: String
+    - status: String
+    - created_at: Date
+    - last_login_date: Date
+    --
+    + login(): boolean
+    + logout(): void
+    + updateProfile(): void
+    + changePassword(): boolean
+}
+
+class Student {
+    - student_id: String
+    - admission_year: int
+    - current_gpa: double
+    - academic_class: String
+    - degree_path_id: String
+    - specialization_id: String
+    - advisor_id: String
+    - current_level: String
+    - enrollment_status: String
+    --
+    + registerForModule(): boolean
+    + calculateCurrentGpa(): double
+    + getAcademicClass(): String
+    + setAcademicGoal(): void
+    + viewGrades(): List<Grade>
+    + selectDegreePath(): boolean
+    + selectSpecialization(): boolean
+    + submitAnonymousReport(): void
+}
+
+class Staff {
+    - staff_id: String
+    - staff_number: String
+    - staff_type: String
+    - department: String
+    --
+    + uploadGrades(): void
+    + releaseGrades(): void
+    + modifySchedule(): void
+    + manageModuleInfo(): void
+    + teachModule(): void
+}
+
+class Advisor {
+    - advisor_id: String
+    - assigned_degree_path_id: String
+    --
+    + sendMessage(): void
+    + receiveMessage(): Message
+    + provideGuidance(): void
+    + reviewStudentProgress(): void
+}
+
+class HOD {
+    - hod_id: String
+    - department: String
+    --
+    + generatePerformanceReport(): Report
+    + viewDashboard(): Dashboard
+    + viewRankings(): List<Ranking>
+    + exportReport(): File
+    + getRiskAlerts(): List<Alert>
+}
+
+' ==========================================
+' ACADEMIC STRUCTURE ENTITIES
+' ==========================================
+
+class DegreePath {
+    - degree_path_id: String
+    - code: String
+    - name: String
+    - capacity: int
+    - active: boolean
+    --
+    + getSpecializations(): List<Specialization>
+    + checkCapacity(): int
+    + isActive(): boolean
+    + getEnrolledStudents(): List<Student>
+}
+
+class Specialization {
+    - specialization_id: String
+    - code: String
+    - name: String
+    - capacity: int
+    - degree_path_id: String
+    - active: boolean
+    --
+    + checkCapacity(): int
+    + getEnrolledStudents(): List<Student>
+    + isActive(): boolean
+}
+
+class Module {
+    - module_id: String
+    - code: String
+    - name: String
+    - credits: int
+    - level: String
+    - capacity: int
+    - description: String
+    - active: boolean
+    --
+    + getPrerequisites(): List<Module>
+    + isActive(): boolean
+    + getRegisteredStudents(): List<Student>
+}
+
+class AcademicYear {
+    - academic_year_id: String
+    - label: String
+    - start_date: Date
+    - end_date: Date
+    - active: boolean
+    --
+    + isActive(): boolean
+    + getEnrolledStudents(): List<Student>
+    + getOfferedModules(): List<Module>
+}
+
+' ==========================================
+' ENROLLMENT & ASSESSMENT ENTITIES
+' ==========================================
+
+class ModuleRegistration {
+    - reg_id: String
+    - student_id: String
+    - module_id: String
+    - semester_id: String
+    - term: String
+    - registration_date: Date
+    - status: String
+    --
+    + register(): boolean
+    + withdraw(): boolean
+    + getStatus(): String
+}
+
+class Grade {
+    - grade_id: String
+    - student_id: String
+    - module_id: String
+    - semester_id: String
+    - marks: double
+    - grade_point: double
+    - letter_grade: String
+    - attempt_no: int
+    - released_at: Date
+    --
+    + calculateGradePoint(): double
+    + getLetterGrade(): String
+    + isReleased(): boolean
+}
+
+class GradingScheme {
+    - scheme_id: String
+    - name: String
+    - version: String
+    - active: boolean
+    --
+    + getGradePoint(): double
+    + getLetterGrade(): String
+    + isActive(): boolean
+}
+
+class GradingBand {
+    - band_id: String
+    - scheme_id: String
+    - min_marks: double
+    - max_marks: double
+    - grade_point: double
+    - letter_grade: String
+    --
+    + contains(): boolean
+    + getGradePoint(): double
+}
+
+' ==========================================
+' STUDENT PROGRESS ENTITIES
+' ==========================================
+
+class GPAHistory {
+    - gpa_history_id: String
+    - student_id: String
+    - calculation_date: Date
+    - gpa: double
+    - academic_class: String
+    --
+    + getGPA(): double
+    + getAcademicClass(): String
+    + getCalculationDate(): Date
+}
+
+class AcademicGoal {
+    - goal_id: String
+    - student_id: String
+    - target_gpa: double
+    - target_class: String
+    - created_at: Date
+    - achieved_at: Date
+    --
+    + checkProgress(): double
+    + isAchieved(): boolean
+    + getProgress(): double
+}
+
+class Ranking {
+    - ranking_id: String
+    - student_id: String
+    - degree_path_id: String
+    - rank: int
+    - gpa: double
+    - weighted_average: double
+    - created_at: Date
+    --
+    + getRank(): int
+    + getGPA(): double
+    + getPeriod(): String
+}
+
+' ==========================================
+' COMMUNICATION ENTITIES
+' ==========================================
+
+class Message {
+    - message_id: String
+    - sender_id: String
+    - recipient_id: String
+    - subject: String
+    - content: String
+    - sent_at: Date
+    - read_at: Date
+    --
+    + send(): void
+    + markAsRead(): void
+    + isRead(): boolean
+}
+
+class Notification {
+    - notification_id: String
+    - user_id: String
+    - type: String
+    - title: String
+    - content: String
+    - sent_at: Date
+    - read_at: Date
+    --
+    + send(): void
+    + markAsRead(): void
+    + isRead(): boolean
+}
+
+class AnonymousReport {
+    - report_id: String
+    - student_id: String
+    - content: String
+    - priority: String
+    - status: String
+    --
+    + submit(): void
+    + getStatus(): String
+    + updateStatus(): void
+}
+
+' ==========================================
+' SYSTEM CONFIGURATION
+' ==========================================
+
+class SystemSetting {
+    - setting_id: String
+    - key: String
+    - value: String
+    - description: String
+    - category: String
+    - updated_at: Date
+    --
+    + getValue(): String
+    + setValue(): void
+    + getCategory(): String
+}
+
+' ==========================================
+' INHERITANCE RELATIONSHIPS (Hollow Triangle Arrow)
+' ==========================================
+
+User <|-- Student
+User <|-- Staff
+Staff <|-- Advisor
+Staff <|-- HOD
+
+' ==========================================
+' COMPOSITION RELATIONSHIPS (Filled Diamond)
+' ==========================================
+
+DegreePath *-- "1..*" Specialization
+GradingScheme *-- "1..*" GradingBand
+
+' ==========================================
+' AGGREGATION RELATIONSHIPS (Hollow Diamond)
+' ==========================================
+
+Student o-- "1..*" GPAHistory
+
+' ==========================================
+' ASSOCIATION CLASSES (Dashed Lines)
+' ==========================================
+
+' ModuleRegistration as association class
+Student "1" -- "1" ModuleRegistration
+ModuleRegistration "1" -- "1" Module
+
+' Grade as association class
+Student "1" -- "1" Grade
+Grade "1" -- "1" Module
+
+' ==========================================
+' STANDARD ASSOCIATIONS WITH CARDINALITIES
+' ==========================================
+
+' Student relationships
+Student "1" -- "1" DegreePath : enrolls in
+Student "0..1" -- "0..1" Specialization : selects
+Student "1" -- "0..*" AcademicGoal : sets
+Student "1" -- "0..*" AnonymousReport : submits
+Student "1" -- "0..*" Ranking : ranked in
+
+' Message relationships (bidirectional)
+Student "1" -- "0..*" Message : sends
+Advisor "1" -- "0..*" Message : receives
+
+' Notification relationships
+User "1" -- "0..*" Notification : receives
+
+' Module relationships
+Module "0..*" -- "0..*" Module : prerequisite
+
+' Academic Year relationships
+AcademicYear "1" -- "0..*" Student : admitted in
+AcademicYear "1" -- "0..*" Module : offered in
+
+' System Setting relationships
+SystemSetting "0..*" -- "1..*" User : configures
+SystemSetting "0..*" -- "1..*" DegreePath : configures
+SystemSetting "0..*" -- "1..*" GradingScheme : configures
+
+@enduml

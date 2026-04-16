@@ -1,0 +1,261 @@
+@startuml Interface_Class_Diagram_Final
+!theme plain
+
+' --- Disable icons ---
+hide circle
+hide stereotype
+hide <<interface>> circle
+hide <<abstract>> circle
+hide <<enum>> circle
+
+' --- Class visual style ---
+skinparam class {
+  AttributeIconSize 0
+  BackgroundColor white
+  BorderColor black
+  FontColor black
+  FontSize 9
+  FontStyle bold
+}
+
+skinparam classIconSize 0
+skinparam classAttributeIconSize 0
+skinparam classStereotypeFontSize 0
+skinparam classStereotypeFontColor white
+skinparam classStereotypeBackgroundColor white
+skinparam classStereotypeBorderColor white
+skinparam shadowing false
+skinparam roundcorner 0
+
+skinparam linetype ortho
+skinparam direction top to bottom
+skinparam packageStyle rectangle
+
+title Student Enrollment and Evaluation System (SEES) - Interface Class Diagram
+
+' ==========================================
+' AUTHENTICATION & USER MANAGEMENT INTERFACES
+' ==========================================
+
+interface IAuthenticationService {
+    --
+    + login(): boolean
+    + logout(): void
+    + validateCredentials(): boolean
+    + authenticateUser(): User
+}
+
+interface IRegistrationService {
+    --
+    + registerStudent(): boolean
+    + registerStaff(): boolean
+    + validateRegistration(): boolean
+    + generateStudentId(): String
+    + setUserRole(): void
+    + storeUserDetails(): void
+}
+
+' ==========================================
+' CORE BUSINESS LOGIC INTERFACES
+' ==========================================
+
+interface IStudentService {
+    --
+    + registerStudent(): boolean
+    + loginStudent(): boolean
+    + selectDegreePath(): boolean
+    + selectSpecialization(): boolean
+    + registerForModules(): boolean
+    + viewGrades(): List
+    + trackGPA(): Double
+    + submitAnonymousReport(): boolean
+    + getStudentId(): String
+    + setCurrentLevel(): void
+}
+
+interface IModuleService {
+    --
+    + registerForModule(): boolean
+    + checkPrerequisites(): boolean
+    + validateCreditLimit(): boolean
+    + getModuleId(): String
+    + setCredits(): void
+    + getModuleDetails(): Module
+}
+
+interface IPathwayService {
+    --
+    + selectDegreePath(): boolean
+    + checkCapacity(): int
+    + allocateByGPA(): List
+    + validatePrerequisites(): boolean
+    + getDegreePathId(): String
+    + setCapacity(): void
+}
+
+interface ISpecializationService {
+    --
+    + selectSpecialization(): boolean
+    + checkCapacity(): int
+    + validatePrerequisites(): boolean
+    + getSpecializationId(): String
+    + setDegreePathId(): void
+}
+
+interface IGradeService {
+    --
+    + uploadGrades(): boolean
+    + releaseGrades(): boolean
+    + calculateGradePoint(): double
+    + getGradeId(): String
+    + setMarks(): void
+    + getGrades(): List
+}
+
+interface IGPAService {
+    --
+    + calculateCurrentGPA(): double
+    + getAcademicClass(): String
+    + setAcademicGoal(): boolean
+    + trackProgress(): double
+    + getStudentId(): String
+    + setCurrentGPA(): void
+    + getGPAHistory(): List
+}
+
+interface IStaffService {
+    --
+    + registerStaff(): boolean
+    + loginStaff(): boolean
+    + uploadGrades(): boolean
+    + modifySchedule(): boolean
+    + manageModuleInfo(): boolean
+    + getStaffId(): String
+    + setStaffType(): void
+    + teachModule(): void
+}
+
+interface IScheduleService {
+    --
+    + viewSchedule(): List
+    + updateSchedule(): boolean
+    + detectConflicts(): List
+    + notifyStudents(): boolean
+    + getScheduleId(): String
+    + setStartTime(): void
+    + createSchedule(): boolean
+}
+
+' ==========================================
+' ADMINISTRATIVE & SYSTEM INTERFACES
+' ==========================================
+
+interface IAdminService {
+    --
+    + bulkEnrollStudents(): boolean
+    + manageUserAccounts(): boolean
+    + configureSystemSettings(): boolean
+    + generateReports(): List
+    + getAdminId(): String
+    + setPermissions(): void
+}
+
+interface IReportService {
+    --
+    + generatePerformanceReport(): Report
+    + generateEnrollmentReport(): Report
+    + generateGradeReport(): Report
+    + exportReport(): File
+    + getReportId(): String
+    + setGenerateDate(): void
+}
+
+interface IMessageService {
+    --
+    + sendMessage(): boolean
+    + receiveMessage(): List
+    + markAsRead(): boolean
+    + getMessageId(): String
+    + setRecipientId(): void
+}
+
+interface INotificationService {
+    --
+    + sendNotification(): boolean
+    + getNotifications(): List
+    + markAsRead(): boolean
+    + getNotificationId(): String
+    + setNotificationType(): void
+}
+
+' ==========================================
+' ENTITY-SPECIFIC INTERFACES
+' ==========================================
+
+interface IUserService {
+    --
+    + getUserType(): String
+    + updateProfile(): void
+    + getProfileInfo(): String
+}
+
+interface IAdvisorService {
+    --
+    + sendMessage(): void
+    + receiveMessage(): List
+    + provideGuidance(): void
+    + reviewStudentProgress(): void
+}
+
+interface IHODService {
+    --
+    + generatePerformanceReport(): Report
+    + viewDashboard(): Dashboard
+    + viewRankings(): List
+    + exportReport(): File
+    + getRiskAlerts(): List
+}
+
+' ==========================================
+' INTERFACE RELATIONSHIPS
+' ==========================================
+
+' Authentication flow
+IAuthenticationService --> IUserService : authenticates
+IRegistrationService --> IUserService : creates
+
+' Student management flow
+IStudentService --> IPathwayService : selects
+IStudentService --> ISpecializationService : selects
+IStudentService --> IModuleService : registers
+IStudentService --> IGPAService : tracks
+IStudentService --> IMessageService : communicates
+
+' Module and pathway flow
+IPathwayService --> ISpecializationService : enables
+IModuleService --> IGradeService : enables
+IModuleService --> IScheduleService : schedules
+
+' Grade and assessment flow
+IGradeService --> IGPAService : updates
+IStaffService --> IGradeService : manages
+IStaffService --> IScheduleService : manages
+
+' Administrative flow
+IAdminService --> IStudentService : manages
+IAdminService --> IStaffService : manages
+IAdminService --> IReportService : generates
+IReportService --> IGPAService : accesses
+IReportService --> IGradeService : accesses
+
+' Communication flow
+IMessageService --> IStudentService : notifies
+IMessageService --> IStaffService : notifies
+INotificationService --> IStudentService : notifies
+INotificationService --> IStaffService : notifies
+
+' Staff hierarchy
+IStaffService --> IAdvisorService : extends
+IStaffService --> IHODService : extends
+
+@enduml

@@ -43,6 +43,7 @@ import {
     CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportTabularData } from '@/lib/export';
 
 type ModuleData = {
     id: string;
@@ -179,8 +180,26 @@ export default function AnalyticsClient({
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
-    const exportAnalytics = () => {
-        toast.success('Analytics report exported successfully!');
+    const exportAnalytics = async () => {
+        if (!analyticsData || !currentModule) {
+            toast.error('Select a module to export analytics');
+            return;
+        }
+        try {
+            const rows = analyticsData.gradeDistribution.map((item) => ({
+                moduleCode: currentModule.code,
+                moduleTitle: currentModule.title,
+                grade: item.grade,
+                count: item.count,
+                percentage: item.percentage.toFixed(1),
+                averageGrade: analyticsData.avgGrade.toFixed(2),
+                passRate: analyticsData.passRate.toFixed(1),
+            }));
+            await exportTabularData(rows, 'excel', { filename: `module-analytics-${currentModule.code}-${Date.now()}` });
+            toast.success('Analytics report exported as Excel');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export analytics');
+        }
     };
 
     const builderParams = new URLSearchParams();

@@ -1,0 +1,30 @@
+@startuml
+Title Register for Modules
+
+actor Student
+control RegistrationController as Controller
+entity Module
+entity ModuleRegistration as ModReg
+entity Student as Stu
+entity AcademicYear as Year
+
+== Browse Modules ==
+Student -> Controller: openModuleRegistration()
+Controller -> Year: getOfferedModules()
+Year --> Controller: moduleList
+Controller --> Student: displayModules()
+
+== Select Module ==
+Student -> Controller: selectModule()
+Controller -> Module: checkPrerequisites()
+Module --> Controller: prerequisitesMet
+Controller -> Module: checkCapacity()
+Module --> Controller: hasCapacity
+Controller -> Stu: validateAcademicRules()
+Stu --> Controller: rulesValid
+Student -> Controller: confirmRegistration()
+Controller -> ModReg: create()
+ModReg --> Controller: registrationId
+Controller --> Student: showSuccess()
+
+@enduml

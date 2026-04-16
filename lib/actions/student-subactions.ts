@@ -5,6 +5,8 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { assertStudentWriteAccess } from '@/lib/actions/student-access';
 import { AcademicEngine } from '@/lib/services/academic-engine';
+import { GeminiService } from '@/lib/services/gemini-service';
+import { createHash } from 'crypto';
 
 export async function getCreditsData() {
     const session = await auth();
@@ -853,6 +855,215 @@ export async function getRankingsData() {
     }));
 
     return rankings;
+}
+
+function stableStringify(value: unknown): string {
+    if (value === null || typeof value !== 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) return `[${value.map((v) => stableStringify(v)).join(',')}]`;
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj).sort();
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(',')}}`;
+}
+
+function hashOf(value: unknown): string {
+    return createHash('sha256').update(stableStringify(value)).digest('hex');
+}
+
+function addDays(date: Date, days: number) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+export async function getPersonalizedAIFeedback(forceRegenerate = false) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    let userId = session.user.id;
+    let userRecord = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+    if (!userRecord && session.user.email) {
+        userRecord = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
+    if (!userRecord) throw new Error("User not found");
+    userId = userRecord.user_id;
+
+    const studentRecord = await prisma.student.findUnique({
+        where: { student_id: userId },
+        include: {
+            user: true,
+            degree_path: true,
+            specialization: true,
+            grades: { include: { module: true, semester: true } },
+            module_registrations: { include: { module: true, semester: true, grade: true } },
+            gpa_history: { orderBy: { calculation_date: 'asc' } },
+            academic_goals: {
+                include: { module: true },
+                orderBy: { created_at: 'desc' },
+                take: 12,
+            },
+        } as any
+    });
+
+    if (!studentRecord) throw new Error("Student profile not found");
+    const student = studentRecord as any;
+
+    const { gpa: currentGPA, totalCredits, academicClass } = await AcademicEngine.calculateStudentGPA(student.student_id);
+    const releasedGrades = student.grades.filter((g: any) => !!g.released_at);
+    const latestReleasedGradeAt = releasedGrades.reduce((latest: Date | null, g: any) => {
+        if (!g.released_at) return latest;
+        if (!latest || g.released_at > latest) return g.released_at;
+        return latest;
+    }, null);
+
+    const transcriptDigestSource = releasedGrades
+        .map((g: any) => ({
+            moduleId: g.module_id,
+            letter: g.letter_grade,
+            points: g.grade_point,
+            marks: g.marks,
+            releasedAt: g.released_at?.toISOString() ?? null,
+        }))
+        .sort((a: any, b: any) => a.moduleId.localeCompare(b.moduleId));
+    const transcriptFingerprint = hashOf(transcriptDigestSource);
+
+    const feedbackContext = {
+        profile: {
+            studentId: student.student_id,
+            name: `${student.user.firstName ?? ''} ${student.user.lastName ?? ''}`.trim(),
+            admissionYear: student.admission_year,
+            currentLevel: student.current_level,
+            currentGPA,
+            academicClass,
+            totalCredits,
+            degreeProgram: student.degree_path?.name ?? null,
+            specialization: student.specialization?.name ?? null,
+            enrollmentStatus: student.enrollment_status,
+        },
+        gpaHistory: student.gpa_history.map((h: any) => ({
+            date: h.calculation_date.toISOString(),
+            gpa: h.gpa,
+            academicClass: h.academic_class,
+        })),
+        transcript: releasedGrades.map((g: any) => ({
+            moduleCode: g.module.code,
+            moduleName: g.module.name,
+            credits: g.module.credits,
+            gradePoint: g.grade_point,
+            marks: g.marks,
+            letterGrade: g.letter_grade,
+            semester: g.semester?.label ?? null,
+            releasedAt: g.released_at?.toISOString() ?? null,
+        })),
+        registrations: student.module_registrations.map((mr: any) => ({
+            moduleCode: mr.module.code,
+            moduleName: mr.module.name,
+            credits: mr.module.credits,
+            status: mr.status,
+            semester: mr.semester?.label ?? null,
+            hasGrade: !!mr.grade,
+        })),
+        goals: student.academic_goals.map((goal: any) => ({
+            title: goal.title,
+            description: goal.description,
+            goalType: goal.goal_type,
+            status: goal.status,
+            progress: goal.progress,
+            targetValue: goal.target_value_number,
+            baselineValue: goal.baseline_value,
+            moduleCode: goal.module?.code ?? null,
+            deadline: goal.deadline?.toISOString() ?? null,
+        })),
+    };
+
+    const promptContextHash = hashOf(feedbackContext);
+    const prismaAny = prisma as any;
+    const snapshotStore =
+        prismaAny.studentAIFeedbackSnapshot ||
+        prismaAny.studentAiFeedbackSnapshot ||
+        null;
+    const existing = snapshotStore
+        ? await snapshotStore.findFirst({
+            where: { student_id: student.student_id },
+            orderBy: { generated_at: 'desc' },
+        })
+        : null;
+
+    const now = new Date();
+    const shouldInvalidateByExpiry = !existing || new Date(existing.expires_at) <= now;
+    const shouldInvalidateByGpa = !existing || Number(existing.gpa_at_generation) !== Number(currentGPA);
+    const shouldInvalidateByReleased = !existing
+        || (existing.latest_released_grade_at ? new Date(existing.latest_released_grade_at).toISOString() : null)
+            !== (latestReleasedGradeAt ? latestReleasedGradeAt.toISOString() : null);
+    const shouldInvalidateByTranscript = !existing || existing.transcript_fingerprint !== transcriptFingerprint;
+    const shouldInvalidateByContext = !existing || existing.prompt_context_hash !== promptContextHash;
+
+    const shouldRegenerate = forceRegenerate
+        || shouldInvalidateByExpiry
+        || shouldInvalidateByGpa
+        || shouldInvalidateByReleased
+        || shouldInvalidateByTranscript
+        || shouldInvalidateByContext;
+
+    if (!shouldRegenerate && existing) {
+        return {
+            feedback: existing.feedback_json,
+            generatedAt: existing.generated_at,
+            expiresAt: existing.expires_at,
+            fromCache: true,
+            invalidationReason: null,
+        };
+    }
+
+    const aiFeedback = await GeminiService.generatePersonalizedFeedback(feedbackContext);
+    const reason =
+        forceRegenerate ? 'USER_REEVALUATE'
+            : shouldInvalidateByExpiry ? 'EXPIRED'
+            : shouldInvalidateByGpa ? 'GPA_CHANGED'
+            : shouldInvalidateByReleased ? 'RELEASED_GRADE_CHANGED'
+            : shouldInvalidateByTranscript ? 'TRANSCRIPT_CHANGED'
+            : shouldInvalidateByContext ? 'CONTEXT_CHANGED'
+            : 'INITIAL';
+
+    if (!snapshotStore) {
+        return {
+            feedback: aiFeedback,
+            generatedAt: now,
+            expiresAt: addDays(now, 30),
+            fromCache: false,
+            invalidationReason: 'SNAPSHOT_STORE_UNAVAILABLE',
+        };
+    }
+
+    const created = await snapshotStore.create({
+        data: {
+            student_id: student.student_id,
+            feedback_json: aiFeedback,
+            prompt_context_hash: promptContextHash,
+            gpa_at_generation: currentGPA,
+            transcript_fingerprint: transcriptFingerprint,
+            latest_released_grade_at: latestReleasedGradeAt,
+            generated_at: now,
+            expires_at: addDays(now, 30),
+            source_version: 'v1',
+            status: 'READY',
+            invalidation_reason: reason,
+            error_message: null,
+        },
+    });
+
+    return {
+        feedback: created.feedback_json,
+        generatedAt: created.generated_at,
+        expiresAt: created.expires_at,
+        fromCache: false,
+        invalidationReason: reason,
+    };
+}
+
+export async function reEvaluatePersonalizedAIFeedback() {
+    const result = await getPersonalizedAIFeedback(true);
+    revalidatePath('/dashboard/student/personalized-feedback');
+    return result;
 }
 
 // ----------------------------------------------------------------------

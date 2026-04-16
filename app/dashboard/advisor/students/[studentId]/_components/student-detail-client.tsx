@@ -64,6 +64,7 @@ import {
 import { toast } from 'sonner';
 import { createStudentIntervention } from '@/lib/actions/advisor-subactions';
 import { useRouter } from 'next/navigation';
+import { exportTabularData } from '@/lib/export';
 
 export default function StudentDetailClient({ initialData, currentUserId }: { initialData: any, currentUserId: string }) {
     const router = useRouter();
@@ -157,8 +158,24 @@ export default function StudentDetailClient({ initialData, currentUserId }: { in
         }));
     };
 
-    const exportStudentRecord = () => {
-        toast.success('Student record exported successfully!');
+    const exportStudentRecord = async () => {
+        try {
+            const rows = studentGrades.map((grade: any) => ({
+                studentId: student.studentId,
+                studentName: `${student.firstName} ${student.lastName}`,
+                moduleCode: grade.moduleCode,
+                moduleTitle: grade.moduleTitle,
+                credits: grade.credits,
+                letterGrade: grade.letterGrade,
+                points: grade.points,
+                semester: grade.semester,
+                released: grade.isReleased ? 'Yes' : 'No',
+            }));
+            await exportTabularData(rows, 'pdf', { filename: `student-record-${student.studentId}-${Date.now()}`, title: 'Student Academic Record' });
+            toast.success('Student record exported as PDF');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export student record');
+        }
     };
 
     return (
@@ -169,7 +186,7 @@ export default function StudentDetailClient({ initialData, currentUserId }: { in
                     <p className="text-muted-foreground mt-1">Comprehensive view of {student.firstName} {student.lastName}'s academic progress</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={exportStudentRecord}><Download className="mr-2 h-4 w-4" /> Export Record</Button>
+                    <Button variant="outline" onClick={() => void exportStudentRecord()}><Download className="mr-2 h-4 w-4" /> Export Record</Button>
                     <Button onClick={() => setShowInterventionDialog(true)}><Flag className="mr-2 h-4 w-4" /> Create Intervention</Button>
                 </div>
             </div>

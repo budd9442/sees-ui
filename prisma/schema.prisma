@@ -82,6 +82,27 @@ model Student {
   specialization          Specialization?      @relation(fields: [specialization_id], references: [specialization_id])
   user                    User                 @relation(fields: [student_id], references: [user_id], onDelete: Cascade)
   selection_allocation_change_requests SelectionAllocationChangeRequest[]
+  ai_feedback_snapshots    StudentAIFeedbackSnapshot[]
+}
+
+model StudentAIFeedbackSnapshot {
+  snapshot_id                 String   @id @default(uuid())
+  student_id                  String
+  feedback_json               Json
+  prompt_context_hash         String
+  gpa_at_generation           Float
+  transcript_fingerprint      String
+  latest_released_grade_at    DateTime?
+  generated_at                DateTime @default(now())
+  expires_at                  DateTime
+  source_version              String   @default("v1")
+  status                      String   @default("READY")
+  error_message               String?
+  invalidation_reason         String?
+  student                     Student  @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+
+  @@index([student_id, generated_at])
+  @@index([student_id, expires_at])
 }
 
 model Staff {

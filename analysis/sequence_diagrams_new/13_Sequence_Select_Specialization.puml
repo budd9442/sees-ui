@@ -1,0 +1,39 @@
+@startuml
+Title Select Specialization
+
+actor "L2 Student" as Student
+control SpecializationController as Controller
+entity Specialization as Spec
+entity Student as Stu
+entity DegreePath as Path
+entity SpecializationPreference as Preference
+
+== Browse Specializations ==
+Student -> Controller: openSpecializationSelection()
+Controller -> Stu: getStudent()
+Stu --> Controller: studentData
+Controller -> Path: getSpecializations()
+Path --> Controller: specializationList
+Controller --> Student: displaySpecializations()
+
+== Submit Preferences ==
+Student -> Controller: submitSpecializationPreferences()
+Controller -> Preference: create()
+Preference --> Controller: preferenceId
+Controller -> Preference: storePreferences()
+Preference --> Controller: stored
+Controller --> Student: showConfirmation()
+
+== Bulk Processing (After Period Ends) ==
+Controller -> Preference: getAllPreferences()
+Preference --> Controller: allPreferences
+Controller -> Stu: getAllStudents()
+Stu --> Controller: studentList
+Controller -> Spec: getCapacityLimits()
+Spec --> Controller: capacityData
+Controller -> Controller: allocateSpecializations()
+Controller -> Stu: setSpecialization()
+Stu --> Controller: updated
+Controller --> Student: showAllocationResult()
+
+@enduml

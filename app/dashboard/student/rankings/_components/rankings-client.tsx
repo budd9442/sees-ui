@@ -204,6 +204,10 @@ export default function RankingsClient({ initialRankings }: { initialRankings: R
         toast.success('Rankings exported as CSV');
     };
 
+    const handleViewRanking = (ranking: RankingEntry) => {
+        toast.info(`${ranking.studentName} (${ranking.studentId}) · GPA ${ranking.gpa.toFixed(2)}`);
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -410,7 +414,7 @@ export default function RankingsClient({ initialRankings }: { initialRankings: R
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Button variant="outline" size="sm">
+                                                    <Button variant="outline" size="sm" onClick={() => handleViewRanking(ranking)}>
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
                                                 </TableCell>

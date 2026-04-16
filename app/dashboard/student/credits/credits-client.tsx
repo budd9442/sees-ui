@@ -26,6 +26,7 @@ import {
     Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportTabularData } from '@/lib/export';
 
 interface CreditsClientProps {
     studentGrades: any[];
@@ -122,12 +123,40 @@ export function CreditsClient({ studentGrades }: CreditsClientProps) {
         }
     };
 
-    const handleExportTranscript = () => {
-        toast.success('Transcript generation initiated.');
+    const handleExportTranscript = async () => {
+        try {
+            const rows = studentGrades
+                .filter((g) => g.isReleased)
+                .map((grade) => ({
+                    moduleCode: grade.moduleCode,
+                    moduleTitle: grade.moduleTitle,
+                    credits: grade.credits,
+                    marks: grade.marks ?? '',
+                    letterGrade: grade.letterGrade,
+                    semester: grade.semester,
+                    academicYear: grade.academicYear,
+                }));
+            await exportTabularData(rows, 'pdf', { filename: `transcript-${Date.now()}`, title: 'Academic Transcript' });
+            toast.success('Transcript exported as PDF');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export transcript');
+        }
     };
 
-    const handleExportProgress = () => {
-        toast.success('Credit progress report generation initiated.');
+    const handleExportProgress = async () => {
+        try {
+            const rows = Object.values(creditsByYear).map((semester: any) => ({
+                academicYear: semester.year,
+                semester: semester.semester,
+                creditsEarned: semester.creditsEarned,
+                creditsAttempted: semester.creditsAttempted,
+                gpa: semester.gpa.toFixed(2),
+            }));
+            await exportTabularData(rows, 'csv', { filename: `credit-progress-${Date.now()}` });
+            toast.success('Credit progress exported as CSV');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export progress');
+        }
     };
 
     return (
@@ -141,11 +170,11 @@ export function CreditsClient({ studentGrades }: CreditsClientProps) {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleExportProgress}>
+                    <Button variant="outline" onClick={() => void handleExportProgress()}>
                         <FileText className="mr-2 h-4 w-4" />
                         Export Progress
                     </Button>
-                    <Button onClick={handleExportTranscript}>
+                    <Button onClick={() => void handleExportTranscript()}>
                         <Download className="mr-2 h-4 w-4" />
                         Export Transcript
                     </Button>

@@ -1,0 +1,30 @@
+@startuml
+Title Backup and Restore Data
+
+actor Admin
+control AdminController as Controller
+entity SystemSetting as Setting
+
+== Schedule Backup ==
+Admin -> Controller: configureBackupSchedule()
+Controller -> Setting: setValue("BACKUP_SCHEDULE")
+Setting --> Controller: saved
+Controller --> Admin: showConfirmation()
+
+== Manual Backup ==
+Admin -> Controller: initiateBackup()
+Controller -> Controller: performBackup()
+Controller --> Admin: showConfirmation()
+
+== Restore Data ==
+Admin -> Controller: viewBackupHistory()
+Controller -> Setting: getChangeHistory()
+Setting --> Controller: historyList
+Controller --> Admin: displayBackups()
+
+Admin -> Controller: rollbackTo()
+Controller -> Setting: restorePreviousValue()
+Setting --> Controller: restored
+Controller --> Admin: showConfirmation()
+
+@enduml

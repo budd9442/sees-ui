@@ -1,0 +1,79 @@
+<mxfile host="65bd71144e">
+    <diagram name="Submit Anonymous Reports Activity" id="act-uc-13">
+        <mxGraphModel dx="1039" dy="894" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="lane_student" value="Student" style="swimlane;whiteSpace=wrap" parent="1" vertex="1">
+                    <mxGeometry x="60" y="40" width="280" height="640" as="geometry"/>
+                </mxCell>
+                <mxCell id="start" value="" style="ellipse;shape=startState;fillColor=#FFFFFF;strokeColor=#000000;" parent="lane_student" vertex="1">
+                    <mxGeometry x="125" y="40" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="a1" value="Access anonymous&#10;reporting interface" style="" parent="lane_student" vertex="1">
+                    <mxGeometry x="60" y="110" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a2" value="Select report category&#10;(academic, system, other)" style="" parent="lane_student" vertex="1">
+                    <mxGeometry x="45" y="200" width="190" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="a3" value="Write detailed report&#10;description" style="" parent="lane_student" vertex="1">
+                    <mxGeometry x="60" y="300" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a6" value="Review anonymization&#10;notice &amp; submit report" style="" parent="lane_student" vertex="1">
+                    <mxGeometry x="60" y="400" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a7" value="Receive confirmation&#10;with reference number" style="" parent="lane_student" vertex="1">
+                    <mxGeometry x="60" y="495" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="end" value="" style="ellipse;shape=endState;fillColor=#f5f5f5;strokeColor=#666666" parent="lane_student" vertex="1">
+                    <mxGeometry x="125" y="600" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_student" source="start" target="a1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_student" source="a1" target="a2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_student" source="a2" target="a3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="lane_student" source="a7" target="end" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane_system" value="Student Enrollment &amp; Evaluation System" style="swimlane;whiteSpace=wrap" parent="1" vertex="1">
+                    <mxGeometry x="340" y="40" width="390" height="640" as="geometry"/>
+                </mxCell>
+                <mxCell id="s1" value="Load reporting categories&#10;&amp; anonymization notice" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="170" y="110" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="s2" value="Remove all identifying&#10;information from report" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="170" y="300" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="s3" value="Generate anonymous&#10;reference number" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="170" y="400" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="s4" value="Route report to relevent &#10;recipent" style="" parent="lane_system" vertex="1">
+                    <mxGeometry x="170" y="490" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="es3" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" edge="1" parent="lane_system" source="s2" target="s3">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ex1" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="1" source="a1" target="s1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ex2" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="1" source="a3" target="s2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ex3" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="1" source="s3" target="a6" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ex4" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0" parent="1" source="s4" target="a7" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" value="" style="endArrow=open;strokeColor=#000000;endFill=1;rounded=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="a6" target="s4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

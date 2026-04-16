@@ -1,0 +1,287 @@
+<mxfile host="65bd71144e">
+    <diagram name="Proposed System Use Case" id="proposed-uc-001">
+        <mxGraphModel dx="832" dy="391" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" background="none" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="sysBoundary" value="Student Enrollment and Evaluation System" style="shape=swimlane;swimlaneLine=1;rounded=0;fontStyle=1;fontSize=16;startSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="355" y="100" width="865" height="790" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_enrollStudents" value="Bulk Enroll Students" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="565" y="510" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_selectSpecialization" value="Select Specialization&#10;(BSE/OSCM/IS)" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="225" y="300" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_registerModules" value="Register for Modules" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="410" y="30" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_trackCredits" value="Track Credit Progress" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="670" y="200" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_trackGPA" value="Track GPA &amp; Academic Class" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="210" y="210" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_setAcademicGoals" value="Set Academic Goals" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="520" y="160" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_viewLectureSchedules" value="View Lecture Schedules" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="660" y="40" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_modifyLectureSchedules" value="Modify Lecture Schedules" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="355" y="360" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_communicateAdvisor" value="Communicate with Advisor" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="670" y="300" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_submitReports" value="Submit Anonymous Reports" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="55" y="165" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_manageGrades" value="Upload &amp; Release Grades" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="195" y="380" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_generateReports" value="Generate Performance Reports&amp;nbsp;" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="135" y="490" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_trackTrends" value="Performance Dashboard &lt;br&gt;&amp;amp; Risk Alerts" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="25" y="600" width="175" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_rankHighPerformers" value="View High Performer &lt;br&gt;Rankings" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="225" y="560" width="170" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_manageUsers" value="Manage User Accounts" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="610" y="600" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_monitorSystem" value="Monitor System Performance" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#080808;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="455" y="430" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_backupRestore" value="Backup &amp; Restore Data" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="625" y="690" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_manageModuleContent" value="Manage Module Information" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="15" y="390" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_selectDegreePath" value="Select Degree Path&lt;br&gt;(MIT/IT)" style="ellipse;whiteSpace=wrap;html=1;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="35" y="290" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_configureSystem" value="Configure System&amp;nbsp;&lt;br&gt;Settings" style="ellipse;whiteSpace=wrap;html=1;fillColor=default;strokeColor=#080808;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="355" y="490" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="uc_provideFeedback" value="Provide Academic Feedback&#10;&amp; Suggestions" style="ellipse;whiteSpace=wrap;html=1;fillColor=default;strokeColor=#050505;gradientColor=none;" parent="sysBoundary" vertex="1">
+                    <mxGeometry x="645" y="400" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor_student" value="Student" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="205" y="140" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor_l1student" value="L1 Student" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="135" y="230" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor_l2student" value="L2 Student" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="290" y="240" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor_l3student" value="L3 Student" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="175" y="360" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor_l4student" value="L4 Student" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="245" y="360" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="actor_staff" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="585" y="590"/>
+                            <mxPoint x="715" y="590"/>
+                            <mxPoint x="755" y="540"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="9" style="edgeStyle=none;html=1;entryX=0.049;entryY=0.681;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="actor_staff" target="uc_manageGrades" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="540" y="560"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="actor_staff" value="Academic Staff" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="205" y="540" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor_hod" value="Head of Department" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="205" y="640" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor_admin" value="System Administrator" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="205" y="790" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor_advisor" value="Academic Advisor" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="1280" y="390" width="40" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="inherit_l1" value="" style="endArrow=block;endFill=0;html=1;" parent="1" source="actor_l1student" target="actor_student" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="inherit_l2" value="" style="endArrow=block;endFill=0;html=1;" parent="1" source="actor_l2student" target="actor_student" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="inherit_l3" value="" style="endArrow=block;endFill=0;html=1;" parent="1" source="actor_l3student" target="actor_student" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="inherit_l4" value="" style="endArrow=block;endFill=0;html=1;" parent="1" source="actor_l4student" target="actor_student" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc_student_register" style="endArrow=none;html=1;" parent="1" source="actor_student" target="uc_registerModules" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_student_trackGPA" style="endArrow=none;html=1;" parent="1" source="actor_student" target="uc_trackGPA" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="540" y="250"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_student_communicate" style="endArrow=none;html=1;" parent="1" source="actor_student" target="uc_communicateAdvisor" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="775" y="280"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_staff_content" style="endArrow=none;html=1;" parent="1" source="actor_staff" target="uc_manageModuleContent" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc_hod_reports" style="endArrow=none;html=1;" parent="1" source="actor_hod" target="uc_generateReports" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc_hod_rankings" style="endArrow=none;html=1;" parent="1" source="actor_hod" target="uc_rankHighPerformers" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc_admin_users" style="endArrow=none;html=1;" parent="1" source="actor_admin" target="uc_manageUsers" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="465" y="840"/>
+                            <mxPoint x="880" y="820"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_student_setGoals" style="endArrow=none;html=1;" parent="1" source="actor_student" target="uc_setAcademicGoals" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc_student_lectureSchedules" style="endArrow=none;html=1;" parent="1" source="actor_student" target="uc_viewLectureSchedules" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="820" y="230"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_staff_modifySchedules" style="endArrow=none;html=1;" parent="1" source="actor_staff" target="uc_modifyLectureSchedules" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="535" y="580"/>
+                            <mxPoint x="715" y="580"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_student_reports" style="endArrow=none;html=1;" parent="1" source="actor_student" target="uc_submitReports" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc_hod_trends" style="endArrow=none;html=1;" parent="1" source="actor_hod" target="uc_trackTrends" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc_admin_monitor" style="endArrow=none;html=1;" parent="1" source="actor_admin" target="uc_monitorSystem" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="475" y="810"/>
+                            <mxPoint x="875" y="740"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_admin_backup" style="endArrow=none;html=1;" parent="1" source="actor_admin" target="uc_backupRestore" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="475" y="860"/>
+                            <mxPoint x="860" y="860"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_admin_enroll" style="endArrow=none;html=1;" parent="1" source="actor_admin" target="uc_enrollStudents" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="475" y="820"/>
+                            <mxPoint x="875" y="770"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_admin_configure" style="endArrow=none;html=1;" parent="1" source="actor_admin" target="uc_configureSystem" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="475" y="800"/>
+                            <mxPoint x="790" y="730"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_advisor_communicate" style="endArrow=none;html=1;" parent="1" source="actor_advisor" target="uc_communicateAdvisor" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc_advisor_advisees" style="endArrow=none;html=1;" parent="1" source="actor_advisor" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1335" y="460"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_l2_degreePath" style="endArrow=none;html=1;exitX=0.5;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="actor_l1student" target="uc_selectDegreePath" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc_l4_graduation" style="endArrow=none;html=1;" parent="1" source="actor_l4student" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="565" y="430"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="include_register_prerequisites" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;" parent="1" source="uc_registerModules" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="include_register_credits" value="&lt;&lt;include&gt;&gt;" style="dashed=1;endArrow=open;" parent="1" source="uc_registerModules" target="uc_trackCredits" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="965" y="190"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="extend_goals_from_gpa" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;" parent="1" source="uc_setAcademicGoals" target="uc_trackGPA" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="assoc_student_specialization" style="endArrow=none;html=1;startArrow=none;exitX=0.5;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="actor_l2student" target="uc_selectSpecialization" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="assoc_student_feedback" style="endArrow=none;html=1;" parent="1" source="actor_student" target="uc_provideFeedback" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="600" y="200"/>
+                            <mxPoint x="730" y="200"/>
+                            <mxPoint x="740" y="350"/>
+                            <mxPoint x="950" y="400"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="extend_configure_all" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;strokeColor=#82b366;" parent="1" source="uc_configureSystem" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="520" y="380"/>
+                            <mxPoint x="520" y="100"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="extend_feedback_from_gpa" value="&lt;&lt;extend&gt;&gt;" style="dashed=1;endArrow=open;exitX=-0.023;exitY=0.375;exitDx=0;exitDy=0;exitPerimeter=0;strokeColor=#000000;" parent="1" source="uc_provideFeedback" target="uc_trackGPA" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="910" y="430"/>
+                            <mxPoint x="740" y="420"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

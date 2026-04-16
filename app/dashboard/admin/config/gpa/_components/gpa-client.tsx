@@ -58,6 +58,7 @@ import {
 import { toast } from 'sonner';
 import { saveAdminGradingBands, updateAdminGpaConfigData } from '@/lib/actions/admin-actions';
 import { getAcademicClass } from '@/lib/gpa-utils';
+import { exportTabularData } from '@/lib/export';
 
 export default function GpaConfigClient({ initialData }: { initialData: any }) {
     const router = useRouter();
@@ -171,6 +172,41 @@ export default function GpaConfigClient({ initialData }: { initialData: any }) {
         { id: '3', version: 'v1.5', description: 'Minor threshold adjustments', changedBy: 'Admin User', changedAt: '2023-12-15 14:20:00', changes: ['Adjusted Second Lower threshold to 2.5'] },
     ];
 
+    const exportCurrentConfig = async () => {
+        try {
+            const rows = gradeScale.map((band: any) => ({
+                grade: band.grade,
+                minMarks: band.minMarks,
+                maxMarks: band.maxMarks,
+                points: band.points,
+                firstClassThreshold: thresholds.firstClass,
+                secondUpperThreshold: thresholds.secondUpper,
+                secondLowerThreshold: thresholds.secondLower,
+                thirdPassThreshold: thresholds.thirdPass,
+            }));
+            await exportTabularData(rows, 'excel', { filename: `gpa-config-${Date.now()}` });
+            toast.success('Configuration exported as Excel');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export configuration');
+        }
+    };
+
+    const exportConfigHistory = async () => {
+        try {
+            const rows = configurationHistory.map((version) => ({
+                version: version.version,
+                description: version.description,
+                changedBy: version.changedBy,
+                changedAt: version.changedAt,
+                changes: version.changes.join(' | '),
+            }));
+            await exportTabularData(rows, 'csv', { filename: `gpa-config-history-${Date.now()}` });
+            toast.success('History exported as CSV');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to export history');
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-start gap-4">
@@ -184,7 +220,7 @@ export default function GpaConfigClient({ initialData }: { initialData: any }) {
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setShowHistoryDialog(true)}><History className="mr-2 h-4 w-4" />Version History</Button>
                     <Button variant="outline" onClick={() => setShowPreviewDialog(true)}><Target className="mr-2 h-4 w-4" />Preview Calculation</Button>
-                    <Button variant="outline"><Download className="mr-2 h-4 w-4" />Export Config</Button>
+                    <Button variant="outline" onClick={() => void exportCurrentConfig()}><Download className="mr-2 h-4 w-4" />Export Config</Button>
                     <Button onClick={handleSaveConfiguration}><Save className="mr-2 h-4 w-4" />Save Configuration</Button>
                 </div>
             </div>
@@ -381,7 +417,7 @@ export default function GpaConfigClient({ initialData }: { initialData: any }) {
                             </div>
                         ))}
                     </div>
-                    <DialogFooter><Button variant="outline" onClick={() => setShowHistoryDialog(false)}>Close</Button><Button variant="outline"><Download className="mr-2 h-4 w-4" />Export History</Button></DialogFooter>
+                    <DialogFooter><Button variant="outline" onClick={() => setShowHistoryDialog(false)}>Close</Button><Button variant="outline" onClick={() => void exportConfigHistory()}><Download className="mr-2 h-4 w-4" />Export History</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
 
