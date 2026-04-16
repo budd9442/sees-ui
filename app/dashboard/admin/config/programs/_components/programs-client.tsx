@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,14 +46,15 @@ import {
     X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import {
-    createAdminDegreeProgram,
-    updateAdminDegreeProgram,
-    deleteAdminDegreeProgram,
-} from '@/lib/actions/admin-actions';
+    createProgram,
+    updateProgram,
+    deactivateProgram,
+} from '@/lib/actions/admin-programs';
 
 export default function ProgramsConfigClient({ initialData }: { initialData: any }) {
-    const { user } = useAuthStore();
+    const router = useRouter();
     const [degreePrograms, setDegreePrograms] = useState(initialData.programs || []);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -70,16 +70,18 @@ export default function ProgramsConfigClient({ initialData }: { initialData: any
             return;
         }
 
-        const program = { ...newProgram, id: newProgram.code, status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-
         try {
-            await createAdminDegreeProgram(program);
-            setDegreePrograms([...degreePrograms, program]);
+            await createProgram({
+                code: newProgram.code.trim(),
+                name: newProgram.name.trim(),
+                description: newProgram.description?.trim() || undefined,
+            });
             toast.success('Degree program created successfully!');
             setShowCreateDialog(false);
             setNewProgram({ name: '', code: '', description: '', totalCredits: 120, duration: 3, pathways: [], specializations: {}, capacityLimits: {}, moduleMappings: [] });
+            router.refresh();
         } catch (e: any) {
-            toast.error('Failed to create program.');
+            toast.error(e?.message || 'Failed to create program.');
         }
     };
 
@@ -92,24 +94,32 @@ export default function ProgramsConfigClient({ initialData }: { initialData: any
         if (!selectedProgram) return;
 
         try {
-            await updateAdminDegreeProgram(selectedProgram.id, selectedProgram);
-            setDegreePrograms(degreePrograms.map((p: any) => p.id === selectedProgram.id ? selectedProgram : p));
+            await updateProgram(selectedProgram.id, {
+                name: selectedProgram.name?.trim(),
+                code: selectedProgram.code?.trim(),
+                description: selectedProgram.description?.trim() ?? '',
+            });
             toast.success('Degree program updated successfully!');
             setShowEditDialog(false);
             setSelectedProgram(null);
+            router.refresh();
         } catch (e: any) {
-            toast.error('Failed to update program.');
+            toast.error(e?.message || 'Failed to update program.');
         }
     };
 
     const handleDeleteProgram = async (programId: string) => {
-        if (confirm('Are you sure you want to delete this program?')) {
+        if (
+            confirm(
+                'Deactivate this program? It will be hidden from active use; related data is kept.'
+            )
+        ) {
             try {
-                await deleteAdminDegreeProgram(programId);
-                setDegreePrograms(degreePrograms.filter((p: any) => p.id !== programId));
-                toast.success('Degree program deleted successfully!');
+                await deactivateProgram(programId);
+                toast.success('Program deactivated.');
+                router.refresh();
             } catch (e: any) {
-                toast.error('Failed to delete program.');
+                toast.error(e?.message || 'Failed to deactivate program.');
             }
         }
     };
@@ -124,11 +134,11 @@ export default function ProgramsConfigClient({ initialData }: { initialData: any
         if (!program) return;
         const newStatus = program.status === 'active' ? 'inactive' : 'active';
         try {
-            await updateAdminDegreeProgram(programId, { status: newStatus });
-            setDegreePrograms(degreePrograms.map((p: any) => p.id === programId ? { ...p, status: newStatus } : p));
+            await updateProgram(programId, { active: newStatus === 'active' });
             toast.success('Program status updated successfully!');
+            router.refresh();
         } catch (e: any) {
-            toast.error('Failed to update program status.');
+            toast.error(e?.message || 'Failed to update program status.');
         }
     };
 
@@ -160,8 +170,8 @@ export default function ProgramsConfigClient({ initialData }: { initialData: any
 
             <div className="grid gap-4 md:grid-cols-4">
                 <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Total Programs</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{degreePrograms.length}</div><p className="text-xs text-muted-foreground">Active programs</p></CardContent></Card>
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Total Pathways</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{degreePrograms.reduce((sum: number, program: any) => sum + program.pathways.length, 0)}</div><p className="text-xs text-muted-foreground">Across all programs</p></CardContent></Card>
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Total Specializations</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{degreePrograms.reduce((sum: number, program: any) => sum + Object.values(program.specializations).reduce((specSum: number, specs: any) => specSum + specs.length, 0), 0)}</div><p className="text-xs text-muted-foreground">Available options</p></CardContent></Card>
+                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Total Pathways</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{degreePrograms.reduce((sum: number, program: any) => sum + (program.pathways?.length ?? 0), 0)}</div><p className="text-xs text-muted-foreground">Across all programs</p></CardContent></Card>
+                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Total Specializations</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{degreePrograms.reduce((sum: number, program: any) => sum + Object.values(program.specializations || {}).reduce((specSum: number, specs: any) => specSum + (Array.isArray(specs) ? specs.length : 0), 0), 0)}</div><p className="text-xs text-muted-foreground">Available options</p></CardContent></Card>
                 <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Total Capacity</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{degreePrograms.reduce((sum: number, program: any) => sum + Object.values(program.capacityLimits).reduce((capSum: number, cap: any) => capSum + cap, 0), 0)}</div><p className="text-xs text-muted-foreground">Student capacity</p></CardContent></Card>
             </div>
 
@@ -182,18 +192,18 @@ export default function ProgramsConfigClient({ initialData }: { initialData: any
                                 <TableBody>
                                     {degreePrograms.map((program: any) => (
                                         <TableRow key={program.id}>
-                                            <TableCell><div><div className="font-medium">{program.name}</div><div className="text-sm text-muted-foreground">{program.description.substring(0, 50)}...</div></div></TableCell>
+                                            <TableCell><div><div className="font-medium">{program.name}</div><div className="text-sm text-muted-foreground">{(program.description || '').slice(0, 50)}{(program.description || '').length > 50 ? '…' : ''}</div></div></TableCell>
                                             <TableCell><Badge variant="outline">{program.code}</Badge></TableCell>
                                             <TableCell><div className="font-medium">{program.duration} years</div></TableCell>
                                             <TableCell><div className="font-medium">{program.totalCredits}</div></TableCell>
-                                            <TableCell><div className="text-sm">{program.pathways.length} pathways</div></TableCell>
+                                            <TableCell><div className="text-sm">{(program.pathways?.length ?? 0)} pathways</div></TableCell>
                                             <TableCell><Badge className={getStatusColor(program.status)}>{program.status}</Badge></TableCell>
                                             <TableCell>
                                                 <div className="flex gap-1">
                                                     <Button variant="outline" size="sm" onClick={() => handleEditProgram(program)}><Edit className="h-4 w-4" /></Button>
                                                     <Button variant="outline" size="sm" onClick={() => handleDuplicateProgram(program)}><Copy className="h-4 w-4" /></Button>
                                                     <Button variant="outline" size="sm" onClick={() => handleToggleProgramStatus(program.id)}><RefreshCw className="h-4 w-4" /></Button>
-                                                    <Button variant="outline" size="sm" onClick={() => handleDeleteProgram(program.id)}><Trash2 className="h-4 w-4" /></Button>
+                                                    <Button variant="outline" size="sm" title="Deactivate" onClick={() => handleDeleteProgram(program.id)}><Trash2 className="h-4 w-4" /></Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>

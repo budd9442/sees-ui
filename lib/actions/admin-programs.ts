@@ -101,17 +101,32 @@ export async function createProgram(data: z.infer<typeof ProgramSchema>) {
         metadata: { code: validated.code },
     });
     revalidatePath('/dashboard/admin/programs');
+    revalidatePath('/dashboard/admin/config/programs');
+    return { success: true as const, programId: created.program_id };
 }
 
-export async function updateProgram(programId: string, data: Partial<z.infer<typeof ProgramSchema>>) {
+export type ProgramConfigUpdate = Partial<{
+    code: string;
+    name: string;
+    description: string;
+    active: boolean;
+    academicYearId: string;
+}>;
+
+export async function updateProgram(programId: string, data: ProgramConfigUpdate) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
+    const patch: Record<string, unknown> = {};
+    if (data.name !== undefined) patch.name = data.name;
+    if (data.code !== undefined) patch.code = data.code;
+    if (data.description !== undefined) patch.description = data.description;
+    if (data.active !== undefined) patch.active = data.active;
+    if (data.academicYearId !== undefined) patch.academic_year_id = data.academicYearId;
+
     await prisma.degreeProgram.update({
         where: { program_id: programId },
-        data: {
-            ...data
-        }
+        data: patch as { name?: string; code?: string; description?: string; active?: boolean; academic_year_id?: string },
     });
     await writeAuditLog({
         adminId: session.user.id,
@@ -121,6 +136,64 @@ export async function updateProgram(programId: string, data: Partial<z.infer<typ
         category: 'ADMIN',
     });
     revalidatePath('/dashboard/admin/programs');
+    revalidatePath('/dashboard/admin/config/programs');
+}
+
+/** Soft-disable a program (preferred over delete when enrollments may exist). */
+export async function deactivateProgram(programId: string) {
+    const session = await auth();
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error('Unauthorized');
+    await prisma.degreeProgram.update({
+        where: { program_id: programId },
+        data: { active: false },
+    });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_PROGRAM_DEACTIVATE',
+        entityType: 'DEGREE_PROGRAM',
+        entityId: programId,
+        category: 'ADMIN',
+    });
+    revalidatePath('/dashboard/admin/programs');
+    revalidatePath('/dashboard/admin/config/programs');
+}
+
+function mapDegreeProgramForConfigClient(p: {
+    program_id: string;
+    name: string;
+    code: string;
+    description: string | null;
+    active: boolean;
+    specializations: { code: string; name: string }[];
+}) {
+    const specializations: Record<string, string[]> = {};
+    for (const s of p.specializations) {
+        if (!specializations[s.code]) specializations[s.code] = [];
+        specializations[s.code].push(s.name);
+    }
+    return {
+        id: p.program_id,
+        name: p.name,
+        code: p.code,
+        description: p.description || '',
+        totalCredits: 132,
+        duration: 4,
+        pathways: [] as string[],
+        specializations,
+        capacityLimits: {} as Record<string, number>,
+        moduleMappings: [] as string[],
+        status: p.active ? 'active' : 'inactive',
+    };
+}
+
+export async function getProgramsForAdminConfig() {
+    const session = await auth();
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error('Unauthorized');
+    const rows = await prisma.degreeProgram.findMany({
+        include: { specializations: true },
+        orderBy: { code: 'asc' },
+    });
+    return { programs: rows.map(mapDegreeProgramForConfigClient) };
 }
 
 // CREATE / UPDATE Specializations

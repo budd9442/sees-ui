@@ -463,13 +463,16 @@ model NotificationDispatchLog {
 }
 
 model AnonymousReport {
-  report_id  String   @id @default(uuid())
-  student_id String
-  content    String
-  priority   String
-  status     String   @default("PENDING")
-  created_at DateTime @default(now())
-  student    Student  @relation(fields: [student_id], references: [student_id])
+  report_id    String   @id @default(uuid())
+  student_id   String
+  content      String
+  priority     String
+  status       String   @default("PENDING")
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  admin_notes  String?  @db.Text
+  assigned_to  String?
+  student      Student  @relation(fields: [student_id], references: [student_id])
 }
 
 model LectureSchedule {

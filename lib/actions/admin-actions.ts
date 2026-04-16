@@ -2,6 +2,7 @@
 
 import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { ensureDefaultGradingSchemeInDb } from '@/lib/grading/module-bands';
@@ -12,6 +13,14 @@ import { interpolateTemplate, plainTextToEmailHtml } from '@/lib/notifications/r
 import { getBaseEmailLayout } from '@/lib/email/templates';
 import type { NotificationTemplate } from '@/types';
 import { writeAuditLog } from '@/lib/audit/write-audit-log';
+import {
+    getBackupsList,
+    getAdminBackupsData as backup_getAdminBackupsData,
+    createAdminBackup as backup_createAdminBackup,
+    deleteAdminBackup as backup_deleteAdminBackup,
+    restoreAdminBackup as backup_restoreAdminBackup,
+    downloadBackupAsBase64 as backup_downloadBackupAsBase64,
+} from '@/lib/actions/backup-actions';
 
 /** Audit rows + notification dispatch log, sorted for admin monitoring / logs UI. */
 async function buildUnifiedLogsForAdmin() {
@@ -34,11 +43,12 @@ async function buildUnifiedLogsForAdmin() {
         const meta = (l.metadata ?? null) as Record<string, unknown> | null;
         const actorEmail = l.admin_id ? emailByUserId[l.admin_id] ?? l.admin_id : null;
         const displayEmail = actorEmail ?? (meta?.email as string | undefined) ?? '';
+        const isError = l.action === 'AUTH_LOGIN_FAILED';
         return {
             id: l.log_id,
             timestamp: l.timestamp.toISOString(),
-            level: 'INFO',
-            status: 'info',
+            level: isError ? 'ERROR' : 'INFO',
+            status: isError ? 'failed' : 'info',
             source: l.category ?? 'AUDIT',
             message: `${l.action} — ${l.entity_type}`,
             details: `${l.action} on ${l.entity_type} (${l.entity_id})`,
@@ -82,13 +92,21 @@ async function buildUnifiedLogsForAdmin() {
         .slice(0, 500);
 }
 
+function formatDatabaseSize(bytes: bigint | number): string {
+    const n = Number(bytes);
+    if (!Number.isFinite(n) || n < 0) return '—';
+    const gb = n / (1024 ** 3);
+    if (gb >= 1) return `${gb.toFixed(2)} GB`;
+    const mb = n / (1024 ** 2);
+    return `${mb.toFixed(1)} MB`;
+}
+
 export async function getAdminDashboardData() {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
 
     let userId = session.user.id;
 
-    // Robust User Lookup
     let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
     if (!u && session.user.email) {
         u = await prisma.user.findUnique({ where: { email: session.user.email } });
@@ -102,65 +120,129 @@ export async function getAdminDashboardData() {
     }) as any;
 
     if (!userRecord || userRecord.role !== 'admin') {
-        throw new Error("Access Denied: Not a System Admin");
+        return null;
     }
 
-    // 1. Total Users Breakdown
-    const totalUsers = await prisma.user.count();
-    
-    // Active sessions: Users logged in within the last 24 hours
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const activeSessions = await prisma.user.count({
-        where: {
-            last_login_date: {
-                gte: twentyFourHoursAgo
-            }
-        }
-    });
 
-    const adminUsers = await prisma.user.findMany();
-    const adminCount = adminUsers.filter(user => (user as any).role === 'admin').length;
+    const [
+        totalUsers,
+        activeSessions,
+        adminCount,
+        studentCount,
+        staffCount,
+        latestMetric,
+        metricSeries,
+        failedDispatches24h,
+        failedLogins24h,
+    ] = await Promise.all([
+        prisma.user.count(),
+        prisma.user.count({
+            where: { last_login_date: { gte: twentyFourHoursAgo } },
+        }),
+        prisma.user.count({ where: { role: 'admin' } }),
+        prisma.student.count(),
+        prisma.staff.count(),
+        prisma.systemMetric.findFirst({ orderBy: { timestamp: 'desc' } }),
+        prisma.systemMetric.findMany({
+            orderBy: { timestamp: 'desc' },
+            take: 120,
+            select: { timestamp: true, active_users: true, health: true, cpu: true, memory: true },
+        }),
+        prisma.notificationDispatchLog.count({
+            where: { status: 'FAILED', created_at: { gte: twentyFourHoursAgo } },
+        }),
+        prisma.auditLog.count({
+            where: { action: 'AUTH_LOGIN_FAILED', timestamp: { gte: twentyFourHoursAgo } },
+        }),
+    ]);
 
     const roleDistribution = [
-        { name: 'Students', value: await prisma.student.count(), color: '#3b82f6' },
-        { name: 'Staff', value: await prisma.staff.count(), color: '#10b981' },
+        { name: 'Students', value: studentCount, color: '#3b82f6' },
+        { name: 'Staff', value: staffCount, color: '#10b981' },
         { name: 'Admins', value: adminCount, color: '#ef4444' },
     ];
 
-    // 2. System Metrics
-    const latestMetric = await prisma.systemMetric.findFirst({
-        orderBy: { timestamp: 'desc' }
-    });
+    let databaseSize = '—';
+    try {
+        const rows = await prisma.$queryRaw<{ size: bigint }[]>(
+            Prisma.sql`SELECT pg_database_size(current_database()) AS size`
+        );
+        if (rows[0]?.size != null) databaseSize = formatDatabaseSize(rows[0].size);
+    } catch {
+        if (latestMetric) {
+            databaseSize = `${latestMetric.storage_used.toFixed(1)} / ${latestMetric.storage_total.toFixed(1)} GB (host disk)`;
+        }
+    }
 
-    const systemMetrics = {
-        cpuUsage: latestMetric?.cpu || 0,
-        memoryUsage: latestMetric?.memory || 0,
-        dbConnections: 8, // Active pool connections
-        uptime: latestMetric ? `${latestMetric.uptime.toFixed(1)}%` : '0%',
-        lastBackup: latestMetric ? 'Synchronized' : 'Active',
-    };
+    let dbConnections: number | null = null;
+    let dbConnectionsMax: number | null = null;
+    try {
+        const conn = await prisma.$queryRaw<{ c: bigint }[]>(
+            Prisma.sql`SELECT count(*)::bigint AS c FROM pg_stat_activity WHERE datname = current_database()`
+        );
+        if (conn[0]?.c != null) dbConnections = Number(conn[0].c);
+        const maxRow = await prisma.$queryRaw<{ s: string }[]>(
+            Prisma.sql`SELECT setting AS s FROM pg_settings WHERE name = 'max_connections'`
+        );
+        if (maxRow[0]?.s) dbConnectionsMax = parseInt(maxRow[0].s, 10) || 100;
+    } catch {
+        /* keep nulls */
+    }
 
-    const performanceData = [
-        { time: '00:00', responseTime: 120, throughput: 450 },
-        { time: '04:00', responseTime: 95, throughput: 210 },
-        { time: '08:00', responseTime: 180, throughput: 890 },
-        { time: '12:00', responseTime: 210, throughput: 1250 },
-        { time: '16:00', responseTime: 195, throughput: 1100 },
-        { time: '20:00', responseTime: 140, throughput: 680 },
-    ];
+    let lastBackupLabel = 'None yet';
+    try {
+        const backups = await getBackupsList();
+        if (backups.length > 0) {
+            lastBackupLabel = new Date(backups[0].createdAt).toLocaleString();
+        }
+    } catch {
+        /* ignore */
+    }
 
-    const recentAuditLogs = await prisma.auditLog.findMany({
-        take: 5,
-        orderBy: { timestamp: 'desc' }
-    });
+    const healthScore = latestMetric?.health ?? 0;
+    let serverStatusLabel = 'Unknown';
+    if (latestMetric) {
+        if (healthScore >= 80) serverStatusLabel = 'Healthy';
+        else if (healthScore >= 50) serverStatusLabel = 'Degraded';
+        else serverStatusLabel = 'Critical';
+    }
 
-    const recentLogs = recentAuditLogs.map((log, idx) => ({
-        id: log.log_id,
-        level: 'INFO',
-        message: `${log.action} on ${log.entity_type} (${log.entity_id})`,
-        time: log.timestamp.toLocaleTimeString(),
-        source: 'audit-log'
+    const maxConn = dbConnectionsMax && dbConnectionsMax > 0 ? dbConnectionsMax : 100;
+    const connProgress =
+        dbConnections != null ? Math.min(100, Math.round((dbConnections / maxConn) * 100)) : 0;
+
+    const chronological = [...metricSeries].reverse();
+    const performanceData =
+        chronological.length > 0
+            ? chronological.map((m) => ({
+                  time: m.timestamp.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
+                  activeUsers: m.active_users,
+                  healthScore: m.health,
+              }))
+            : latestMetric
+              ? [
+                    {
+                        time: latestMetric.timestamp.toLocaleTimeString(undefined, {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        }),
+                        activeUsers: latestMetric.active_users,
+                        healthScore: latestMetric.health,
+                    },
+                ]
+              : [];
+
+    const unified = await buildUnifiedLogsForAdmin();
+    const recentLogs = unified.slice(0, 10).map((l) => ({
+        id: l.id,
+        level: l.level,
+        message: l.message,
+        time: new Date(l.timestamp).toLocaleTimeString(),
+        source: l.source,
     }));
+
+    const systemErrors = failedDispatches24h + failedLogins24h;
 
     return {
         admin: {
@@ -169,12 +251,22 @@ export async function getAdminDashboardData() {
         },
         totalUsers,
         activeSessions,
-        systemErrors: recentAuditLogs.length, 
-        databaseSize: '1.2 GB',
+        systemErrors,
+        databaseSize,
         roleDistribution,
-        systemMetrics,
+        systemMetrics: {
+            cpuUsage: latestMetric?.cpu ?? 0,
+            memoryUsage: latestMetric?.memory ?? 0,
+            dbConnections,
+            dbConnectionsMax: maxConn,
+            connProgress,
+            uptime: latestMetric ? `${latestMetric.uptime.toFixed(1)}%` : '0%',
+            lastBackup: lastBackupLabel,
+            healthScore,
+            serverStatusLabel,
+        },
         performanceData,
-        recentLogs
+        recentLogs,
     };
 }
 
@@ -182,33 +274,84 @@ export async function getAdminDashboardData() {
 // SYSTEM MONITORING ACTIONS
 // ----------------------------------------------------------------------
 
-export async function getSystemMonitoringData() {
+async function requireAdminUser() {
     const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
+    if (!session?.user?.email) throw new Error("Unauthorized");
+    let u = session.user.id
+        ? await prisma.user.findUnique({ where: { user_id: session.user.id } })
+        : null;
+    if (!u && session.user.email) {
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
+    if (!u) throw new Error("Unauthorized");
+    if (u.role !== 'admin') throw new Error("Access Denied: Not a System Admin");
+    return u;
+}
 
-    // Get latest metrics
+export async function getSystemMonitoringData() {
+    await requireAdminUser();
+
     const latestMetrics = await prisma.systemMetric.findFirst({
-        orderBy: { timestamp: 'desc' }
+        orderBy: { timestamp: 'desc' },
     });
 
-    const metricsData = latestMetrics ? {
-        uptime: `${latestMetrics.uptime.toFixed(1)}%`,
-        responseTime: '180ms', 
-        activeUsers: latestMetrics.active_users,
-        totalRequests: 12450,
-        cacheHitRate: '98%'
-    } : { // Fallback if no data
-        uptime: '99.9%', responseTime: '180ms', activeUsers: 0, totalRequests: 0,
-        errorRate: '0%', cpuUsage: '0%', memoryUsage: '0%', diskUsage: '0%',
-        databaseConnections: 0, cacheHitRate: '0%'
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [dispatchTotal, dispatchFailed, auditEvents24h, failedLogins24h] = await Promise.all([
+        prisma.notificationDispatchLog.count({
+            where: { created_at: { gte: twentyFourHoursAgo } },
+        }),
+        prisma.notificationDispatchLog.count({
+            where: { created_at: { gte: twentyFourHoursAgo }, status: 'FAILED' },
+        }),
+        prisma.auditLog.count({ where: { timestamp: { gte: twentyFourHoursAgo } } }),
+        prisma.auditLog.count({
+            where: { timestamp: { gte: twentyFourHoursAgo }, action: 'AUTH_LOGIN_FAILED' },
+        }),
+    ]);
+
+    let dbConn: number | null = null;
+    try {
+        const conn = await prisma.$queryRaw<{ c: bigint }[]>(
+            Prisma.sql`SELECT count(*)::bigint AS c FROM pg_stat_activity WHERE datname = current_database()`
+        );
+        if (conn[0]?.c != null) dbConn = Number(conn[0].c);
+    } catch {
+        /* non-postgres or insufficient privilege */
+    }
+
+    const dispatchErrorPct =
+        dispatchTotal > 0
+            ? ((dispatchFailed / dispatchTotal) * 100).toFixed(1) + '%'
+            : '0%';
+    const emailOkRate =
+        dispatchTotal > 0
+            ? (((dispatchTotal - dispatchFailed) / dispatchTotal) * 100).toFixed(1) + '%'
+            : '—';
+
+    const cpuPct = latestMetrics ? `${latestMetrics.cpu}%` : '0%';
+    const memPct = latestMetrics ? `${latestMetrics.memory}%` : '0%';
+    const diskPct = latestMetrics ? `${latestMetrics.storage_percent}%` : '0%';
+
+    const metricsData = {
+        uptime: latestMetrics ? `${latestMetrics.uptime.toFixed(1)}%` : '—',
+        healthScore: latestMetrics?.health ?? 0,
+        activeUsers: latestMetrics?.active_users ?? 0,
+        errorRate: dispatchErrorPct,
+        failedLoginCount: failedLogins24h,
+        cpuUsage: cpuPct,
+        memoryUsage: memPct,
+        diskUsage: diskPct,
+        databaseConnections: dbConn,
+        emailDispatchSuccessRate: emailOkRate,
+        emailDispatches24h: dispatchTotal,
+        auditEvents24h: auditEvents24h,
     };
 
     const alerts: any[] = [];
     const logs = await buildUnifiedLogsForAdmin();
 
-    // Fetch System Settings
     const dbSettings = await prisma.systemSetting.findMany();
-    const systemConfigs = dbSettings.map((s, index) => ({
+    const systemConfigs = dbSettings.map((s) => ({
         id: s.setting_id,
         category: s.category,
         key: s.key,
@@ -217,16 +360,14 @@ export async function getSystemMonitoringData() {
         isActive: true,
         version: 1,
         lastModified: s.updated_at.toISOString(),
-        modifiedBy: 'System'
+        modifiedBy: 'System',
     }));
 
     return {
         metrics: metricsData,
         alerts,
         logs,
-        configs: systemConfigs.length ? systemConfigs : [
-            { id: 'cfg-test', category: 'system', key: 'test_mode', value: 'true', description: 'Test toggle', isActive: true, version: 1, lastModified: new Date().toISOString(), modifiedBy: 'Admin' }
-        ]
+        configs: systemConfigs,
     };
 }
 
@@ -237,39 +378,27 @@ export async function getAdminLogsData() {
 }
 
 // ----------------------------------------------------------------------
-// SYSTEM BACKUP ACTIONS
+// SYSTEM BACKUP ACTIONS (canonical: backup-actions.ts)
 // ----------------------------------------------------------------------
 
 export async function getAdminBackupsData() {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    return { backups: [] }; 
+    return backup_getAdminBackupsData();
 }
 
 export async function createAdminBackup() {
-    return {
-        success: true, backup: {
-            id: `backup_${Date.now()}`,
-            name: `sees_backup_${new Date().toISOString().replace(/[:.]/g, '-')}`,
-            description: 'Manual system backup',
-            type: 'manual',
-            status: 'completed',
-            size: 256 * 1024 * 1024,
-            createdAt: new Date().toISOString(),
-            completedAt: new Date().toISOString(),
-            checksum: 'sha256:7b5e8f...',
-            downloadUrl: `/backups/backup_${Date.now()}.json`,
-        }
-    };
+    return backup_createAdminBackup();
 }
 
 export async function deleteAdminBackup(backupId: string) {
-    return { success: true };
+    return backup_deleteAdminBackup(backupId);
 }
 
 export async function restoreAdminBackup(backupId: string) {
-    return { success: true };
+    return backup_restoreAdminBackup(backupId);
+}
+
+export async function downloadBackupAsBase64(filename: string) {
+    return backup_downloadBackupAsBase64(filename);
 }
 
 // ----------------------------------------------------------------------
@@ -519,7 +648,7 @@ export async function previewAdminNotificationTemplate(templateId: string) {
 
 export async function getAdminAnonymousReportsData() {
     const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
+    if (!session?.user?.id || session.user.role !== 'admin') throw new Error('Unauthorized');
 
     const reports = await prisma.anonymousReport.findMany({
         include: {
@@ -530,24 +659,113 @@ export async function getAdminAnonymousReportsData() {
         orderBy: { created_at: 'desc' }
     });
 
-    const mappedReports = reports.map(r => ({
+    const mappedReports = reports.map((r) => ({
         id: r.report_id,
-        studentId: 'anonymous', // Always anonymized in UI
-        category: 'academic_misconduct', // Default since schema is simple
+        studentId: 'anonymous',
+        category: 'academic_misconduct',
         title: r.content.substring(0, 50) + (r.content.length > 50 ? '...' : ''),
         description: r.content,
         attachments: [],
-        status: r.status.toLowerCase(),
+        status: anonymousReportStatusToUi(r.status),
         submittedAt: r.created_at.toISOString(),
         consentToContact: false,
-        priority: r.priority.toLowerCase()
+        priority: r.priority.toLowerCase(),
+        assignedTo: r.assigned_to ?? '',
+        responseNotes: r.admin_notes ?? '',
+        reviewedAt: r.updated_at?.toISOString?.() ?? r.created_at.toISOString(),
     }));
 
     return { reports: mappedReports };
 }
 
-export async function updateAdminAnonymousReport(reportId: string, data: any) {
-    return { success: true, data };
+/** Map DB status tokens to reports-review UI filter values. */
+function anonymousReportStatusToUi(db: string): string {
+    switch (db.toUpperCase()) {
+        case 'PENDING':
+            return 'submitted';
+        case 'IN_REVIEW':
+        case 'REVIEWING':
+            return 'in_review';
+        case 'IN_PROGRESS':
+            return 'in_progress';
+        case 'RESOLVED':
+            return 'resolved';
+        case 'CLOSED':
+        case 'DISMISSED':
+            return 'closed';
+        default:
+            return db.toLowerCase();
+    }
+}
+
+function anonymousReportStatusUiToDb(ui: string): string {
+    const m: Record<string, string> = {
+        submitted: 'PENDING',
+        in_review: 'IN_REVIEW',
+        in_progress: 'IN_PROGRESS',
+        resolved: 'RESOLVED',
+        closed: 'CLOSED',
+    };
+    const k = ui.toLowerCase();
+    return m[k] ?? ui.toUpperCase();
+}
+
+export async function updateAdminAnonymousReport(
+    reportId: string,
+    data: {
+        status?: string;
+        responseNotes?: string;
+        assignedTo?: string;
+        reviewedAt?: string;
+        reviewedBy?: string;
+    }
+) {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== 'admin') {
+        throw new Error('Unauthorized');
+    }
+
+    const patch: {
+        status?: string;
+        admin_notes?: string | null;
+        assigned_to?: string | null;
+    } = {};
+
+    if (data.status !== undefined) {
+        patch.status = anonymousReportStatusUiToDb(data.status);
+    }
+    if (data.responseNotes !== undefined) {
+        patch.admin_notes = data.responseNotes.trim() || null;
+    }
+    if (data.assignedTo !== undefined) {
+        patch.assigned_to = data.assignedTo.trim() || null;
+    }
+
+    const updated = await prisma.anonymousReport.update({
+        where: { report_id: reportId },
+        data: patch,
+    });
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_ANONYMOUS_REPORT_UPDATE',
+        entityType: 'ANONYMOUS_REPORT',
+        entityId: reportId,
+        category: 'ADMIN',
+        metadata: { status: patch.status ?? updated.status },
+    });
+
+    revalidatePath('/dashboard/admin/reports-review');
+    return {
+        success: true,
+        data: {
+            id: updated.report_id,
+            status: anonymousReportStatusToUi(updated.status),
+            responseNotes: updated.admin_notes ?? '',
+            assignedTo: updated.assigned_to ?? '',
+            reviewedAt: updated.updated_at.toISOString(),
+        },
+    };
 }
 
 // GPA CONFIG ACTIONS
@@ -771,46 +989,6 @@ export async function saveAdminGradingBands(
 // DEGREE PROGRAMS ACTIONS
 
 export async function getAdminDegreeProgramsData() {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    const programs = await prisma.degreeProgram.findMany({
-        include: {
-            specializations: true,
-            students: true
-        }
-    });
-
-    const mappedPrograms = programs.map(p => ({
-        id: p.program_id,
-        name: p.name,
-        code: p.code,
-        description: p.description,
-        totalCredits: 132, // Standard
-        duration: 4,
-        pathways: [],
-        specializations: p.specializations.reduce((acc, s) => {
-            acc[s.code] = [s.name];
-            return acc;
-        }, {} as Record<string, string[]>),
-        capacityLimits: {},
-        moduleMappings: [],
-        status: p.active ? 'active' : 'inactive',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    }));
-
-    return { programs: mappedPrograms };
-}
-
-export async function createAdminDegreeProgram(data: any) {
-    return { success: true, data };
-}
-
-export async function updateAdminDegreeProgram(id: string, data: any) {
-    return { success: true, data };
-}
-
-export async function deleteAdminDegreeProgram(id: string) {
-    return { success: true };
+    const { getProgramsForAdminConfig } = await import('@/lib/actions/admin-programs');
+    return getProgramsForAdminConfig();
 }

@@ -58,9 +58,18 @@ import type { AuditLog, SystemConfiguration } from '@/types';
 export default function SystemMonitoringPage() {
   const { user } = useAuthStore();
   const [systemMetrics, setSystemMetrics] = useState<any>({
-    uptime: '0%', responseTime: '0ms', activeUsers: 0, totalRequests: 0,
-    errorRate: '0%', cpuUsage: '0%', memoryUsage: '0%', diskUsage: '0%',
-    databaseConnections: 0, cacheHitRate: '0%'
+    uptime: '—',
+    healthScore: 0,
+    activeUsers: 0,
+    errorRate: '0%',
+    failedLoginCount: 0,
+    cpuUsage: '0%',
+    memoryUsage: '0%',
+    diskUsage: '0%',
+    databaseConnections: null as number | null,
+    emailDispatchSuccessRate: '—',
+    emailDispatches24h: 0,
+    auditEvents24h: 0,
   });
   const [alerts, setAlerts] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -190,7 +199,7 @@ export default function SystemMonitoringPage() {
               {systemMetrics.uptime}
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              Last 30 days
+              From latest metrics sample
             </p>
           </CardContent>
         </Card>
@@ -199,15 +208,15 @@ export default function SystemMonitoringPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Clock className="h-5 w-5 text-blue-600" />
-              Response Time
+              Health score
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-600">
-              {systemMetrics.responseTime}
+              {systemMetrics.healthScore ?? 0}
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              Average
+              From latest system metrics
             </p>
           </CardContent>
         </Card>
@@ -221,10 +230,10 @@ export default function SystemMonitoringPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-purple-600">
-              {systemMetrics.activeUsers.toLocaleString()}
+              {(systemMetrics.activeUsers ?? 0).toLocaleString()}
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              Currently online
+              Active user accounts (status ACTIVE in DB)
             </p>
           </CardContent>
         </Card>
@@ -241,7 +250,7 @@ export default function SystemMonitoringPage() {
               {systemMetrics.errorRate}
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              Last hour
+              Failed sends / total email dispatches (24h). Failed logins: {systemMetrics.failedLoginCount ?? 0}
             </p>
           </CardContent>
         </Card>
@@ -310,16 +319,28 @@ export default function SystemMonitoringPage() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Active Connections</span>
-                <span className="font-medium">{systemMetrics.databaseConnections}</span>
+                <span className="text-sm text-gray-600">Active DB connections</span>
+                <span className="font-medium">
+                  {systemMetrics.databaseConnections != null
+                    ? systemMetrics.databaseConnections
+                    : '—'}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Cache Hit Rate</span>
-                <span className="font-medium">{systemMetrics.cacheHitRate}</span>
+                <span className="text-sm text-gray-600">Email dispatch success (24h)</span>
+                <span className="font-medium">{systemMetrics.emailDispatchSuccessRate}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Total Requests</span>
-                <span className="font-medium">{systemMetrics.totalRequests.toLocaleString()}</span>
+                <span className="text-sm text-gray-600">Audit events (24h)</span>
+                <span className="font-medium">
+                  {(systemMetrics.auditEvents24h ?? 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Email dispatches (24h)</span>
+                <span className="font-medium">
+                  {(systemMetrics.emailDispatches24h ?? 0).toLocaleString()}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -489,6 +510,12 @@ export default function SystemMonitoringPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {systemConfigs.length === 0 && (
+                  <p className="text-sm text-muted-foreground py-6 text-center">
+                    No rows in <code className="text-xs">system_settings</code> yet. Settings appear here once
+                    configured (e.g. GPA, notifications).
+                  </p>
+                )}
                 {systemConfigs.map((config) => (
                   <div key={config.id} className="flex items-start gap-4 p-4 border rounded-lg">
                     <div className="text-2xl">{getCategoryIcon(config.category)}</div>
@@ -531,18 +558,20 @@ export default function SystemMonitoringPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-              <h3 className="font-medium text-green-800">All Systems Operational</h3>
-              <p className="text-sm text-green-600">No critical issues detected</p>
+              <h3 className="font-medium text-green-800">Health score</h3>
+              <p className="text-sm text-green-600">{systemMetrics.healthScore ?? 0} / 100 (latest sample)</p>
             </div>
             <div className="text-center p-4 bg-yellow-50 rounded-lg">
               <AlertTriangle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-              <h3 className="font-medium text-yellow-800">Minor Warnings</h3>
-              <p className="text-sm text-yellow-600">2 non-critical alerts</p>
+              <h3 className="font-medium text-yellow-800">Email dispatch errors (24h)</h3>
+              <p className="text-sm text-yellow-600">Rate {systemMetrics.errorRate}</p>
             </div>
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <Activity className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <h3 className="font-medium text-blue-800">Performance Good</h3>
-              <p className="text-sm text-blue-600">Response times within normal range</p>
+              <h3 className="font-medium text-blue-800">Activity</h3>
+              <p className="text-sm text-blue-600">
+                {systemMetrics.auditEvents24h ?? 0} audit events in the last 24 hours
+              </p>
             </div>
           </div>
         </CardContent>

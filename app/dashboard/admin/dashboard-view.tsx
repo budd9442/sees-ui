@@ -57,6 +57,18 @@ export function AdminDashboardView({
     performanceData,
     recentLogs
 }: AdminDashboardViewProps) {
+    const status = systemMetrics?.serverStatusLabel ?? 'Unknown';
+    const health = systemMetrics?.healthScore ?? 0;
+    const statusIconClass =
+        !systemMetrics || health >= 80
+            ? 'text-green-500'
+            : health >= 50
+              ? 'text-amber-500'
+              : 'text-red-500';
+
+    const dbConn = systemMetrics?.dbConnections;
+    const dbMax = systemMetrics?.dbConnectionsMax ?? 100;
+    const connProgress = systemMetrics?.connProgress ?? 0;
 
     return (
         <div className="space-y-6">
@@ -103,10 +115,10 @@ export function AdminDashboardView({
                     <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/30 cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Server Status</CardTitle>
-                        <Server className="h-4 w-4 text-green-500" />
+                        <Server className={`h-4 w-4 ${statusIconClass}`} />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">Healthy</div>
+                        <div className="text-2xl font-bold">{status}</div>
                         <p className="text-xs text-muted-foreground">Uptime: {systemMetrics.uptime}</p>
                     </CardContent>
                     </Card>
@@ -123,7 +135,7 @@ export function AdminDashboardView({
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{databaseSize}</div>
-                        <p className="text-xs text-muted-foreground">Last backup: {systemMetrics.lastBackup}</p>
+                        <p className="text-xs text-muted-foreground">Last snapshot: {systemMetrics.lastBackup}</p>
                     </CardContent>
                     </Card>
                 </Link>
@@ -181,9 +193,15 @@ export function AdminDashboardView({
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span className="flex items-center gap-2"><Database className="h-4 w-4" /> DB Connections</span>
-                                        <span className="font-medium">{systemMetrics.dbConnections} / 100</span>
+                                        <span className="font-medium">
+                                            {dbConn != null ? `${dbConn} / ${dbMax}` : '—'}
+                                        </span>
                                     </div>
-                                    <Progress value={(systemMetrics.dbConnections / 100) * 100} className="h-2" />
+                                    {dbConn != null ? (
+                                        <Progress value={connProgress} className="h-2" />
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">Connection stats unavailable</p>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -192,7 +210,9 @@ export function AdminDashboardView({
                         <Card className="lg:col-span-2">
                             <CardHeader>
                                 <CardTitle>System Performance</CardTitle>
-                                <CardDescription>Throughput and Response Time over 24h</CardDescription>
+                                <CardDescription>
+                                    Active users and health score from sampled metrics (last ~2h of cron samples)
+                                </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ResponsiveContainer width="100%" height={250}>
@@ -206,11 +226,26 @@ export function AdminDashboardView({
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                         <XAxis dataKey="time" />
                                         <YAxis yAxisId="left" />
-                                        <YAxis yAxisId="right" orientation="right" />
+                                        <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
                                         <Tooltip />
                                         <Legend />
-                                        <Area yAxisId="left" type="monotone" dataKey="throughput" name="Requests/min" stroke="#3b82f6" fillOpacity={1} fill="url(#colorThroughput)" />
-                                        <Line yAxisId="right" type="monotone" dataKey="responseTime" name="Response Time (ms)" stroke="#ef4444" strokeWidth={2} />
+                                        <Area
+                                            yAxisId="left"
+                                            type="monotone"
+                                            dataKey="activeUsers"
+                                            name="Active users (DB)"
+                                            stroke="#3b82f6"
+                                            fillOpacity={1}
+                                            fill="url(#colorThroughput)"
+                                        />
+                                        <Line
+                                            yAxisId="right"
+                                            type="monotone"
+                                            dataKey="healthScore"
+                                            name="Health score"
+                                            stroke="#ef4444"
+                                            strokeWidth={2}
+                                        />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </CardContent>

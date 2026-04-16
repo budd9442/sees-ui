@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getAdminDegreeProgramsData } from '@/lib/actions/admin-actions';
+import { getProgramsForAdminConfig } from '@/lib/actions/admin-programs';
 import ProgramsConfigClient from './_components/programs-client';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
@@ -13,7 +13,7 @@ export default async function AdminProgramsConfigPage() {
     redirect('/login');
   }
 
-  const data = await getAdminDegreeProgramsData();
+  const data = await getProgramsForAdminConfig();
 
   return (
     <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>

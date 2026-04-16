@@ -38,7 +38,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Backup } from '@/types';
-import { createAdminBackup, deleteAdminBackup, restoreAdminBackup } from '@/lib/actions/admin-actions';
+import {
+    createAdminBackup,
+    deleteAdminBackup,
+    restoreAdminBackup,
+    downloadBackupAsBase64,
+} from '@/lib/actions/admin-actions';
 
 export default function BackupClient({ initialData }: { initialData: any }) {
     const { user } = useAuthStore();
@@ -64,19 +69,26 @@ export default function BackupClient({ initialData }: { initialData: any }) {
         }
     };
 
-    const handleDownloadBackup = (backup: Backup) => {
-        toast.info(`Downloading ${backup.name}...`);
-        const backupContent = JSON.stringify({ backup, timestamp: new Date().toISOString() }, null, 2);
-        const blob = new Blob([backupContent], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${backup.name}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast.success('Backup export completed.');
+    const handleDownloadBackup = async (backup: Backup) => {
+        try {
+            toast.info(`Downloading ${backup.name}...`);
+            const res = await downloadBackupAsBase64(backup.id);
+            const binary = atob(res.base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const blob = new Blob([bytes], { type: res.mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = res.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast.success('Encrypted snapshot downloaded.');
+        } catch (e: unknown) {
+            toast.error(e instanceof Error ? e.message : 'Download failed.');
+        }
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
