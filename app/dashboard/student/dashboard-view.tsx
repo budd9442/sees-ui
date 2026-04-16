@@ -12,14 +12,15 @@ import {
     BookOpen,
     TrendingUp,
     Award,
+    Target,
     Calendar,
     Bell,
     AlertTriangle,
 } from 'lucide-react';
-import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { formatRelativeTime } from '@/lib/dateFormatters';
 import { useRouter } from 'next/navigation';
-import type { Student, Notification } from '@/types';
+import type { Student, StudentGoalsSummary } from '@/types';
 
 import { AcademicRecoveryCard } from '@/components/student/academic-recovery-card';
 
@@ -29,9 +30,10 @@ interface DashboardViewProps {
     schedules: any[];
     pathwayDemand: any;
     gpaHistory: { semester: string; gpa: number }[];
+    goalsSummary: StudentGoalsSummary;
 }
 
-export function DashboardView({ student, notifications, schedules, pathwayDemand, gpaHistory }: DashboardViewProps) {
+export function DashboardView({ student, notifications, schedules, pathwayDemand, gpaHistory, goalsSummary }: DashboardViewProps) {
     const router = useRouter();
 
     // Use real semester-wise cumulative GPA history
@@ -135,7 +137,7 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                     href="/dashboard/student/schedule"
                 />
                 <Link
-                    href="/dashboard/student/grades"
+                    href="/dashboard/student/goals"
                     className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                     <Card className="h-full transition-all hover:shadow-lg hover:border-primary/35 cursor-pointer">
@@ -143,19 +145,16 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                             <div className="flex items-center justify-between">
                                 <div className="space-y-2">
                                     <p className="text-sm font-medium text-muted-foreground">
-                                        Academic Class
+                                        Active Goal
                                     </p>
-                                    <Badge
-                                        variant="outline"
-                                        className={`text-base px-3 py-1 ${getClassColor(
-                                            student.academicClass
-                                        )}`}
-                                    >
-                                        {student.academicClass}
-                                    </Badge>
+                                    <p className="text-base font-semibold">{goalsSummary.activeGoal?.title ?? 'No active goal'}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {goalsSummary.completedGoals}/{goalsSummary.totalGoals} completed
+                                        {goalsSummary.overdueGoals > 0 ? ` • ${goalsSummary.overdueGoals} overdue` : ''}
+                                    </p>
                                 </div>
                                 <div className="p-3 rounded-full bg-primary/10">
-                                    <Award className="w-6 h-6 text-primary" />
+                                    <Target className="w-6 h-6 text-primary" />
                                 </div>
                             </div>
                         </CardContent>
@@ -219,6 +218,12 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                                     fillOpacity={1}
                                     fill="url(#colorGpa)"
                                 />
+                                {goalsSummary.graphTargets.gpaTargetLine.map((target) => (
+                                    <ReferenceLine key={target.goalId} y={target.value} stroke="var(--color-chart-3)" strokeDasharray="6 4" />
+                                ))}
+                                {goalsSummary.graphTargets.cgpaImprovementLine.map((target) => (
+                                    <ReferenceLine key={target.goalId} y={target.value} stroke="var(--color-chart-4)" strokeDasharray="3 3" />
+                                ))}
                             </AreaChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -267,6 +272,12 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                                         <span className="text-muted-foreground">{entry.name}</span>
                                     </div>
                                     <span className="font-medium">{entry.value}</span>
+                                </div>
+                            ))}
+                            {goalsSummary.graphTargets.creditsTargetLine.map((target) => (
+                                <div key={target.goalId} className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Goal Target</span>
+                                    <span className="font-medium">{target.value}</span>
                                 </div>
                             ))}
                         </div>

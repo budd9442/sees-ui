@@ -615,7 +615,7 @@ export async function getStudentModuleRegistrationWindow(): Promise<StudentModul
         canEdit: false,
         message:
             anyRound.status === 'FINALIZED'
-                ? 'Module registration for this period is finalized. Contact your HOD to change modules.'
+                ? 'Module registration period is not active at the moment.'
                 : anyRound.status === 'CLOSED'
                   ? 'The module registration window is closed.'
                   : 'Module registration is not available for your level or the window is not open.',

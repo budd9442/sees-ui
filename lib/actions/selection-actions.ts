@@ -8,6 +8,7 @@ import { dispatchNotificationEmail } from '@/lib/notifications/dispatch';
 import { NotificationEventKey } from '@/lib/notifications/events';
 import { notifySelectionRoundWindowOpened } from '@/lib/notifications/window-opened';
 import { writeAuditLog } from '@/lib/audit/write-audit-log';
+import { assertStudentWriteAccess } from '@/lib/actions/student-access';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -1605,6 +1606,7 @@ export async function submitAllocationChangeRequest(data: {
             return { success: false, error: 'Unauthorized' };
         }
         const studentId = studentSess.userId;
+        await assertStudentWriteAccess(studentId);
 
         const round = await prisma.selectionRound.findUnique({
             where: { round_id: data.round_id },
@@ -1865,6 +1867,7 @@ export async function submitSelectionApplication(data: {
             return { success: false, error: 'Unauthorized' };
         }
         const studentId = studentSess.userId;
+        await assertStudentWriteAccess(studentId);
 
         const round = await prisma.selectionRound.findUnique({
             where: { round_id: data.round_id },

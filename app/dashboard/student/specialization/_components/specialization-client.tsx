@@ -142,7 +142,7 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
         return () => { cancel = true; };
     }, [isMIT]);
 
-    const fetchSenseiAdvise = useCallback(async () => {
+    const fetchGuideAdvise = useCallback(async () => {
         setLoadingAI(true);
         try {
             const advice = await getSpecializationGuidance();
@@ -154,7 +154,7 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
             } else if (advice.isEligible) {
                 setAIAdvice(advice);
                 if (advice.decision_source === 'GEMINI') {
-                    toast.success("Specialization Sensei analysis complete (Gemini).");
+                    toast.success("Specialization Guide analysis complete (Gemini).");
                 } else {
                     toast.warning("Analysis completed using fallback logic. Gemini response was unavailable.");
                 }
@@ -162,7 +162,7 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
                 toast.error(advice.message);
             }
         } catch (err) {
-            toast.error("Failed to connect to the Specialization Sensei.");
+            toast.error("Failed to connect to the Specialization Guide.");
         } finally {
             setLoadingAI(false);
         }
@@ -172,8 +172,8 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
         if (!isMIT || aiAdvice || loadingAI || hasAutoRunTriggered.current) return;
         if (searchParams.get('autorun') !== '1') return;
         hasAutoRunTriggered.current = true;
-        void fetchSenseiAdvise();
-    }, [aiAdvice, fetchSenseiAdvise, isMIT, loadingAI, searchParams]);
+        void fetchGuideAdvise();
+    }, [aiAdvice, fetchGuideAdvise, isMIT, loadingAI, searchParams]);
 
     const handleConfirmSelection = async () => {
         if (!selectedSpec) return;
@@ -322,7 +322,7 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-primary">
                                 <BrainCircuit className="h-5 w-5" />
-                                Specialization Sensei
+                                Specialization Guide
                             </CardTitle>
                             <CardDescription>Performance-based branch analysis</CardDescription>
                         </CardHeader>
@@ -341,8 +341,8 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
 
                             {!aiAdvice && !loadingAI && (
                                 <div className="space-y-2">
-                                    <Button className="w-full" onClick={fetchSenseiAdvise}>
-                                        Run Sensei Analysis
+                                    <Button className="w-full" onClick={fetchGuideAdvise}>
+                                        Run Guide Analysis
                                     </Button>
                                     <Button
                                         type="button"
@@ -532,13 +532,13 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
                                     </Card>
                                 ))}
                             </div>
-                            <Card className="bg-amber-50/50 border-amber-200">
+                            <Card className="bg-primary/5 border-primary/20">
                                 <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                     <p className="text-sm">
                                         Primary: <strong>{activeRound.slots.find(s => s.id === rp1)?.code ?? '—'}</strong>
                                         {rp2 && <> · Backup: <strong>{activeRound.slots.find(s => s.id === rp2)?.code}</strong></>}
                                     </p>
-                                    <Button size="sm" className="bg-amber-600 hover:bg-amber-700 shrink-0" onClick={handleRoundSubmit} disabled={isPending || !activeRound.windowOk || !rp1}>
+                                    <Button size="sm" className="shrink-0" onClick={handleRoundSubmit} disabled={isPending || !activeRound.windowOk || !rp1}>
                                         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save application'}
                                     </Button>
                                 </CardContent>
@@ -572,7 +572,7 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
                                                     {spec.code === 'IS' && <LayoutDashboard className="h-4 w-4" />}
                                                 </div>
                                                 {aiAdvice?.recommended_specialization === spec.code && (
-                                                    <Badge className="bg-orange-500 text-[10px]">Sensei Choice</Badge>
+                                                    <Badge className="bg-orange-500 text-[10px]">Guide Choice</Badge>
                                                 )}
                                             </div>
                                             <CardTitle className="text-lg mt-3">{spec.code}</CardTitle>
@@ -598,13 +598,13 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
                             </div>
 
                             {selectedSpec && !currentSpecialization && (
-                                <Card className="bg-amber-50/50 border-amber-200">
+                                <Card className="bg-primary/5 border-primary/20">
                                     <CardContent className="p-4 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <Target className="h-5 w-5 text-amber-600" />
                                             <p className="text-sm font-medium">Ready to lock in <strong>{selectedSpec}</strong> as your permanent specialization?</p>
                                         </div>
-                                        <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={handleConfirmSelection} disabled={isPending}>
+                                        <Button size="sm" onClick={handleConfirmSelection} disabled={isPending}>
                                             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Specialization"}
                                         </Button>
                                     </CardContent>

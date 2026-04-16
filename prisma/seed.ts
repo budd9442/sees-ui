@@ -6,6 +6,7 @@ import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import fs from 'fs';
 import path from 'path';
+import { GUIDEBOOK_PREREQUISITE_CODES } from '../lib/data/guidebook-prerequisites';
 
 const connectionString = `${process.env.DATABASE_URL}`;
 const pool = new Pool({ connectionString });
@@ -109,6 +110,26 @@ async function main() {
                 level: m.level || 'L1', // Default
                 description: m.description || `Module ${m.name}`
             }
+        });
+    }
+    console.log('Applying guidebook prerequisites...');
+    const allSeededModules = await prisma.module.findMany({
+        select: { module_id: true, code: true, academic_year_id: true },
+    });
+    for (const module of allSeededModules) {
+        const prereqCodes = GUIDEBOOK_PREREQUISITE_CODES[module.code] || [];
+        const prereqTargets = allSeededModules
+            .filter((candidate) => candidate.module_id !== module.module_id && prereqCodes.includes(candidate.code))
+            .map((candidate) => ({ module_id: candidate.module_id }));
+
+        await prisma.module.update({
+            where: { module_id: module.module_id },
+            data: {
+                Module_A: {
+                    set: [],
+                    connect: prereqTargets,
+                },
+            },
         });
     }
 
@@ -471,6 +492,59 @@ async function main() {
 
         // Add GPA History
         await prisma.gPAHistory.create({ data: { student_id: 'STU001', gpa: 3.84, calculation_date: new Date('2023-12-31') } });
+
+        const sampleModule = await prisma.module.findFirst({ where: { code: 'INTE 21243' } });
+        await prisma.academicGoal.createMany({
+            data: [
+                {
+                    student_id: 'STU001',
+                    title: 'Reach 3.50 CGPA',
+                    description: 'Maintain a strong GPA trend for this academic year.',
+                    goal_type: 'GPA_TARGET',
+                    metric_unit: 'GPA',
+                    target_value_number: 3.5,
+                    target_gpa: 3.5,
+                    target_value: '3.5',
+                    progress: 68,
+                    status: 'COMPLETED',
+                },
+                {
+                    student_id: 'STU001',
+                    title: 'Complete 96 credits',
+                    description: 'Stay on track for graduation credits.',
+                    goal_type: 'CREDITS_TARGET',
+                    metric_unit: 'CREDITS',
+                    target_value_number: 96,
+                    target_value: '96',
+                    progress: 52,
+                    status: 'COMPLETED',
+                },
+                {
+                    student_id: 'STU001',
+                    title: 'Score 75 in INTE 21243',
+                    description: 'Lift marks in the architecture module.',
+                    goal_type: 'MODULE_GRADE_TARGET',
+                    metric_unit: 'MARKS',
+                    target_value_number: 75,
+                    target_value: '75',
+                    module_id: sampleModule?.module_id ?? null,
+                    progress: 60,
+                    status: 'IN_PROGRESS',
+                },
+                {
+                    student_id: 'STU001',
+                    title: 'Improve CGPA by 0.30',
+                    description: 'Raise cumulative GPA by 0.30 points.',
+                    goal_type: 'CGPA_IMPROVEMENT',
+                    metric_unit: 'POINTS',
+                    target_value_number: 0.3,
+                    baseline_value: 2.38,
+                    target_value: '0.3',
+                    progress: 40,
+                    status: 'COMPLETED',
+                }
+            ]
+        });
     }
 
     // 6. System Metrics

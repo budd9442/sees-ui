@@ -6,7 +6,7 @@ export type DegreeProgram = 'MIT' | 'IT';
 
 export type Specialization = 'BSE' | 'OSCM' | 'IS';
 
-export type AcademicYear = 'L1' | 'L2' | 'L3' | 'L4';
+export type AcademicYear = 'L1' | 'L2' | 'L3' | 'L4' | 'GRADUATED';
 
 export type AcademicClass =
   | 'First Class'
@@ -28,9 +28,12 @@ export interface User {
   lastName: string;
   name: string; // Computed from firstName + lastName
   role: UserRole;
+  degreeProgram?: DegreeProgram;
+  specialization?: Specialization;
   avatar?: string;
   isActive: boolean;
   isHOD?: boolean;
+  isGraduated?: boolean;
 }
 
 export interface Student extends User {
@@ -45,6 +48,8 @@ export interface Student extends User {
   pathwayLocked: boolean;
   enrollmentDate: string;
   enrollmentStatus: EnrollmentStatus;
+  graduationStatus?: 'NOT_GRADUATED' | 'PENDING' | 'GRADUATED';
+  graduatedAt?: string;
 }
 
 export interface Module {
@@ -83,24 +88,46 @@ export interface Grade {
   isReleased: boolean;
 }
 
+export type QuantGoalType = 'GPA_TARGET' | 'CREDITS_TARGET' | 'MODULE_GRADE_TARGET' | 'CGPA_IMPROVEMENT';
+
 export interface AcademicGoal {
   id: string;
   studentId: string;
   title: string;
   description?: string;
-  category: 'academic' | 'skill' | 'career' | 'personal';
-  priority: 'low' | 'medium' | 'high';
-  targetGPA: number;
-  targetClass: AcademicClass;
-  targetValue?: string;
-  currentValue?: string;
-  targetDate: string;
-  deadline?: string;
-  currentProgress: number; // 0-100
-  progress?: number; // 0-100 (alias for currentProgress)
-  isActive: boolean;
+  goalType: QuantGoalType;
+  targetValue: number;
+  baselineValue?: number;
+  metricUnit: 'GPA' | 'CREDITS' | 'MARKS' | 'POINTS';
+  moduleId?: string | null;
+  moduleCode?: string | null;
+  deadline?: string | Date;
+  progress: number; // 0-100
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED';
   createdAt: string;
   milestones?: string[];
+}
+
+export interface StudentDashboardGoalTargets {
+  gpaTargetLine: { value: number; goalId: string }[];
+  creditsTargetLine: { value: number; goalId: string }[];
+  cgpaImprovementLine: { value: number; baseline: number; goalId: string }[];
+}
+
+export interface StudentGoalsSummary {
+  totalGoals: number;
+  completedGoals: number;
+  overdueGoals: number;
+  activeGoal: {
+    id: string;
+    title: string;
+    goalType: QuantGoalType | string;
+    progress: number;
+    targetValue: number | null;
+    moduleCode: string | null;
+    deadline: string | null;
+  } | null;
+  graphTargets: StudentDashboardGoalTargets;
 }
 
 export interface Message {

@@ -65,6 +65,15 @@ export default function RankingsClient({ initialRankings }: { initialRankings: R
     const [selectedPeriod, setSelectedPeriod] = useState('current');
     const [selectedCategory, setSelectedCategory] = useState('overall');
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedAcademicYear, setSelectedAcademicYear] = useState('all');
+
+    const academicYearOptions = Array.from(
+        new Set(initialRankings.map((r) => r.academicYear).filter(Boolean))
+    ).sort();
+    const pathwayOptions = Array.from(
+        new Set(initialRankings.map((r) => r.pathway).filter(Boolean))
+    ).sort();
+    const currentAcademicYear = academicYearOptions[academicYearOptions.length - 1] || 'all';
 
     // Calculate rankings based on different criteria deterministically
     const calculateRankings = () => {
@@ -115,7 +124,13 @@ export default function RankingsClient({ initialRankings }: { initialRankings: R
         const name = (ranking.studentName || '').toLowerCase();
         const year = (ranking.academicYear || '').toLowerCase();
         const pathway = (ranking.pathway || '').toLowerCase();
-        return name.includes(term) || year.includes(term) || pathway.includes(term);
+        const matchesSearch = name.includes(term) || year.includes(term) || pathway.includes(term);
+        const matchesYear = selectedAcademicYear === 'all' || ranking.academicYear === selectedAcademicYear;
+        const matchesPeriod =
+            selectedPeriod === 'all' ||
+            (selectedPeriod === 'current' && ranking.academicYear === currentAcademicYear) ||
+            (selectedPeriod === 'year' && selectedAcademicYear !== 'all' && ranking.academicYear === selectedAcademicYear);
+        return matchesSearch && matchesYear && matchesPeriod;
     });
 
     const getRankIcon = (rank: number) => {
@@ -160,7 +175,33 @@ export default function RankingsClient({ initialRankings }: { initialRankings: R
     const stats = getCategoryStats();
 
     const handleExportRankings = () => {
-        toast.success('Rankings exported successfully!');
+        if (filteredRankings.length === 0) {
+            toast.error('No ranking rows to export');
+            return;
+        }
+
+        const headers = ['Rank', 'Student ID', 'Student Name', 'Academic Year', 'Pathway', 'GPA', 'Credits', 'Pass Rate'];
+        const rows = filteredRankings.map((r) => [
+            String(r.rank ?? ''),
+            r.studentId,
+            r.studentName,
+            r.academicYear,
+            r.pathway,
+            r.gpa.toFixed(2),
+            String(r.totalCredits ?? 0),
+            `${(r.passRate ?? 0).toFixed(1)}%`,
+        ]);
+        const csv = [headers, ...rows]
+            .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+            .join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `student-rankings-${selectedCategory}-${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success('Rankings exported as CSV');
     };
 
     return (
@@ -273,15 +314,15 @@ export default function RankingsClient({ initialRankings }: { initialRankings: R
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="academic-year">Academic Year</Label>
-                            <Select>
+                            <Select value={selectedAcademicYear} onValueChange={setSelectedAcademicYear}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="All Years" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Years</SelectItem>
-                                    <SelectItem value="L1">L1</SelectItem>
-                                    <SelectItem value="L2">L2</SelectItem>
-                                    <SelectItem value="L3">L3</SelectItem>
+                                    {academicYearOptions.map((year) => (
+                                        <SelectItem key={year} value={year}>{year}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -432,7 +473,7 @@ export default function RankingsClient({ initialRankings }: { initialRankings: R
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-6">
-                                {['Software Engineering', 'Data Science', 'Cybersecurity', 'Mobile Development'].map((pathway) => {
+                                {pathwayOptions.map((pathway) => {
                                     const pathwayRankings = filteredRankings.filter(r => r.pathway === pathway);
 
                                     return (

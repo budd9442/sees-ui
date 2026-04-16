@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { GeminiService } from '@/lib/services/gemini-service';
+import { assertStudentWriteAccess } from '@/lib/actions/student-access';
 
 const pathwayGuidancePreferenceSchema = z.object({
     interests: z.array(z.string().trim()).min(2),
@@ -43,6 +44,7 @@ function clampScore(n: number) {
 export async function submitPathwayGuidancePreferences(input: unknown) {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
+    await assertStudentWriteAccess(session.user.id);
 
     const parsed = pathwayGuidancePreferenceSchema.safeParse(input);
     if (!parsed.success) {
@@ -216,6 +218,7 @@ export async function submitPathwayPreferences(preferences: {
 }) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     // [GOVERNANCE] Check if pathway selection window is open
     const windowSetting = await prisma.systemSetting.findUnique({ where: { key: 'is_pathway_selection_open' } });

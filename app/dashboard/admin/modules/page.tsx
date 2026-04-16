@@ -1,4 +1,4 @@
-import { getModules, toggleModuleStatus } from '@/lib/actions/admin-modules';
+import { getModules, syncGuideBookPrerequisites, toggleModuleStatus } from '@/lib/actions/admin-modules';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/layout/page-header';
@@ -50,7 +50,15 @@ export default async function AdminModulesPage(props: { searchParams: Promise<{ 
                 title="Module Management"
                 description={`Managing modules for ${selectedYear?.label || 'Legacy/All'}`}
             >
-                <ModuleDialog academicYearId={selectedYear?.academic_year_id} />
+                <div className="flex items-center gap-2">
+                    <form action={syncGuideBookPrerequisites}>
+                        <Button type="submit" variant="outline">Sync Guidebook Prerequisites</Button>
+                    </form>
+                    <ModuleDialog
+                        academicYearId={selectedYear?.academic_year_id}
+                        availableModules={modules}
+                    />
+                </div>
             </PageHeader>
 
             <div className="flex flex-col md:flex-row items-center gap-4">
@@ -109,6 +117,7 @@ export default async function AdminModulesPage(props: { searchParams: Promise<{ 
                                         <div className="flex justify-end gap-2">
                                             <ModuleDialog
                                                 module={module}
+                                                availableModules={modules}
                                                 trigger={
                                                     <Button variant="ghost" size="icon">
                                                         <Pencil className="h-4 w-4" />

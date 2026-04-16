@@ -1,0 +1,591 @@
+{
+  "missing_modules": [
+    "MGTE 22273",
+    "MGTE 31423",
+    "MGTE 31433",
+    "MGTE 41353",
+    "MGTE 42313",
+    "MGTE 42323",
+    "MGTE 43216"
+  ],
+  "mismatch": [
+    {
+      "module": "INTE 12213",
+      "expected": [
+        "INTE 11223"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11223"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 12223",
+      "expected": [
+        "INTE 11223"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11223"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 12243",
+      "expected": [
+        "INTE 11213"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11213"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 21213",
+      "expected": [
+        "INTE 11223",
+        "INTE 12213",
+        "INTE 12223"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11223",
+        "INTE 12213",
+        "INTE 12223"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 21243",
+      "expected": [
+        "INTE 11213",
+        "INTE 11223"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11213",
+        "INTE 11223"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 21313",
+      "expected": [
+        "INTE 11213"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11213"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 21333",
+      "expected": [
+        "INTE 12213",
+        "INTE 12223"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 12213",
+        "INTE 12223"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 21343",
+      "expected": [
+        "INTE 21213"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 21213"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 22253",
+      "expected": [
+        "INTE 12213",
+        "INTE 21323"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 12213",
+        "INTE 21323"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 22263",
+      "expected": [
+        "INTE 11223",
+        "INTE 21243"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11223",
+        "INTE 21243"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 22283",
+      "expected": [
+        "INTE 12213",
+        "INTE 21323"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 12213",
+        "INTE 21323"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 22293",
+      "expected": [
+        "INTE 21213"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 21213"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 22303",
+      "expected": [
+        "INTE 11223"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11223"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 22313",
+      "expected": [
+        "INTE 21213"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 21213"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 22343",
+      "expected": [
+        "INTE 11223",
+        "INTE 12213"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11223",
+        "INTE 12213"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 31233",
+      "expected": [
+        "INTE 11213"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11213"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 31243",
+      "expected": [
+        "INTE 21343"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 21343"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 31283",
+      "expected": [
+        "INTE 12223"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 12223"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 31373",
+      "expected": [
+        "INTE 22303"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 22303"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 31393",
+      "expected": [
+        "INTE 12243",
+        "INTE 21313"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 12243",
+        "INTE 21313"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 31403",
+      "expected": [
+        "INTE 11213",
+        "INTE 12243"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11213",
+        "INTE 12243"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 31413",
+      "expected": [
+        "INTE 11213",
+        "INTE 12243"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11213",
+        "INTE 12243"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 31423",
+      "expected": [
+        "INTE 21313"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 21313"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 41283",
+      "expected": [
+        "INTE 21313"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 21313"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 41323",
+      "expected": [
+        "INTE 22303"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 22303"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 41373",
+      "expected": [
+        "INTE 11213",
+        "INTE 22343",
+        "PMAT 31212"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11213",
+        "INTE 22343",
+        "PMAT 31212"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 41393",
+      "expected": [
+        "INTE 12213",
+        "INTE 21323",
+        "INTE 22313"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 12213",
+        "INTE 21323",
+        "INTE 22313"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 41403",
+      "expected": [
+        "INTE 12223"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 12223"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 41413",
+      "expected": [
+        "INTE 12243",
+        "INTE 22263"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 12243",
+        "INTE 22263"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 42333",
+      "expected": [
+        "INTE 11223",
+        "INTE 22303"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 11223",
+        "INTE 22303"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 42353",
+      "expected": [
+        "INTE 12213",
+        "INTE 21323"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 12213",
+        "INTE 21323"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "INTE 44303",
+      "expected": [
+        "INTE 12243",
+        "INTE 21313",
+        "INTE 31393"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 12243",
+        "INTE 21313",
+        "INTE 31393"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 31293",
+      "expected": [
+        "MGTE 12273",
+        "MGTE 21233"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 12273",
+        "MGTE 21233"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 31303",
+      "expected": [
+        "MGTE 21233",
+        "MGTE 22263"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 21233",
+        "MGTE 22263"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 31393",
+      "expected": [
+        "MGTE 12253"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 12253"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 31443",
+      "expected": [
+        "MGTE 21243"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 21243"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 41233",
+      "expected": [
+        "MGTE 31393"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 31393"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 41303",
+      "expected": [
+        "INTE 21313"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 21313"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 41313",
+      "expected": [
+        "MGTE 11233"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 11233"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 41323",
+      "expected": [
+        "MGTE 11243"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 11243"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 41333",
+      "expected": [
+        "MGTE 21233"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 21233"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 41363",
+      "expected": [
+        "INTE 21313"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "INTE 21313"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 41373",
+      "expected": [
+        "MGTE 11233",
+        "MGTE 21233",
+        "MGTE 21243",
+        "MGTE 31393"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 11233",
+        "MGTE 21233",
+        "MGTE 21243",
+        "MGTE 31393"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 41383",
+      "expected": [
+        "MGTE 21233"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 21233"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 42213",
+      "expected": [
+        "MGTE 21233"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 21233"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 42223",
+      "expected": [
+        "MGTE 41233"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 41233"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "MGTE 42243",
+      "expected": [
+        "MGTE 12263"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "MGTE 12263"
+      ],
+      "extra_in_db": []
+    },
+    {
+      "module": "PMAT 12212",
+      "expected": [
+        "PMAT 11212"
+      ],
+      "actual": [],
+      "missing_in_db": [
+        "PMAT 11212"
+      ],
+      "extra_in_db": []
+    }
+  ]
+}

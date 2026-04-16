@@ -61,6 +61,7 @@ export function ModuleRegistrationView({
     const canEdit = registrationWindow.canEdit;
     const closesAt = registrationWindow.closesAt ? new Date(registrationWindow.closesAt) : null;
     const router = useRouter();
+    const buildSelectionKey = (ids: string[]) => [...ids].sort().join('|');
 
     // 1. Initial selection: registered + compulsory across all semesters
     const initialSelection = useMemo(() => {
@@ -79,6 +80,8 @@ export function ModuleRegistrationView({
     const [searchQuery, setSearchQuery] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState(semesters[0]?.semesterId || "");
+    const [lastSavedSelectionKey, setLastSavedSelectionKey] = useState<string>(buildSelectionKey(initialSelection));
+    const [hasSavedPlan, setHasSavedPlan] = useState<boolean>(registeredModuleIds.length > 0);
 
     // 2. Helper to get credits for a specific semester
     const getSemCredits = (semester: RegistrationSemester) => {
@@ -117,10 +120,34 @@ export function ModuleRegistrationView({
         });
     };
 
-    const checkPrerequisites = (module: any): boolean => {
-        return module.prerequisites.every((prereq: string) =>
-            completedModuleCodes.includes(prereq)
-        );
+    const selectedModuleMetaById = useMemo(
+        () =>
+            new Map(
+                semesters.flatMap((sem) =>
+                    sem.modules.map((module) => [
+                        module.id,
+                        { code: module.code as string, semesterNumber: sem.semesterNumber },
+                    ])
+                )
+            ),
+        [semesters]
+    );
+
+    const checkPrerequisites = (module: any, moduleSemesterNumber: number): boolean => {
+        return module.prerequisites.every((prereq: string) => {
+            if (completedModuleCodes.includes(prereq)) {
+                return true;
+            }
+
+            // Allow annual-plan co-registration: a Semester 2 module can rely on a selected Semester 1 prerequisite.
+            return selectedModules.some((selectedId) => {
+                const selectedModule = selectedModuleMetaById.get(selectedId);
+                return (
+                    selectedModule?.code === prereq &&
+                    selectedModule.semesterNumber < moduleSemesterNumber
+                );
+            });
+        });
     };
 
     const handleSubmitRegistration = async () => {
@@ -142,6 +169,8 @@ export function ModuleRegistrationView({
         try {
             await registerForModules(selectedModules);
             toast.success('Annual registration submitted successfully!');
+            setLastSavedSelectionKey(currentSelectionKey);
+            setHasSavedPlan(true);
             router.refresh();
         } catch (error: any) {
             toast.error(error.message || 'Registration failed');
@@ -156,8 +185,10 @@ export function ModuleRegistrationView({
         return credits >= sem.rule.min_credits && credits <= sem.rule.max_credits;
     }) && selectedModules.every(id => {
         const mod = semesters.flatMap(s => s.modules).find(m => m.id === id);
-        return mod ? checkPrerequisites(mod) : true;
+        return mod ? checkPrerequisites(mod, mod.semesterNumber) : true;
     });
+    const currentSelectionKey = buildSelectionKey(selectedModules);
+    const hasUnsavedChanges = currentSelectionKey !== lastSavedSelectionKey;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
@@ -212,14 +243,25 @@ export function ModuleRegistrationView({
                         <Button
                             className="font-bold shadow-lg shadow-primary/20"
                             size="sm"
-                            disabled={!canEdit || !isGlobalValid || isSubmitting}
+                            disabled={isSubmitting}
                             onClick={handleSubmitRegistration}
                         >
-                            {isSubmitting ? 'Processing…' : 'Submit annual plan'}
+                            {isSubmitting ? 'Processing…' : hasUnsavedChanges ? 'Submit annual plan' : 'Update plan'}
                         </Button>
                     </CardContent>
                 </Card>
             </div>
+
+            {hasSavedPlan && (
+                <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                        {hasUnsavedChanges
+                            ? 'You have unsaved changes to your annual plan.'
+                            : 'Your annual module plan is saved.'}
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <div className="grid gap-6 lg:grid-cols-4 items-start">
                 {/* Year Info Sidebar */}
@@ -339,7 +381,7 @@ export function ModuleRegistrationView({
                                                 module={module}
                                                 isSelected={selectedModules.includes(module.id)}
                                                 isInitiallySelected={registeredModuleIds.includes(module.id)}
-                                                prerequisitesMet={checkPrerequisites(module)}
+                                                prerequisitesMet={checkPrerequisites(module, sem.semesterNumber)}
                                                 onToggleSelect={
                                                     canEdit ? () => toggleModule(module.id, sem) : undefined
                                                 }

@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { GoalsClient } from './goals-client';
+import { QuantitativeGoalsClient } from './quantitative-goals-client';
 import { getGoals } from '@/lib/actions/student-subactions';
 import Loading from '../loading';
 
@@ -10,7 +10,7 @@ export default async function GoalsPage() {
 
   return (
     <Suspense fallback={<Loading />}>
-      <GoalsClient initialGoals={goals} />
+      <QuantitativeGoalsClient initialGoals={goals} />
     </Suspense>
   );
 }

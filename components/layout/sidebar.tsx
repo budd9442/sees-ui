@@ -252,6 +252,12 @@ const navigationItems: NavItem[] = [
     icon: BookOpen,
     roles: ['hod'],
   },
+  {
+    title: 'Batch management',
+    href: '/dashboard/hod/batches',
+    icon: Users,
+    roles: ['hod'],
+  },
 
   // Admin Navigation
   {
@@ -374,6 +380,15 @@ export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolea
     const featureKey = FEATURE_KEYS[item.href];
     if (featureKey && featureFlags) {
       if (featureFlags[featureKey] === false) return false;
+    }
+
+    // IT students do not have specialization tracks; hide this entry.
+    if (
+      currentPerspective === 'student' &&
+      item.href === '/dashboard/student/specialization' &&
+      user.degreeProgram === 'IT'
+    ) {
+      return false;
     }
 
     return true;

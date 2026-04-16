@@ -100,6 +100,193 @@ export class GeminiService {
         }
     }
 
+    static async generatePathwayDecision(input: {
+        currentGpa: number;
+        preferences: Record<string, unknown>;
+        transcript: Array<{
+            moduleCode: string;
+            moduleName: string;
+            letterGrade: string | null;
+            marks: number | null;
+        }>;
+        deterministicBreakdown: Array<{
+            code: 'MIT' | 'IT';
+            score: number;
+            breakdown: {
+                preferenceFit: number;
+                transcriptFit: number;
+            };
+        }>;
+    }) {
+        const fallbackTop = input.deterministicBreakdown[0];
+        const fallback = {
+            primary_recommendation: fallbackTop.code,
+            fit_score: fallbackTop.score,
+            skill_vector: null as null | { Technical: number; Strategic: number; Operations: number },
+            supporting_reasons: [
+                'Gemini decision unavailable; deterministic ranking used.',
+                `Top deterministic candidate: ${fallbackTop.code}.`,
+            ],
+            modelUsed: false,
+            failureReason: 'GEMINI_UNAVAILABLE',
+        };
+
+        const apiKey = this.getApiKey();
+        const apiUrl = this.getApiUrl();
+        if (!apiKey) return { ...fallback, failureReason: 'MISSING_API_KEY' as const };
+
+        try {
+            const prompt = `
+You are an academic advisor for L1 pathway selection.
+Choose one pathway: MIT or IT using student preferences, transcript, and deterministic evidence.
+
+Current GPA: ${input.currentGpa}
+Student profile/preferences: ${JSON.stringify(input.preferences)}
+Transcript summary: ${JSON.stringify(input.transcript)}
+Deterministic ranking evidence: ${JSON.stringify(input.deterministicBreakdown)}
+
+Return strict JSON:
+{
+  "primary_recommendation": "MIT" | "IT",
+  "fit_score": 0-100,
+  "skill_vector": { "Technical": 0-100, "Strategic": 0-100, "Operations": 0-100 },
+  "supporting_reasons": ["reason 1", "reason 2", "reason 3"]
+}
+`;
+
+            const response = await fetch(`${apiUrl}?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        response_mime_type: 'application/json',
+                        temperature: 0.2,
+                    },
+                }),
+            });
+
+            if (!response.ok) return { ...fallback, failureReason: `HTTP_${response.status}` };
+            const result = await response.json();
+            const rawBody = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawBody) return { ...fallback, failureReason: 'EMPTY_MODEL_RESPONSE' as const };
+
+            const parsed = JSON.parse(rawBody) as {
+                primary_recommendation?: string;
+                fit_score?: number;
+                skill_vector?: { Technical?: number; Strategic?: number; Operations?: number };
+                supporting_reasons?: string[];
+            };
+
+            const rec = parsed.primary_recommendation;
+            if (rec !== 'MIT' && rec !== 'IT') {
+                return { ...fallback, failureReason: 'INVALID_MODEL_RECOMMENDATION' as const };
+            }
+
+            const rawSkill = parsed.skill_vector ?? {};
+            const technical = typeof rawSkill.Technical === 'number' ? Math.max(0, Math.min(100, Number(rawSkill.Technical.toFixed(2)))) : null;
+            const strategic = typeof rawSkill.Strategic === 'number' ? Math.max(0, Math.min(100, Number(rawSkill.Strategic.toFixed(2)))) : null;
+            const operations = typeof rawSkill.Operations === 'number' ? Math.max(0, Math.min(100, Number(rawSkill.Operations.toFixed(2)))) : null;
+            const skillVector =
+                technical !== null && strategic !== null && operations !== null
+                    ? { Technical: technical, Strategic: strategic, Operations: operations }
+                    : null;
+
+            return {
+                primary_recommendation: rec,
+                fit_score:
+                    typeof parsed.fit_score === 'number' && Number.isFinite(parsed.fit_score)
+                        ? Math.max(0, Math.min(100, Number(parsed.fit_score.toFixed(2))))
+                        : fallbackTop.score,
+                skill_vector: skillVector,
+                supporting_reasons:
+                    Array.isArray(parsed.supporting_reasons) && parsed.supporting_reasons.length > 0
+                        ? parsed.supporting_reasons
+                        : fallback.supporting_reasons,
+                modelUsed: true,
+                failureReason: null,
+            };
+        } catch (error) {
+            return {
+                ...fallback,
+                failureReason:
+                    error instanceof Error && error.message
+                        ? `EXCEPTION_${error.message}`
+                        : 'EXCEPTION_UNKNOWN',
+            };
+        }
+    }
+
+    static async generatePathwayGuidanceExplanation(input: {
+        currentGpa: number;
+        recommendedPathway: 'MIT' | 'IT';
+        score: number;
+        preferences: Record<string, unknown>;
+        transcript: Array<{
+            moduleCode: string;
+            moduleName: string;
+            letterGrade: string | null;
+            marks: number | null;
+        }>;
+    }) {
+        const fallback = {
+            insight: `Your profile currently aligns more with ${input.recommendedPathway} based on your preferences and available transcript signals.`,
+            supporting_reasons: [
+                `Recommendation score: ${input.score.toFixed(1)}.`,
+                `This will improve as more results are released.`,
+            ],
+        };
+
+        const apiKey = this.getApiKey();
+        const apiUrl = this.getApiUrl();
+        if (!apiKey) return fallback;
+
+        try {
+            const prompt = `
+You are an academic advisor assistant.
+The pathway recommendation has already been determined.
+Do not change the pathway; only explain clearly.
+
+Recommendation: ${input.recommendedPathway}
+Score: ${input.score}
+GPA: ${input.currentGpa}
+Preferences: ${JSON.stringify(input.preferences)}
+Transcript: ${JSON.stringify(input.transcript)}
+
+Return strict JSON:
+{
+  "insight": "2-3 sentence explanation",
+  "supporting_reasons": ["reason 1", "reason 2", "reason 3"]
+}
+`;
+            const response = await fetch(`${apiUrl}?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        response_mime_type: 'application/json',
+                        temperature: 0.2,
+                    },
+                }),
+            });
+            if (!response.ok) return fallback;
+            const result = await response.json();
+            const rawBody = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawBody) return fallback;
+            const parsed = JSON.parse(rawBody) as { insight?: string; supporting_reasons?: string[] };
+            return {
+                insight: parsed.insight || fallback.insight,
+                supporting_reasons:
+                    Array.isArray(parsed.supporting_reasons) && parsed.supporting_reasons.length > 0
+                        ? parsed.supporting_reasons
+                        : fallback.supporting_reasons,
+            };
+        } catch {
+            return fallback;
+        }
+    }
+
     /**
      * Generate Specialization Guidance for MIT Students
      */

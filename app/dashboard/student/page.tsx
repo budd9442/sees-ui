@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getStudentDashboardData, getStudentGPAHistory } from '@/lib/actions/student-actions';
+import { getStudentDashboardData, getStudentGPAHistory, getStudentGoalsSummary } from '@/lib/actions/student-actions';
 import { DashboardView } from './dashboard-view';
 import Loading from './loading';
 
@@ -7,9 +7,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function StudentDashboardPage() {
   try {
-    const [data, gpaHistory] = await Promise.all([
+    const [data, gpaHistory, goalsSummary] = await Promise.all([
       getStudentDashboardData(),
-      getStudentGPAHistory()
+      getStudentGPAHistory(),
+      getStudentGoalsSummary()
     ]);
 
     if (!data) {
@@ -28,6 +29,7 @@ export default async function StudentDashboardPage() {
           schedules={data.schedules}
           pathwayDemand={data.pathwayDemand}
           gpaHistory={gpaHistory}
+          goalsSummary={goalsSummary}
         />
       </Suspense>
     );

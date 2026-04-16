@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, useTransition, useMemo } from 'react';
+import { useState, useEffect, useTransition, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
     GraduationCap,
     CheckCircle,
@@ -15,8 +14,8 @@ import {
     Clock,
     AlertTriangle,
     TrendingUp,
-    ChevronRight,
-    ListOrdered,
+    Sparkles,
+    BrainCircuit,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -24,6 +23,9 @@ import {
     submitSelectionApplication,
     submitAllocationChangeRequest,
 } from '@/lib/actions/selection-actions';
+import { getPathwayGuidance } from '@/lib/actions/pathway-actions';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -37,24 +39,7 @@ type Slot = {
     secondChoiceCount: number;
 };
 
-type RankingApp = { student_id: string; preference_1: string; gpa_at_time: number };
-
 type DegreePathProgram = { program_id: string; code: string; name: string };
-
-function firstChoiceRankForSlot(
-    apps: RankingApp[],
-    slotId: string,
-    viewerId: string,
-    myGpa: number
-): { rank: number; total: number } {
-    const others = apps.filter(a => a.preference_1 === slotId && a.student_id !== viewerId);
-    let better = 0;
-    for (const a of others) {
-        if (a.gpa_at_time > myGpa) better += 1;
-        else if (a.gpa_at_time === myGpa && a.student_id < viewerId) better += 1;
-    }
-    return { rank: better + 1, total: others.length + 1 };
-}
 
 function liveFirstChoiceCount(
     slotId: string,
@@ -68,34 +53,19 @@ function liveFirstChoiceCount(
     return Math.max(0, n);
 }
 
-function allocationRuleBullets(mode: string, needsSecond: boolean): string[] {
-    if (mode === 'AUTO') {
-        const b = [
-            'Each pathway: if 1st-choice demand is within the published cap, order is by application time (earlier helps).',
-            'If 1st-choice demand exceeds the cap, that pathway fills by GPA (higher first).',
-        ];
-        if (needsSecond) b.push('If you are not placed on your 1st choice, your 2nd choice is tried with the same rules for remaining seats.');
-        return b;
-    }
-    if (mode === 'GPA') {
-        return [
-            'Places are decided by GPA across everyone in this round (higher first), subject to caps.',
-            ...(needsSecond ? ['Your 2nd choice is used if your 1st is full, in GPA order.'] : []),
-        ];
-    }
-    return [
-        'One global queue by application time: earlier submissions get priority for their 1st choice, then 2nd.',
-    ];
-}
-
 export function PathwaySelectionClient() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const hasAutoRunTriggered = useRef(false);
     const [loading, setLoading] = useState(true);
     const [isPending, startTransition] = useTransition();
+    const [aiAdvice, setAIAdvice] = useState<any>(null);
+    const [loadingAI, setLoadingAI] = useState(false);
     const [viewerId, setViewerId] = useState<string | null>(null);
     const [roundId, setRoundId] = useState<string | null>(null);
     const [roundLabel, setRoundLabel] = useState<string>('');
     const [slots, setSlots] = useState<Slot[]>([]);
-    const [rankingApps, setRankingApps] = useState<RankingApp[]>([]);
+    const [, setRankingApps] = useState<any[]>([]);
     const [pref1, setPref1] = useState<string | null>(null);
     const [pref2, setPref2] = useState<string | null>(null);
     const [savedPref1, setSavedPref1] = useState<string | null>(null);
@@ -242,20 +212,6 @@ export function PathwaySelectionClient() {
         });
     }, [slots, savedPref1, pref1]);
 
-    const rowMetrics = useMemo(() => {
-        return slots.map(slot => {
-            const liveFirst = liveFirstChoiceCount(slot.id, slot.firstChoiceCount, savedPref1, pref1);
-            const seatsLeft = Math.max(0, slot.capacity - liveFirst);
-            const overBy = Math.max(0, liveFirst - slot.capacity);
-            const pct = slot.capacity > 0 ? Math.min(100, Math.round((liveFirst / slot.capacity) * 100)) : 0;
-            const rank =
-                viewerId != null
-                    ? firstChoiceRankForSlot(rankingApps, slot.id, viewerId, myGpa)
-                    : { rank: 0, total: 0 };
-            return { slot, liveFirst, seatsLeft, overBy, pct, oversubscribed: liveFirst > slot.capacity, rank };
-        });
-    }, [slots, savedPref1, pref1, rankingApps, viewerId, myGpa]);
-
     const closesSummary = useMemo(() => {
         if (!closesAt) return null;
         const now = new Date();
@@ -342,6 +298,41 @@ export function PathwaySelectionClient() {
         !!pref1 &&
         (!needsSecondChoice || !!pref2) &&
         (!existingSubmitted || pref1 !== savedPref1 || (needsSecondChoice ? pref2 !== savedPref2 : false));
+
+    const fetchPathwayGuidance = useCallback(async () => {
+        setLoadingAI(true);
+        try {
+            const advice = await getPathwayGuidance();
+            if (advice.isEligible && advice.hasRequiredPreferences === false) {
+                setAIAdvice(null);
+                toast.error(advice.message || 'Complete pathway preferences first.');
+                const returnTo = encodeURIComponent('/dashboard/student/pathway?autorun=1');
+                router.push(`/dashboard/student/pathway-preferences?next=${returnTo}`);
+                return;
+            }
+            if (advice.isEligible) {
+                setAIAdvice(advice);
+                if (advice.decision_source === 'GEMINI') {
+                    toast.success('Pathway guidance complete (Gemini).');
+                } else {
+                    toast.warning('Guidance completed using fallback logic.');
+                }
+            } else {
+                toast.error(advice.message || 'Unable to run guidance.');
+            }
+        } catch {
+            toast.error('Failed to connect to the pathway counselor.');
+        } finally {
+            setLoadingAI(false);
+        }
+    }, [router]);
+
+    useEffect(() => {
+        if (loading || aiAdvice || loadingAI || hasAutoRunTriggered.current) return;
+        if (searchParams.get('autorun') !== '1') return;
+        hasAutoRunTriggered.current = true;
+        void fetchPathwayGuidance();
+    }, [aiAdvice, fetchPathwayGuidance, loading, loadingAI, searchParams]);
 
     const handleSubmitChangeRequest = () => {
         if (!roundId || !reqPref1) {
@@ -548,340 +539,216 @@ export function PathwaySelectionClient() {
         );
     }
 
-    const ruleBullets = allocationRuleBullets(selectionMode, needsSecondChoice);
+    const skillVector = aiAdvice?.skill_vector || {};
+    const radarData = aiAdvice
+        ? [
+              { subject: 'Technical', A: Number(skillVector.Technical ?? 60), fullMark: 100 },
+              { subject: 'Strategic', A: Number(skillVector.Strategic ?? 60), fullMark: 100 },
+              { subject: 'Operations', A: Number(skillVector.Operations ?? 60), fullMark: 100 },
+          ]
+        : [
+              { subject: 'Technical', A: 60, fullMark: 100 },
+              { subject: 'Strategic', A: 60, fullMark: 100 },
+              { subject: 'Operations', A: 60, fullMark: 100 },
+          ];
+    const fitScore = Number(aiAdvice?.fit_score ?? 0);
+    const confidence = fitScore >= 75 ? 'High' : fitScore >= 50 ? 'Medium' : 'Emerging';
 
     return (
         <div className="w-full max-w-7xl mx-auto space-y-6 py-2">
-            {/* Title + status */}
-            <div className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium uppercase tracking-wide">
-                        <GraduationCap className="h-3.5 w-3.5" />
-                        Pathway selection
+            <div className="grid lg:grid-cols-3 gap-6 items-start">
+                <div className="lg:col-span-1">
+                    <Card className="bg-primary/5 border-primary/20 overflow-hidden relative group">
+                    <div className="absolute top-2 right-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Sparkles className="h-24 w-24 text-primary" />
                     </div>
-                    <h1 className="text-2xl font-bold tracking-tight text-balance">{roundLabel}</h1>
-                    <p className="text-sm text-muted-foreground">
-                        {slots.length} pathway{slots.length === 1 ? '' : 's'}
-                        {needsSecondChoice ? ' · pick 1st and 2nd choice' : ' · pick 1st choice only'}
-                        {existingSubmitted ? ' · draft saved (edit until deadline)' : ' · not submitted yet'}
-                    </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    <Badge variant={windowOk ? 'default' : 'secondary'} className="text-xs">
-                        {windowOk ? 'Window open' : 'Window closed'}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs font-mono">
-                        {selectionMode === 'AUTO' && 'AUTO'}
-                        {selectionMode === 'GPA' && 'GPA'}
-                        {selectionMode === 'FREE' && 'FCFS'}
-                    </Badge>
-                </div>
-            </div>
-
-            {/* Fact grid */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="shadow-none border bg-card/80">
-                    <CardHeader className="py-3 pb-2 space-y-0">
-                        <CardDescription className="text-[11px] uppercase tracking-wide font-medium">Deadline</CardDescription>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-primary">
+                            <BrainCircuit className="h-5 w-5" />
+                            Pathway Counselor
+                        </CardTitle>
+                        <CardDescription>AI-assisted MIT vs IT guidance</CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-0 pb-3">
-                        {closesSummary ? (
-                            <>
-                                <p className="text-lg font-semibold tabular-nums leading-tight">{closesSummary.relative}</p>
-                                <p className="text-xs text-muted-foreground mt-1">{closesSummary.absolute}</p>
-                                {closesSummary.urgent && windowOk && (
-                                    <p className="text-[11px] text-amber-700 mt-1.5">Submit before this time.</p>
-                                )}
-                            </>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">No closing date set</p>
-                        )}
-                        {opensAt && (
-                            <p className="text-[11px] text-muted-foreground mt-2 border-t pt-2">
-                                Opened {format(opensAt, 'PPp')}
-                            </p>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card className="shadow-none border bg-card/80">
-                    <CardHeader className="py-3 pb-2 space-y-0">
-                        <CardDescription className="text-[11px] uppercase tracking-wide font-medium">GPA used for ranking</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0 pb-3">
-                        <p className="text-2xl font-bold tabular-nums">{myGpa.toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{gpaSourceLabel}</p>
-                    </CardContent>
-                </Card>
-
-                {cohort && (
-                    <Card className="shadow-none border bg-card/80">
-                        <CardHeader className="py-3 pb-2 space-y-0">
-                            <CardDescription className="text-[11px] uppercase tracking-wide font-medium">
-                                Standing in your year
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-0 pb-3">
-                            <p className="text-lg font-semibold">
-                                <span className="tabular-nums">#{cohort.gpaRank}</span>
-                                <span className="text-muted-foreground font-normal"> / {cohort.peerCount}</span>
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                By current GPA among students at your level
-                                {cohort.peerCount > 0 && (
-                                    <>
-                                        {' '}
-                                        (~
-                                        {((1 - cohort.gpaRank / cohort.peerCount) * 100).toFixed(0)}% percentile)
-                                    </>
-                                )}
-                            </p>
-                        </CardContent>
-                    </Card>
-                )}
-
-                <Card className="shadow-none border bg-card/80 sm:col-span-2 lg:col-span-1">
-                    <CardHeader className="py-3 pb-2 space-y-0">
-                        <CardDescription className="text-[11px] uppercase tracking-wide font-medium">Your picks (draft)</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0 pb-3 space-y-1.5 text-sm">
-                        <div className="flex justify-between gap-2">
-                            <span className="text-muted-foreground shrink-0">1st</span>
-                            <span className="font-medium text-right truncate">
-                                {pref1 ? slots.find(s => s.id === pref1)?.code : '—'}
-                            </span>
+                    <CardContent className="space-y-6">
+                        <div className="h-[220px] w-full flex items-center justify-center">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                                    <PolarGrid stroke="#e2e8f0" />
+                                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
+                                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} />
+                                    <Radar name="Student" dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
+                                    <Tooltip />
+                                </RadarChart>
+                            </ResponsiveContainer>
                         </div>
-                        {needsSecondChoice && (
-                            <div className="flex justify-between gap-2">
-                                <span className="text-muted-foreground shrink-0">2nd</span>
-                                <span className="font-medium text-right truncate">
-                                    {pref2 ? slots.find(s => s.id === pref2)?.code : '—'}
-                                </span>
+
+                        {!aiAdvice && !loadingAI && (
+                            <div className="space-y-2">
+                                <Button className="w-full" onClick={fetchPathwayGuidance}>
+                                    Run Pathway Analysis
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => router.push('/dashboard/student/pathway-preferences')}
+                                >
+                                    Retake / Update Details
+                                </Button>
+                            </div>
+                        )}
+                        {loadingAI && (
+                            <Button disabled className="w-full">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Analyzing...
+                            </Button>
+                        )}
+
+                        {aiAdvice && (
+                            <div className="p-4 bg-white/50 rounded-xl space-y-3 border border-primary/10">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold uppercase text-muted-foreground">Recommendation</span>
+                                    <Badge variant="default" className="bg-primary">{confidence} Confidence</Badge>
+                                </div>
+                                <h4 className="text-xl font-bold text-primary">{aiAdvice.primary_recommendation} Pathway</h4>
+                                <p className="text-xs italic text-muted-foreground">"{aiAdvice.insight}"</p>
                             </div>
                         )}
                     </CardContent>
-                </Card>
-            </div>
-
-            {appStatus && appStatus !== 'PENDING' && (
-                <Alert
-                    className={
-                        appStatus === 'WAITLISTED'
-                            ? 'border-amber-300 bg-amber-50/80'
-                            : appStatus === 'ALLOCATED'
-                              ? 'border-green-300 bg-green-50/80'
-                              : ''
-                    }
-                >
-                    {appStatus === 'WAITLISTED' && <AlertTriangle className="h-4 w-4 text-amber-600" />}
-                    {appStatus === 'ALLOCATED' && <CheckCircle className="h-4 w-4 text-green-600" />}
-                    <AlertDescription className="text-sm">
-                        {appStatus === 'WAITLISTED' && (
-                            <>
-                                <strong>Waitlisted</strong>
-                                {waitlistPos != null ? (
-                                    <> — position #{waitlistPos} on your 1st-choice pathway.</>
-                                ) : (
-                                    <> — run after the HOD allocates; refresh this page later.</>
-                                )}
-                            </>
-                        )}
-                        {appStatus === 'ALLOCATED' && allocatedTo && (
-                            <>
-                                <strong>Allocated</strong> —{' '}
-                                <span className="font-medium">{slots.find(s => s.id === allocatedTo)?.name}</span>{' '}
-                                <span className="font-mono text-xs text-muted-foreground">
-                                    ({slots.find(s => s.id === allocatedTo)?.code})
-                                </span>
-                            </>
-                        )}
-                        {appStatus === 'REJECTED' && (
-                            <>
-                                <strong>Rejected.</strong> Contact your HOD.
-                            </>
-                        )}
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            {!windowOk && (
-                <Alert variant="destructive" className="bg-amber-50 text-amber-950 border-amber-200 [&>svg]:text-amber-700">
-                    <Clock className="h-4 w-4" />
-                    <AlertDescription>{windowMessage || 'You cannot change choices now.'}</AlertDescription>
-                </Alert>
-            )}
-
-            {anyOversubscribed && cohort && (
-                <div className="flex gap-3 rounded-lg border border-orange-200 bg-orange-50/70 px-3 py-2.5 text-sm text-orange-950">
-                    <TrendingUp className="h-4 w-4 shrink-0 mt-0.5 text-orange-600" />
-                    <p>
-                        <strong>Demand above cap</strong> on at least one pathway. Expect GPA to decide who gets a seat there.
-                        Your year rank is <strong className="tabular-nums">#{cohort.gpaRank}</strong> of{' '}
-                        <strong className="tabular-nums">{cohort.peerCount}</strong>.
-                    </p>
+                    </Card>
                 </div>
-            )}
+                <div className="lg:col-span-2 space-y-4">
+                    <div className="p-4 bg-muted/40 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                            <h3 className="font-bold text-lg">{roundLabel}</h3>
+                            <Badge variant="outline">
+                                {selectionMode === 'AUTO' ? 'Auto' : selectionMode === 'FREE' ? 'FCFS' : 'GPA-ranked'}
+                            </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {closesSummary ? `Deadline: ${closesSummary.absolute}` : 'Deadline not published.'} GPA used for ranking: {myGpa.toFixed(2)}.
+                        </p>
+                        {cohort && (
+                            <p className="text-xs text-muted-foreground">
+                                Current standing: #{cohort.gpaRank}/{cohort.peerCount} ({((1 - cohort.gpaRank / cohort.peerCount) * 100).toFixed(0)}th percentile)
+                            </p>
+                        )}
+                        {!windowOk && <p className="text-sm text-amber-700">{windowMessage || 'Submissions are closed for this period.'}</p>}
+                    </div>
 
-            <details className="group rounded-lg border bg-muted/20 px-4 py-3 text-sm">
-                <summary className="cursor-pointer list-none font-medium flex items-center gap-2 [&::-webkit-details-marker]:hidden">
-                    <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-open:rotate-90 text-muted-foreground" />
-                    How seats are allocated ({selectionMode === 'AUTO' ? 'Auto' : selectionMode === 'GPA' ? 'GPA' : 'First-come'}{' '}
-                    mode)
-                </summary>
-                <ul className="mt-3 ml-6 space-y-2 text-muted-foreground list-disc text-[13px] leading-relaxed">
-                    {ruleBullets.map((line, i) => (
-                        <li key={i}>{line}</li>
-                    ))}
-                </ul>
-            </details>
-
-            {/* Comparison table */}
-            <Card className="min-w-0 shadow-none">
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <ListOrdered className="h-4 w-4" />
-                        Pathways at a glance
-                    </CardTitle>
-                    <CardDescription>
-                        Live 1st-choice demand vs cap. &ldquo;You if 1st&rdquo; is your GPA order among everyone who put that pathway
-                        first (including you if you save that pick).
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 px-0 sm:px-6">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="hover:bg-transparent">
-                                <TableHead className="w-[100px] font-semibold">Code</TableHead>
-                                <TableHead className="min-w-[140px] font-semibold">Pathway</TableHead>
-                                <TableHead className="text-right font-semibold whitespace-nowrap">1st / cap</TableHead>
-                                <TableHead className="text-right font-semibold whitespace-nowrap hidden md:table-cell">
-                                    Seats left
-                                </TableHead>
-                                <TableHead className="text-center font-semibold whitespace-nowrap">Load</TableHead>
-                                <TableHead className="text-right font-semibold whitespace-nowrap">
-                                    You if 1st
-                                </TableHead>
-                                <TableHead className="text-right font-semibold">Pick</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {rowMetrics.map(({ slot, liveFirst, seatsLeft, overBy, pct, oversubscribed, rank }) => (
-                                <TableRow key={slot.id} className={pref1 === slot.id ? 'bg-primary/5' : undefined}>
-                                    <TableCell className="font-mono text-xs font-medium">{slot.code}</TableCell>
-                                    <TableCell className="font-medium text-sm max-w-[220px]">
-                                        <span className="line-clamp-2">{slot.name}</span>
-                                    </TableCell>
-                                    <TableCell className="text-right tabular-nums text-sm">
-                                        {liveFirst} / {slot.capacity}
-                                        {overBy > 0 && (
-                                            <span className="block text-[11px] text-red-600 font-normal">+{overBy} over</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right tabular-nums text-sm hidden md:table-cell">
-                                        {oversubscribed ? '—' : seatsLeft}
-                                    </TableCell>
-                                    <TableCell className="w-[120px]">
-                                        <div className="flex flex-col gap-1">
-                                            <Progress
-                                                value={pct}
-                                                className={
-                                                    oversubscribed
-                                                        ? 'h-2 [&>div]:bg-red-500'
-                                                        : pct >= 80
-                                                          ? 'h-2 [&>div]:bg-orange-500'
-                                                          : 'h-2'
-                                                }
-                                            />
-                                            <span className="text-[10px] text-muted-foreground text-center tabular-nums">
-                                                {pct}%
-                                            </span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right tabular-nums text-sm">
-                                        {viewerId ? (
-                                            <>
-                                                #{rank.rank}/{rank.total}
-                                            </>
+                    {appStatus && appStatus !== 'PENDING' && (
+                        <Alert
+                            className={
+                                appStatus === 'WAITLISTED'
+                                    ? 'border-amber-300 bg-amber-50/80'
+                                    : appStatus === 'ALLOCATED'
+                                      ? 'border-green-300 bg-green-50/80'
+                                      : ''
+                            }
+                        >
+                            {appStatus === 'WAITLISTED' && <AlertTriangle className="h-4 w-4 text-amber-600" />}
+                            {appStatus === 'ALLOCATED' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                            <AlertDescription className="text-sm">
+                                {appStatus === 'WAITLISTED' && (
+                                    <>
+                                        <strong>Waitlisted</strong>
+                                        {waitlistPos != null ? (
+                                            <> — position #{waitlistPos} on your 1st-choice pathway.</>
                                         ) : (
-                                            '—'
+                                            <> — run after the HOD allocates; refresh this page later.</>
                                         )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex flex-wrap justify-end gap-1">
-                                            <Button
-                                                size="sm"
-                                                variant={pref1 === slot.id ? 'default' : 'outline'}
-                                                className="h-8 px-2 text-xs"
-                                                disabled={!windowOk}
-                                                onClick={() => selectRank(slot.id, 1)}
-                                            >
-                                                1st
-                                            </Button>
+                                    </>
+                                )}
+                                {appStatus === 'ALLOCATED' && allocatedTo && (
+                                    <>
+                                        <strong>Allocated</strong> —{' '}
+                                        <span className="font-medium">{slots.find(s => s.id === allocatedTo)?.name}</span>{' '}
+                                        <span className="font-mono text-xs text-muted-foreground">
+                                            ({slots.find(s => s.id === allocatedTo)?.code})
+                                        </span>
+                                    </>
+                                )}
+                                {appStatus === 'REJECTED' && (
+                                    <>
+                                        <strong>Rejected.</strong> Contact your HOD.
+                                    </>
+                                )}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    {!windowOk && (
+                        <Alert variant="destructive" className="bg-amber-50 text-amber-950 border-amber-200 [&>svg]:text-amber-700">
+                            <Clock className="h-4 w-4" />
+                            <AlertDescription>{windowMessage || 'You cannot change choices now.'}</AlertDescription>
+                        </Alert>
+                    )}
+
+                    {anyOversubscribed && cohort && (
+                        <div className="flex gap-3 rounded-lg border border-orange-200 bg-orange-50/70 px-3 py-2.5 text-sm text-orange-950">
+                            <TrendingUp className="h-4 w-4 shrink-0 mt-0.5 text-orange-600" />
+                            <p>
+                                <strong>Demand above cap</strong> on at least one pathway. Expect GPA to decide who gets a seat there.
+                                Your year rank is <strong className="tabular-nums">#{cohort.gpaRank}</strong> of{' '}
+                                <strong className="tabular-nums">{cohort.peerCount}</strong>.
+                            </p>
+                        </div>
+                    )}
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {slots.map((slot) => {
+                            const liveFirst = liveFirstChoiceCount(slot.id, slot.firstChoiceCount, savedPref1, pref1);
+                            const pct = slot.capacity > 0 ? Math.min(100, Math.round((liveFirst / slot.capacity) * 100)) : 0;
+                            return (
+                                <Card
+                                    key={slot.id}
+                                    className={`border-2 ${pref1 === slot.id ? 'border-primary bg-primary/5' : pref2 === slot.id ? 'border-secondary bg-muted/40' : 'border-muted'}`}
+                                >
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-lg">{slot.code}</CardTitle>
+                                        <CardDescription className="text-[11px] leading-tight">{slot.name}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                        {slot.description && <p className="text-[11px] text-muted-foreground line-clamp-4">{slot.description}</p>}
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-xs">
+                                                <span>Demand</span>
+                                                <span>{liveFirst}/{slot.capacity}</span>
+                                            </div>
+                                            <Progress value={pct} className={liveFirst > slot.capacity ? '[&>div]:bg-red-500' : pct >= 80 ? '[&>div]:bg-orange-500' : ''} />
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button size="sm" variant={pref1 === slot.id ? 'default' : 'outline'} disabled={!windowOk} onClick={() => selectRank(slot.id, 1)}>1st</Button>
                                             {needsSecondChoice && (
-                                                <Button
-                                                    size="sm"
-                                                    variant={pref2 === slot.id ? 'secondary' : 'outline'}
-                                                    className="h-8 px-2 text-xs"
-                                                    disabled={!windowOk}
-                                                    onClick={() => selectRank(slot.id, 2)}
-                                                >
+                                                <Button size="sm" variant={pref2 === slot.id ? 'secondary' : 'outline'} disabled={!windowOk} onClick={() => selectRank(slot.id, 2)}>
                                                     2nd
                                                 </Button>
                                             )}
                                         </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </div>
 
-                </CardContent>
-            </Card>
-
-            {/* Per-pathway detail (description only) */}
-            {slots.some(s => s.description?.trim()) && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                    {slots
-                        .filter(slot => slot.description?.trim())
-                        .map(slot => (
-                            <details key={`d-${slot.id}`} className="rounded-lg border bg-card px-3 py-2 text-sm group">
-                                <summary className="cursor-pointer font-medium flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
-                                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-open:rotate-90 transition-transform" />
-                                    <span className="font-mono text-xs text-muted-foreground">{slot.code}</span>
-                                    <span className="truncate">Programme description</span>
-                                </summary>
-                                <p className="mt-2 pl-6 text-muted-foreground text-[13px] leading-relaxed">{slot.description}</p>
-                            </details>
-                        ))}
+                    <Card className="bg-primary/5 border-primary/20">
+                        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <p className="text-sm">
+                                1st: <strong>{pref1 ? slots.find(s => s.id === pref1)?.code : '—'}</strong>
+                                {needsSecondChoice && <> · 2nd: <strong>{pref2 ? slots.find(s => s.id === pref2)?.code : '—'}</strong></>}
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" asChild>
+                                    <a href="/dashboard/student">Back</a>
+                                </Button>
+                                <Button onClick={handleSubmit} disabled={!canSubmit || isPending}>
+                                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (existingSubmitted ? 'Save changes' : 'Submit')}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
-            )}
-
-            <Card className="shadow-md border-primary/20">
-                <CardFooter className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm space-y-1 min-w-0">
-                        <p className="font-medium">Ready to save?</p>
-                        <p className="text-muted-foreground text-xs">
-                            {needsSecondChoice
-                                ? `1st: ${pref1 ? slots.find(s => s.id === pref1)?.code : '—'} · 2nd: ${pref2 ? slots.find(s => s.id === pref2)?.code : '—'}`
-                                : `1st: ${pref1 ? slots.find(s => s.id === pref1)?.code : '—'}`}
-                            {!windowOk && ' · window closed — changes disabled'}
-                        </p>
-                    </div>
-                    <div className="flex w-full sm:w-auto gap-2 shrink-0">
-                        <Button variant="outline" asChild className="flex-1 sm:flex-none">
-                            <a href="/dashboard/student">Back</a>
-                        </Button>
-                        <Button onClick={handleSubmit} disabled={!canSubmit || isPending} className="flex-1 sm:flex-none">
-                            {isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                            )}
-                            {existingSubmitted ? 'Save changes' : 'Submit'}
-                        </Button>
-                    </div>
-                </CardFooter>
-            </Card>
+            </div>
         </div>
     );
 }

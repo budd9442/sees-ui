@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { writeAuditLog } from '@/lib/audit/write-audit-log';
+import { GUIDEBOOK_PREREQUISITE_CODES } from '@/lib/data/guidebook-prerequisites';
 
 const ModuleSchema = z.object({
     code: z.string().min(2, "Code is required"),
@@ -14,6 +15,7 @@ const ModuleSchema = z.object({
     active: z.boolean().default(true),
     level: z.string().default("L1"),
     counts_toward_gpa: z.boolean().default(true),
+    prerequisiteCodes: z.array(z.string()).default([]),
 });
 
 export async function getModules(query?: string, academicYearId?: string) {
@@ -41,7 +43,16 @@ export async function getModules(query?: string, academicYearId?: string) {
             ]
         },
         orderBy: { code: 'asc' },
-        include: { academic_year: true }
+        include: {
+            academic_year: true,
+            Module_A: {
+                select: {
+                    module_id: true,
+                    code: true,
+                    name: true,
+                },
+            },
+        }
     });
 }
 
@@ -58,26 +69,50 @@ export async function upsertModule(data: z.infer<typeof ModuleSchema> & { module
     }
 
     if (data.moduleId) {
-        await prisma.module.update({
-            where: { module_id: data.moduleId },
-            data: {
-                code: validated.code,
-                name: validated.name,
-                credits: validated.credits,
-                description: validated.description,
-                active: validated.active,
-                level: validated.level,
-                counts_toward_gpa: validated.counts_toward_gpa,
-                academic_year_id: targetYearId // Allow moving years if explicitly passed
-            }
+        await prisma.$transaction(async (tx) => {
+            const existing = await tx.module.findUnique({
+                where: { module_id: data.moduleId },
+                select: { academic_year_id: true },
+            });
+            if (!existing) throw new Error("Module not found");
+
+            const effectiveYearId = targetYearId === undefined ? existing.academic_year_id : targetYearId;
+            const prerequisiteCandidates = await tx.module.findMany({
+                where: {
+                    code: { in: validated.prerequisiteCodes },
+                    OR: [{ academic_year_id: effectiveYearId ?? null }, { academic_year_id: null }],
+                },
+                select: { module_id: true },
+            });
+
+            await tx.module.update({
+                where: { module_id: data.moduleId },
+                data: {
+                    code: validated.code,
+                    name: validated.name,
+                    credits: validated.credits,
+                    description: validated.description,
+                    active: validated.active,
+                    level: validated.level,
+                    counts_toward_gpa: validated.counts_toward_gpa,
+                    academic_year_id: effectiveYearId,
+                    Module_A: {
+                        set: [],
+                        connect: prerequisiteCandidates
+                            .filter((m) => m.module_id !== data.moduleId)
+                            .map((m) => ({ module_id: m.module_id })),
+                    },
+                }
+            });
         });
+        
         await writeAuditLog({
             adminId: session.user.id,
             action: 'ADMIN_MODULE_UPDATE',
             entityType: 'MODULE',
             entityId: data.moduleId,
             category: 'ADMIN',
-            metadata: { code: validated.code },
+            metadata: { code: validated.code, prerequisiteCount: validated.prerequisiteCodes.length },
         });
     } else {
         // Check uniqueness of [code, academic_year_id]
@@ -91,28 +126,104 @@ export async function upsertModule(data: z.infer<typeof ModuleSchema> & { module
         });
         if (existing) throw new Error("Module with this code already exists in this academic year");
 
-        const mod = await prisma.module.create({
-            data: {
-                code: validated.code,
-                name: validated.name,
-                credits: validated.credits,
-                description: validated.description,
-                active: validated.active,
-                level: validated.level,
-                counts_toward_gpa: validated.counts_toward_gpa,
-                academic_year_id: targetYearId
-            }
+        const mod = await prisma.$transaction(async (tx) => {
+            const created = await tx.module.create({
+                data: {
+                    code: validated.code,
+                    name: validated.name,
+                    credits: validated.credits,
+                    description: validated.description,
+                    active: validated.active,
+                    level: validated.level,
+                    counts_toward_gpa: validated.counts_toward_gpa,
+                    academic_year_id: targetYearId
+                }
+            });
+
+            const prerequisiteCandidates = await tx.module.findMany({
+                where: {
+                    code: { in: validated.prerequisiteCodes },
+                    OR: [{ academic_year_id: targetYearId ?? null }, { academic_year_id: null }],
+                },
+                select: { module_id: true },
+            });
+
+            await tx.module.update({
+                where: { module_id: created.module_id },
+                data: {
+                    Module_A: {
+                        set: [],
+                        connect: prerequisiteCandidates
+                            .filter((m) => m.module_id !== created.module_id)
+                            .map((m) => ({ module_id: m.module_id })),
+                    },
+                },
+            });
+            return created;
         });
+
         await writeAuditLog({
             adminId: session.user.id,
             action: 'ADMIN_MODULE_CREATE',
             entityType: 'MODULE',
             entityId: mod.module_id,
             category: 'ADMIN',
-            metadata: { code: validated.code },
+            metadata: { code: validated.code, prerequisiteCount: validated.prerequisiteCodes.length },
         });
     }
     revalidatePath('/dashboard/admin/modules');
+}
+
+export async function syncGuideBookPrerequisites() {
+    const session = await auth();
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+
+    const modules = await prisma.module.findMany({
+        select: { module_id: true, code: true, academic_year_id: true },
+    });
+    const modulesByYearCode = new Map<string, { module_id: string; code: string; academic_year_id: string | null }[]>();
+    for (const mod of modules) {
+        const key = `${mod.academic_year_id ?? 'null'}::${mod.code}`;
+        const arr = modulesByYearCode.get(key) || [];
+        arr.push(mod);
+        modulesByYearCode.set(key, arr);
+    }
+
+    let updated = 0;
+    for (const mod of modules) {
+        const prereqCodes = GUIDEBOOK_PREREQUISITE_CODES[mod.code] || [];
+        const connect = prereqCodes
+            .flatMap((code) => {
+                const sameYear = modulesByYearCode.get(`${mod.academic_year_id ?? 'null'}::${code}`) || [];
+                const legacy = modulesByYearCode.get(`null::${code}`) || [];
+                return [...sameYear, ...legacy];
+            })
+            .filter((candidate) => candidate.module_id !== mod.module_id)
+            .map((candidate) => ({ module_id: candidate.module_id }));
+
+        await prisma.module.update({
+            where: { module_id: mod.module_id },
+            data: {
+                Module_A: {
+                    set: [],
+                    connect,
+                },
+            },
+        });
+        updated += 1;
+    }
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_MODULE_PREREQ_SYNC_GUIDEBOOK',
+        entityType: 'MODULE',
+        entityId: 'bulk',
+        category: 'ADMIN',
+        metadata: { updatedModules: updated },
+    });
+
+    revalidatePath('/dashboard/admin/modules');
+    return { success: true, updatedModules: updated };
 }
 
 export async function toggleModuleStatus(moduleId: string) {

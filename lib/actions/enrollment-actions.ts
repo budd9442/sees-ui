@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { AcademicEngine } from '@/lib/services/academic-engine';
 import { getStudentModuleRegistrationWindow } from '@/lib/actions/module-registration-round-actions';
+import { assertStudentWriteAccess } from '@/lib/actions/student-access';
 
 /**
  * Register a student for a list of modules.
@@ -24,6 +25,7 @@ export async function registerForModules(moduleIds: string[]) {
     });
 
     if (!student) throw new Error("Student profile not found.");
+    await assertStudentWriteAccess(student.student_id);
 
     const regWindow = await getStudentModuleRegistrationWindow();
     if (!regWindow.canEdit) {

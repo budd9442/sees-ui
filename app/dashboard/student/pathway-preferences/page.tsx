@@ -1,22 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthStore } from '@/stores/authStore';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Slider } from '@/components/ui/slider';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   Alert,
@@ -24,16 +16,16 @@ import {
   AlertTitle,
 } from '@/components/ui/alert';
 import {
-  GraduationCap,
   Target,
   Lightbulb,
   Users,
   TrendingUp,
   CheckCircle,
-  AlertCircle,
   Info,
 } from 'lucide-react';
-import type { PathwayPreference, DegreeProgram } from '@/types';
+import type { PathwayPreference } from '@/types';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { getPathwayGuidancePreferences, submitPathwayGuidancePreferences } from '@/lib/actions/pathway-actions';
 
 const interestAreas = [
   { id: 'programming', label: 'Programming & Software Development', description: 'Building applications, coding, software architecture' },
@@ -81,28 +73,46 @@ const learningStyles = [
 ];
 
 export default function PathwayPreferencesPage() {
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [preferences, setPreferences] = useState<Partial<PathwayPreference>>({
     interests: [],
     strengths: [],
     careerGoals: [],
-    preferredPathway: undefined,
-    alternativePathway: undefined,
     reasoning: '',
     workStyle: undefined,
     learningStyle: undefined,
-    timeCommitment: undefined,
-    locationPreference: undefined,
-    salaryExpectation: undefined,
     industryInterest: [],
     additionalNotes: '',
   });
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [isLoadingExisting, setIsLoadingExisting] = useState(true);
 
-  const totalSteps = 6;
+  const totalSteps = 5;
+  const returnToRaw = searchParams.get('next');
+  const returnTo = returnToRaw && returnToRaw.startsWith('/')
+    ? returnToRaw
+    : '/dashboard/student/pathway?autorun=1';
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const existing = await getPathwayGuidancePreferences();
+        if (cancelled || !existing.success || !existing.data) return;
+        setPreferences(prev => ({
+          ...prev,
+          ...existing.data,
+          additionalNotes: existing.data.additionalNotes || '',
+        }));
+      } finally {
+        if (!cancelled) setIsLoadingExisting(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleInterestChange = (interestId: string, checked: boolean) => {
     setPreferences(prev => ({
@@ -141,13 +151,23 @@ export default function PathwayPreferencesPage() {
   };
 
   const handleSubmit = async () => {
+    if (!canProceed()) return;
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setSubmitted(true);
+      await submitPathwayGuidancePreferences({
+        interests: preferences.interests || [],
+        strengths: preferences.strengths || [],
+        careerGoals: preferences.careerGoals || [],
+        reasoning: preferences.reasoning || '',
+        workStyle: preferences.workStyle || '',
+        learningStyle: preferences.learningStyle || '',
+        industryInterest: preferences.industryInterest || [],
+        additionalNotes: preferences.additionalNotes || '',
+      });
+      router.push(returnTo);
     } catch (error) {
       console.error('Error submitting preferences:', error);
+      alert(error instanceof Error ? error.message : 'Failed to submit pathway preferences');
     } finally {
       setIsSubmitting(false);
     }
@@ -158,44 +178,18 @@ export default function PathwayPreferencesPage() {
       case 1: return (preferences.interests?.length || 0) >= 3;
       case 2: return (preferences.strengths?.length || 0) >= 2;
       case 3: return (preferences.careerGoals?.length || 0) >= 2;
-      case 4: return preferences.preferredPathway !== undefined;
-      case 5: return preferences.reasoning && preferences.reasoning.length >= 50;
-      case 6: return true;
+      case 4: return preferences.reasoning && preferences.reasoning.length >= 50;
+      case 5: return true;
       default: return false;
     }
   };
 
-  if (submitted) {
+  if (isLoadingExisting) {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <CheckCircle className="h-16 w-16 text-green-600" />
-            </div>
-            <CardTitle className="text-2xl text-green-800">Preferences Submitted Successfully!</CardTitle>
-            <CardDescription className="text-green-700">
-              Thank you for providing your pathway preferences. This information will help us provide personalized guidance for your degree path selection.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <div className="space-y-4">
-              <p className="text-green-700">
-                Your preferences have been recorded and will be used to:
-              </p>
-              <ul className="text-left text-green-700 space-y-2 max-w-md mx-auto">
-                <li>• Provide personalized pathway recommendations</li>
-                <li>• Match you with appropriate specializations</li>
-                <li>• Connect you with relevant career opportunities</li>
-                <li>• Suggest suitable modules and electives</li>
-              </ul>
-              <Button 
-                onClick={() => window.location.href = '/dashboard/student/pathway-selection'}
-                className="mt-6"
-              >
-                Continue to Pathway Selection
-              </Button>
-            </div>
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Loading your previously submitted details...
           </CardContent>
         </Card>
       </div>
@@ -283,7 +277,7 @@ export default function PathwayPreferencesPage() {
               Step 2: Personal Strengths
             </CardTitle>
             <CardDescription>
-              Select at least 2 areas where you excel. This helps us match you with suitable specializations.
+              Select at least 2 areas where you excel. This helps the guidance engine infer your strongest pathway alignment.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -372,103 +366,23 @@ export default function PathwayPreferencesPage() {
         </Card>
       )}
 
-      {/* Step 4: Pathway Preference */}
+      
+
+      {/* Step 4: Reasoning */}
       {currentStep === 4 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5" />
-              Step 4: Preferred Degree Pathway
-            </CardTitle>
-            <CardDescription>
-              Based on your interests and goals, select your preferred degree pathway.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RadioGroup
-              value={preferences.preferredPathway}
-              onValueChange={(value) => setPreferences(prev => ({ ...prev, preferredPathway: value as DegreeProgram }))}
-              className="space-y-4"
-            >
-              <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-gray-50">
-                <RadioGroupItem value="MIT" id="mit" />
-                <div className="flex-1">
-                  <Label htmlFor="mit" className="font-medium cursor-pointer text-lg">
-                    Master of Information Technology (MIT)
-                  </Label>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Focus on advanced technical skills, software development, and IT leadership. 
-                    Ideal for students interested in technical roles and innovation.
-                  </p>
-                  <div className="mt-2">
-                    <p className="text-xs font-medium text-gray-700">Specializations available:</p>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant="outline">Business Systems Engineering</Badge>
-                      <Badge variant="outline">Operations & Supply Chain Management</Badge>
-                      <Badge variant="outline">Information Systems</Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-gray-50">
-                <RadioGroupItem value="IT" id="it" />
-                <div className="flex-1">
-                  <Label htmlFor="it" className="font-medium cursor-pointer text-lg">
-                    Bachelor of Information Technology (IT)
-                  </Label>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Comprehensive IT education with focus on practical applications, 
-                    business systems, and technology management.
-                  </p>
-                  <div className="mt-2">
-                    <p className="text-xs font-medium text-gray-700">Specializations available:</p>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant="outline">Business Systems Engineering</Badge>
-                      <Badge variant="outline">Operations & Supply Chain Management</Badge>
-                      <Badge variant="outline">Information Systems</Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </RadioGroup>
-
-            {/* Alternative Pathway */}
-            <div className="mt-6">
-              <Label className="text-sm font-medium">Alternative Pathway (Optional)</Label>
-              <p className="text-xs text-gray-600 mb-3">Select a backup option in case your preferred pathway is full</p>
-              <Select
-                value={preferences.alternativePathway}
-                onValueChange={(value) => setPreferences(prev => ({ ...prev, alternativePathway: value as DegreeProgram }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select alternative pathway" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MIT">Master of Information Technology (MIT)</SelectItem>
-                  <SelectItem value="IT">Bachelor of Information Technology (IT)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 5: Reasoning */}
-      {currentStep === 5 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Step 5: Reasoning & Additional Information
+              Step 4: Reasoning & Additional Information
             </CardTitle>
             <CardDescription>
-              Explain your pathway choice and provide any additional context that might help with your selection.
+              Share your motivation and context so we can improve recommendation quality.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <Label htmlFor="reasoning">Why did you choose this pathway? (Minimum 50 characters)</Label>
+              <Label htmlFor="reasoning">Describe your goals and why this direction fits you (Minimum 50 characters)</Label>
               <Textarea
                 id="reasoning"
                 placeholder="Explain your reasoning for choosing this pathway..."
@@ -541,13 +455,13 @@ export default function PathwayPreferencesPage() {
         </Card>
       )}
 
-      {/* Step 6: Review & Submit */}
-      {currentStep === 6 && (
+      {/* Step 5: Review & Submit */}
+      {currentStep === 5 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5" />
-              Step 6: Review & Submit
+              Step 5: Review & Submit
             </CardTitle>
             <CardDescription>
               Review your preferences before submitting. You can go back to make changes if needed.
@@ -595,18 +509,6 @@ export default function PathwayPreferencesPage() {
                     );
                   })}
                 </div>
-              </div>
-
-              <div>
-                <h3 className="font-medium mb-2">Preferred Pathway</h3>
-                <Badge variant="default" className="text-lg px-4 py-2">
-                  {preferences.preferredPathway === 'MIT' ? 'Master of Information Technology' : 'Bachelor of Information Technology'}
-                </Badge>
-                {preferences.alternativePathway && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-600">Alternative: {preferences.alternativePathway}</p>
-                  </div>
-                )}
               </div>
 
               <div>

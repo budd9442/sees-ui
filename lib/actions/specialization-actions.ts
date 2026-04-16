@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { GeminiService } from '@/lib/services/gemini-service';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { assertStudentWriteAccess } from '@/lib/actions/student-access';
 
 const specializationPreferenceSchema = z.object({
     academicInterests: z.array(z.string().trim()).min(2),
@@ -118,6 +119,7 @@ function getPreferencePayload(metadata: unknown) {
 export async function submitSpecializationPreferences(input: unknown) {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
+    await assertStudentWriteAccess(session.user.id);
 
     const parsed = specializationPreferenceSchema.safeParse(input);
     if (!parsed.success) {
@@ -334,6 +336,7 @@ export async function getSpecializationGuidance() {
 export async function submitSpecializationSelection(specializationCode: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     const student = await prisma.student.findUnique({
         where: { student_id: session.user.id },

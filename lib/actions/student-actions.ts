@@ -8,6 +8,7 @@ import { AcademicEngine } from '@/lib/services/academic-engine';
 import { gradeContributesToGpa } from '@/lib/gpa-utils';
 import { getStudentModuleRegistrationWindow } from '@/lib/actions/module-registration-round-actions';
 import { normalizeStudentLevel } from '@/lib/module-registration-round-utils';
+import { assertStudentWriteAccess } from '@/lib/actions/student-access';
 
 const programStructureInclude = {
     module: {
@@ -255,7 +256,7 @@ export async function getModuleRegistrationData() {
             degree_path: true,
             specialization: true,
             grades: { include: { module: true } } as any,
-            module_registrations: true
+            module_registrations: { include: { module: true } } as any
         } as any
     });
 
@@ -311,13 +312,30 @@ export async function getModuleRegistrationData() {
         };
     });
 
+    const activeSemesterIds = new Set(semesters.map((sem) => sem.semester_id));
+    const currentLevelModuleIds = new Set(
+        semestersData.flatMap((sem) => sem.modules.map((mod) => mod.id))
+    );
     const registeredModuleIds = record.module_registrations
-        .filter((mr: any) => mr.status !== 'DROPPED')
+        .filter(
+            (mr: any) =>
+                mr.status !== 'DROPPED' &&
+                activeSemesterIds.has(mr.semester_id) &&
+                currentLevelModuleIds.has(mr.module_id)
+        )
         .map((mr: any) => mr.module_id);
 
-    const completedModuleCodes = record.grades
-        .filter((g: any) => (g.grade_point ?? 0) >= 2.0 || (g.marks != null && g.marks >= 50))
-        .map((g: any) => g.module.code);
+    const completedModuleCodes = Array.from(
+        new Set([
+            ...record.grades
+                .filter((g: any) => (g.grade_point ?? 0) >= 2.0 || (g.marks != null && g.marks >= 50))
+                .map((g: any) => g.module.code),
+            ...record.module_registrations
+                .filter((mr: any) => mr.status !== 'DROPPED')
+                .map((mr: any) => mr.module?.code)
+                .filter(Boolean),
+        ])
+    );
 
     const regWindow = await getStudentModuleRegistrationWindow();
 
@@ -358,6 +376,7 @@ export async function registerForModules(moduleIds: string[]) {
         where: { student_id: userId },
     });
     if (!studentRecord) throw new Error("Student profile not found");
+    await assertStudentWriteAccess(studentRecord.student_id);
     const record = studentRecord as any;
 
     try {
@@ -390,6 +409,53 @@ export async function registerForModules(moduleIds: string[]) {
             throw new Error("One or more modules do not belong to your academic program.");
         }
 
+        const passingGrades = await prisma.grade.findMany({
+            where: {
+                student_id: record.student_id,
+                OR: [{ grade_point: { gte: 2.0 } }, { marks: { gte: 50 } }, { letter_grade: 'Pass' }],
+            },
+            include: { module: true },
+        });
+        const activeRegistrations = await prisma.moduleRegistration.findMany({
+            where: {
+                student_id: record.student_id,
+                status: { not: 'DROPPED' },
+            },
+            include: { module: true },
+        });
+        const completedModuleCodes = new Set([
+            ...passingGrades.map((g) => g.module.code),
+            ...activeRegistrations.map((mr) => mr.module.code),
+        ]);
+        const selectedModuleSemestersByCode = new Map<string, number[]>();
+        for (const structure of structures) {
+            const code = structure.module.code as string;
+            const semesterNumber = structure.semester_number as number;
+            const existing = selectedModuleSemestersByCode.get(code) || [];
+            existing.push(semesterNumber);
+            selectedModuleSemestersByCode.set(code, existing);
+        }
+        for (const structure of structures) {
+            const missingPrereqs = (structure.module.Module_A || [])
+                .map((p: any) => p.code)
+                .filter((code: string) => {
+                    if (completedModuleCodes.has(code)) {
+                        return false;
+                    }
+
+                    const selectedSemesters = selectedModuleSemestersByCode.get(code) || [];
+                    const satisfiedByEarlierSemester = selectedSemesters.some(
+                        (semesterNumber) => semesterNumber < structure.semester_number
+                    );
+                    return !satisfiedByEarlierSemester;
+                });
+            if (missingPrereqs.length > 0) {
+                throw new Error(
+                    `${structure.module.code}: Missing prerequisites (${missingPrereqs.join(', ')}).`
+                );
+            }
+        }
+
         // 3. Fetch Credit Rules
         const creditRules = await prisma.academicCreditRule.findMany({
             where: { level: studentYear }
@@ -399,6 +465,9 @@ export async function registerForModules(moduleIds: string[]) {
         const semesterMapping = semesters.map(sem => {
             const semNum = sem.label.includes('1') ? 1 : 2;
             const semMods = structures.filter(s => s.semester_number === semNum);
+            const semesterCatalogueModuleIds = catalogueStructures
+                .filter((s) => s.semester_number === semNum)
+                .map((s) => s.module_id);
             const totalCredits = semMods.reduce((sum, s) => sum + (s.module.credits || 0), 0);
             
             const rule = creditRules.find(r => r.semester_number === semNum) || { min_credits: 12, max_credits: 24 };
@@ -408,7 +477,8 @@ export async function registerForModules(moduleIds: string[]) {
 
             return {
                 semesterId: sem.semester_id,
-                moduleIds: semMods.map(s => s.module_id)
+                moduleIds: semMods.map(s => s.module_id),
+                semesterCatalogueModuleIds
             };
         });
 
@@ -420,7 +490,10 @@ export async function registerForModules(moduleIds: string[]) {
                     where: {
                         student_id: record.student_id,
                         semester_id: map.semesterId,
-                        status: 'REGISTERED' 
+                        status: 'REGISTERED',
+                        module_id: { in: map.semesterCatalogueModuleIds },
+                        // Keep graded registrations to avoid FK violations from Grade.reg_id
+                        grade: { is: null }
                     }
                 });
 
@@ -653,6 +726,58 @@ export async function getStudentGPAHistory() {
     }
 
     return history;
+}
+
+export async function getStudentGoalsSummary() {
+    const session = await auth();
+    if (!session?.user?.email) throw new Error("Unauthorized");
+
+    let userId = session.user.id;
+    let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+    if (!u && session.user.email) u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!u) throw new Error("User not found");
+    userId = u.user_id;
+
+    const goals = await (prisma.academicGoal.findMany as any)({
+        where: { student_id: userId },
+        include: { module: true },
+        orderBy: { created_at: 'desc' }
+    }) as any[];
+    const activeGoal = goals.find((g) => g.status === 'IN_PROGRESS') ?? null;
+    const completedCount = goals.filter((g) => g.status === 'COMPLETED').length;
+    const overdueCount = goals.filter((g) => g.deadline && g.deadline < new Date() && g.status !== 'COMPLETED').length;
+
+    const graphTargets = {
+        gpaTargetLine: goals
+            .filter((g) => g.goal_type === 'GPA_TARGET' && g.target_value_number != null)
+            .map((g) => ({ value: g.target_value_number as number, goalId: g.goal_id })),
+        creditsTargetLine: goals
+            .filter((g) => g.goal_type === 'CREDITS_TARGET' && g.target_value_number != null)
+            .map((g) => ({ value: g.target_value_number as number, goalId: g.goal_id })),
+        cgpaImprovementLine: goals
+            .filter((g) => g.goal_type === 'CGPA_IMPROVEMENT' && g.target_value_number != null)
+            .map((g) => ({
+                value: Math.min(4, (g.baseline_value ?? 0) + (g.target_value_number as number)),
+                baseline: g.baseline_value ?? 0,
+                goalId: g.goal_id
+            })),
+    };
+
+    return {
+        totalGoals: goals.length,
+        completedGoals: completedCount,
+        overdueGoals: overdueCount,
+        activeGoal: activeGoal ? {
+            id: activeGoal.goal_id,
+            title: activeGoal.title,
+            goalType: activeGoal.goal_type,
+            progress: activeGoal.progress,
+            targetValue: activeGoal.target_value_number,
+            moduleCode: activeGoal.module?.code ?? null,
+            deadline: activeGoal.deadline ? activeGoal.deadline.toISOString() : null
+        } : null,
+        graphTargets
+    };
 }
 
 export async function getStudentInterventions() {

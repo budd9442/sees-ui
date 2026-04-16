@@ -66,8 +66,8 @@ import type { RankingEntry } from '@/types';
 
 export default function RankingsClient({ initialData }: { initialData: any }) {
     const { students, modules, grades } = initialData;
-    const [selectedBatch, setSelectedBatch] = useState('2025');
-    const [selectedSemester, setSelectedSemester] = useState('S2');
+    const [selectedBatch, setSelectedBatch] = useState('all');
+    const [selectedSemester, setSelectedSemester] = useState('All');
     const [filterPathway, setFilterPathway] = useState('all');
     const [filterSpecialization, setFilterSpecialization] = useState('all');
     const [showTiebreakDialog, setShowTiebreakDialog] = useState(false);
@@ -78,9 +78,21 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
         participation: 0.1,
     });
 
+    const batchOptions = Array.from(new Set(students.map((student: any) => String(student.admissionYear)).filter(Boolean))).sort();
+    const pathwayOptions = Array.from(new Set(students.map((student: any) => student.specialization).filter(Boolean))).sort();
+    const specializationOptions = Array.from(new Set(students.map((student: any) => student.academicYear).filter(Boolean))).sort();
+
     const calculateRankings = () => {
-        const rankings: RankingEntry[] = students.map((student: any) => {
-            const studentGrades = grades.filter((g: any) => g.studentId === student.id && g.isReleased);
+        const rankings: RankingEntry[] = students
+            .filter((student: any) => selectedBatch === 'all' || String(student.admissionYear) === selectedBatch)
+            .map((student: any) => {
+            const studentGrades = grades.filter((g: any) => {
+                if (g.studentId !== student.id || !g.isReleased) return false;
+                if (selectedSemester === 'All') return true;
+                if (selectedSemester === 'S1') return (g.semesterLabel || '').includes('1');
+                if (selectedSemester === 'S2') return (g.semesterLabel || '').includes('2');
+                return true;
+            });
 
             const totalPoints = studentGrades.reduce((sum: number, grade: any) => sum + (grade.points * grade.credits), 0);
             const totalCredits = studentGrades.reduce((sum: number, grade: any) => sum + grade.credits, 0);
@@ -96,21 +108,21 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
                 ((attendance / 100) * tiebreakWeights.attendance) +
                 ((participation / 100) * tiebreakWeights.participation);
 
-            return {
-                id: student.id,
-                studentId: student.id,
-                studentName: student.name || `${student.firstName} ${student.lastName}`,
-                gpa: gpa,
-                weightedAverage: weightedScore,
-                rank: 0,
-                academicClass: student.academicClass || 'None',
-                pathway: student.degreeProgram || student.specialization || 'MIT',
-                specialization: student.specialization,
-                semester: 'S1_2025',
-                academicYear: student.academicYear,
-                tiebreakApplied: false,
-            };
-        });
+                return {
+                    id: student.id,
+                    studentId: student.id,
+                    studentName: student.name || `${student.firstName} ${student.lastName}`,
+                    gpa: gpa,
+                    weightedAverage: weightedScore,
+                    rank: 0,
+                    academicClass: student.academicClass || 'None',
+                    pathway: student.degreeProgram || student.specialization || 'MIT',
+                    specialization: student.academicYear,
+                    semester: selectedSemester === 'All' ? 'All' : selectedSemester,
+                    academicYear: student.academicYear,
+                    tiebreakApplied: false,
+                };
+            });
 
         rankings.sort((a, b) => {
             if (Math.abs(a.gpa - b.gpa) < 0.01) {
@@ -130,7 +142,7 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
 
     const filteredRankings = rankings.filter(ranking => {
         const matchesPathway = filterPathway === 'all' || ranking.pathway === filterPathway;
-        const matchesSpecialization = filterSpecialization === 'all' || true;
+        const matchesSpecialization = filterSpecialization === 'all' || ranking.specialization === filterSpecialization;
         return matchesPathway && matchesSpecialization;
     });
 
@@ -201,8 +213,32 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
         }));
     };
 
-    const exportRankings = (format: 'pdf' | 'excel' | 'csv') => {
-        toast.success(`Rankings exported as ${format.toUpperCase()} successfully!`);
+    const exportRankings = () => {
+        if (filteredRankings.length === 0) {
+            toast.error('No ranking rows to export');
+            return;
+        }
+        const headers = ['Rank', 'Student ID', 'Student Name', 'Academic Year', 'Pathway', 'GPA', 'Tiebreak Score'];
+        const rows = filteredRankings.map((r) => [
+            String(r.rank),
+            r.studentId,
+            r.studentName,
+            r.academicYear,
+            r.pathway || '',
+            r.gpa.toFixed(2),
+            (r.weightedAverage ?? 0).toFixed(3),
+        ]);
+        const csv = [headers, ...rows]
+            .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+            .join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `hod-rankings-${selectedSemester}-${selectedBatch}-${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success('Rankings exported as CSV');
     };
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
@@ -216,7 +252,7 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setShowTiebreakDialog(true)}><Target className="mr-2 h-4 w-4" /> Configure Tiebreakers</Button>
-                    <Button variant="outline" onClick={() => exportRankings('pdf')}><Download className="mr-2 h-4 w-4" /> Export Rankings</Button>
+                    <Button variant="outline" onClick={exportRankings}><Download className="mr-2 h-4 w-4" /> Export Rankings (CSV)</Button>
                 </div>
             </div>
 
@@ -226,7 +262,7 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
                     <div className="grid gap-4 md:grid-cols-4">
                         <div className="space-y-2">
                             <Label htmlFor="batch">Academic Batch</Label>
-                            <Select value={selectedBatch} onValueChange={setSelectedBatch}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="2025">2025</SelectItem><SelectItem value="2023">2023</SelectItem></SelectContent></Select>
+                            <Select value={selectedBatch} onValueChange={setSelectedBatch}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Batches</SelectItem>{batchOptions.map((batch: string) => (<SelectItem key={batch} value={batch}>{batch}</SelectItem>))}</SelectContent></Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="semester">Semester</Label>
@@ -234,11 +270,11 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="pathway">Pathway</Label>
-                            <Select value={filterPathway} onValueChange={setFilterPathway}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Pathways</SelectItem><SelectItem value="Software Engineering">Software Engineering</SelectItem><SelectItem value="Data Science">Data Science</SelectItem><SelectItem value="Cybersecurity">Cybersecurity</SelectItem></SelectContent></Select>
+                            <Select value={filterPathway} onValueChange={setFilterPathway}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Pathways</SelectItem>{pathwayOptions.map((pathway: string) => (<SelectItem key={pathway} value={pathway}>{pathway}</SelectItem>))}</SelectContent></Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="specialization">Specialization</Label>
-                            <Select value={filterSpecialization} onValueChange={setFilterSpecialization}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Specializations</SelectItem><SelectItem value="Frontend Development">Frontend Development</SelectItem><SelectItem value="Backend Development">Backend Development</SelectItem></SelectContent></Select>
+                            <Select value={filterSpecialization} onValueChange={setFilterSpecialization}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Levels</SelectItem>{specializationOptions.map((specialization: string) => (<SelectItem key={specialization} value={specialization}>{specialization}</SelectItem>))}</SelectContent></Select>
                         </div>
                     </div>
                 </CardContent>

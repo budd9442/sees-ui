@@ -22,9 +22,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 interface ModuleDialogProps {
     module?: any;
     trigger?: React.ReactNode;
+    availableModules?: Array<{ module_id: string; code: string; name: string }>;
 }
 
-export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogProps & { academicYearId?: string }) {
+export function ModuleDialog({ module, trigger, academicYearId, availableModules = [] }: ModuleDialogProps & { academicYearId?: string }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -36,6 +37,7 @@ export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogPr
         description: '',
         level: 'L1',
         counts_toward_gpa: true,
+        prerequisiteCodes: [] as string[],
     });
 
     useEffect(() => {
@@ -47,6 +49,7 @@ export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogPr
                 description: module.description || '',
                 level: module.level || 'L1',
                 counts_toward_gpa: module.counts_toward_gpa !== false,
+                prerequisiteCodes: (module.Module_A || []).map((pr: any) => pr.code),
             });
         } else {
             setFormData({
@@ -56,6 +59,7 @@ export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogPr
                 description: '',
                 level: 'L1',
                 counts_toward_gpa: true,
+                prerequisiteCodes: [],
             });
         }
     }, [module, open]);
@@ -75,6 +79,7 @@ export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogPr
                 active: true,
                 level: formData.level,
                 counts_toward_gpa: formData.counts_toward_gpa,
+                prerequisiteCodes: formData.prerequisiteCodes,
                 academicYearId: academicYearId || module?.academic_year_id
             });
             setOpen(false);
@@ -172,6 +177,36 @@ export function ModuleDialog({ module, trigger, academicYearId }: ModuleDialogPr
                         <Label htmlFor="counts_toward_gpa" className="text-sm font-normal cursor-pointer">
                             Counts toward GPA
                         </Label>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Prerequisites</Label>
+                        <div className="max-h-40 overflow-y-auto rounded-md border p-3 space-y-2">
+                            {availableModules
+                                .filter((m) => m.module_id !== module?.module_id)
+                                .map((m) => {
+                                    const checked = formData.prerequisiteCodes.includes(m.code);
+                                    return (
+                                        <label key={m.module_id} className="flex items-center space-x-2 text-sm">
+                                            <Checkbox
+                                                checked={checked}
+                                                onCheckedChange={(v) => {
+                                                    const isChecked = v === true;
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        prerequisiteCodes: isChecked
+                                                            ? [...prev.prerequisiteCodes, m.code]
+                                                            : prev.prerequisiteCodes.filter((code) => code !== m.code),
+                                                    }));
+                                                }}
+                                            />
+                                            <span>{m.code} - {m.name}</span>
+                                        </label>
+                                    );
+                                })}
+                            {availableModules.length === 0 && (
+                                <p className="text-xs text-muted-foreground">No modules available for prerequisite linking.</p>
+                            )}
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>

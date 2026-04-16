@@ -1735,7 +1735,7 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
 
             {/* ══ Approval Confirm (with viability warnings) ══ */}
             <Dialog open={showApprovalConfirm} onOpenChange={setShowApprovalConfirm}>
-                <DialogContent>
+                <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-4xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-amber-600"><AlertTriangle className="h-5 w-5" />Viability Warning</DialogTitle>
                         <DialogDescription>Some specializations are below their minimum student threshold.</DialogDescription>
@@ -1751,9 +1751,10 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                             You can redistribute students on under-threshold specs to their second choice (where set), force-approve anyway, or go back and move students manually.
                         </p>
                     </div>
-                    <DialogFooter className="gap-2 flex-col sm:flex-row">
+                    <DialogFooter className="gap-2 flex-col sm:flex-row sm:flex-wrap sm:justify-end">
                         <Button
                             variant="outline"
+                            className="w-full sm:w-auto"
                             onClick={() => {
                                 setShowApprovalConfirm(false);
                                 setAllocationReviewAcknowledged(false);
@@ -1762,10 +1763,10 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                         >
                             Go back to allocation review
                         </Button>
-                        <Button variant="secondary" onClick={handleRedistributeSpecs} disabled={isPending}>
+                        <Button variant="secondary" className="w-full sm:w-auto" onClick={handleRedistributeSpecs} disabled={isPending}>
                             Redistribute under-threshold (2nd choice)
                         </Button>
-                        <Button className="bg-amber-500 hover:bg-amber-600" onClick={() => handleApprove(true)} disabled={isPending}>
+                        <Button className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600" onClick={() => handleApprove(true)} disabled={isPending}>
                             Force Approve Anyway
                         </Button>
                     </DialogFooter>

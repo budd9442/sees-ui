@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+import { assertStudentWriteAccess } from '@/lib/actions/student-access';
+import { AcademicEngine } from '@/lib/services/academic-engine';
 
 export async function getCreditsData() {
     const session = await auth();
@@ -54,6 +56,78 @@ export async function getCreditsData() {
     return { studentGrades };
 }
 
+type QuantGoalType = 'GPA_TARGET' | 'CREDITS_TARGET' | 'MODULE_GRADE_TARGET' | 'CGPA_IMPROVEMENT';
+
+function clampProgress(value: number) {
+    return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+async function getGoalMetrics(studentId: string, goalType: QuantGoalType, moduleId?: string | null) {
+    const { gpa: currentGPA, totalCredits } = await AcademicEngine.calculateStudentGPA(studentId);
+    let currentModuleGrade: number | null = null;
+
+    if (goalType === 'MODULE_GRADE_TARGET') {
+        if (!moduleId) throw new Error('Module is required for module-grade goals.');
+        const moduleGrade = await prisma.grade.findFirst({
+            where: { student_id: studentId, module_id: moduleId, released_at: { not: null } },
+            orderBy: { released_at: 'desc' }
+        });
+        currentModuleGrade = moduleGrade?.marks ?? null;
+    }
+
+    return { currentGPA, totalCredits, currentModuleGrade };
+}
+
+function validateQuantGoalPayload(data: {
+    goalType: QuantGoalType;
+    targetValue: number;
+    baselineValue?: number | null;
+}) {
+    if (!Number.isFinite(data.targetValue)) {
+        throw new Error('Target value must be a number.');
+    }
+    if (data.goalType === 'GPA_TARGET' && (data.targetValue < 0 || data.targetValue > 4)) {
+        throw new Error('GPA target must be between 0 and 4.');
+    }
+    if (data.goalType === 'CREDITS_TARGET' && data.targetValue < 1) {
+        throw new Error('Credits target must be at least 1.');
+    }
+    if (data.goalType === 'MODULE_GRADE_TARGET' && (data.targetValue < 0 || data.targetValue > 100)) {
+        throw new Error('Module grade target must be between 0 and 100.');
+    }
+    if (data.goalType === 'CGPA_IMPROVEMENT' && data.targetValue <= 0) {
+        throw new Error('CGPA improvement target must be greater than 0.');
+    }
+    if (data.goalType === 'CGPA_IMPROVEMENT' && data.baselineValue != null && (data.baselineValue < 0 || data.baselineValue > 4)) {
+        throw new Error('Baseline GPA must be between 0 and 4.');
+    }
+}
+
+function computeProgress(args: {
+    goalType: QuantGoalType;
+    targetValue: number;
+    baselineValue?: number | null;
+    currentGPA: number;
+    totalCredits: number;
+    currentModuleGrade: number | null;
+}) {
+    const { goalType, targetValue, baselineValue, currentGPA, totalCredits, currentModuleGrade } = args;
+    if (goalType === 'GPA_TARGET') return clampProgress((currentGPA / targetValue) * 100);
+    if (goalType === 'CREDITS_TARGET') return clampProgress((totalCredits / targetValue) * 100);
+    if (goalType === 'MODULE_GRADE_TARGET') return clampProgress(((currentModuleGrade ?? 0) / targetValue) * 100);
+    const baseline = baselineValue ?? 0;
+    const targetGpa = Math.min(4, baseline + targetValue);
+    if (targetGpa <= baseline) return 0;
+    return clampProgress(((currentGPA - baseline) / (targetGpa - baseline)) * 100);
+}
+
+function getMetricUnit(goalType: QuantGoalType) {
+    if (goalType === 'CREDITS_TARGET') return 'CREDITS';
+    if (goalType === 'MODULE_GRADE_TARGET') return 'MARKS';
+    if (goalType === 'CGPA_IMPROVEMENT') return 'POINTS';
+    return 'GPA';
+}
+
 export async function getGoals() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -61,6 +135,7 @@ export async function getGoals() {
     // We already trust session.user.id from the DB
     const goals = await prisma.academicGoal.findMany({
         where: { student_id: session.user.id },
+        include: { module: true },
         orderBy: { created_at: 'desc' }
     });
 
@@ -68,11 +143,14 @@ export async function getGoals() {
         id: g.goal_id,
         title: g.title,
         description: g.description,
-        category: g.category,
-        priority: g.priority,
+        goalType: g.goal_type as QuantGoalType,
         targetGPA: g.target_gpa,
         targetClass: g.target_class,
-        targetValue: g.target_value,
+        targetValue: g.target_value_number,
+        baselineValue: g.baseline_value,
+        metricUnit: g.metric_unit,
+        moduleId: g.module_id,
+        moduleCode: g.module?.code ?? null,
         progress: g.progress,
         status: g.status,
         deadline: g.deadline,
@@ -84,79 +162,131 @@ export async function getGoals() {
 export async function createGoal(data: {
     title: string;
     description?: string;
-    category: string;
-    priority: string;
-    targetGPA?: number | null;
-    targetClass?: string | null;
-    targetValue?: string | null;
+    goalType: QuantGoalType;
+    targetValue: number;
+    baselineValue?: number | null;
+    moduleId?: string | null;
     deadline?: Date | null;
     milestones?: string[];
 }) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
+
+    validateQuantGoalPayload({
+        goalType: data.goalType,
+        targetValue: data.targetValue,
+        baselineValue: data.baselineValue
+    });
+    if (data.goalType === 'MODULE_GRADE_TARGET' && !data.moduleId) {
+        throw new Error('Module grade goals require a module.');
+    }
+
+    const activeGoals = await prisma.academicGoal.count({
+        where: { student_id: session.user.id, status: 'IN_PROGRESS' }
+    });
+    if (activeGoals > 0) {
+        throw new Error('You can only have one active goal at a time.');
+    }
+
+    const metrics = await getGoalMetrics(session.user.id, data.goalType, data.moduleId);
+    const progress = computeProgress({
+        goalType: data.goalType,
+        targetValue: data.targetValue,
+        baselineValue: data.baselineValue,
+        ...metrics
+    });
 
     const goal = await prisma.academicGoal.create({
         data: {
             student_id: session.user.id,
             title: data.title,
             description: data.description,
-            category: data.category,
-            priority: data.priority,
-            target_gpa: data.targetGPA ?? undefined,
-            target_class: data.targetClass ?? undefined,
-            target_value: data.targetValue ?? undefined,
+            goal_type: data.goalType,
+            metric_unit: getMetricUnit(data.goalType),
+            target_value_number: data.targetValue,
+            baseline_value: data.baselineValue ?? null,
+            module_id: data.moduleId ?? null,
+            target_gpa: data.goalType === 'GPA_TARGET' ? data.targetValue : undefined,
+            target_value: String(data.targetValue),
             deadline: data.deadline,
             milestones: data.milestones || [],
+            progress,
+            status: progress >= 100 ? 'COMPLETED' : 'IN_PROGRESS',
+            achieved_at: progress >= 100 ? new Date() : null
         }
     });
-
+    revalidatePath('/dashboard/student/goals');
+    revalidatePath('/dashboard/student');
     return goal;
 }
 
 export async function updateGoal(goalId: string, data: Partial<{
     title: string;
     description: string;
-    category: string;
-    priority: string;
-    targetGPA: number | null;
-    targetClass: string | null;
-    targetValue: string | null;
+    goalType: QuantGoalType;
+    targetValue: number;
+    baselineValue: number | null;
+    moduleId: string | null;
     deadline: Date | null;
     milestones: string[];
-    progress: number;
-    status: string;
 }>) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     // verify ownership
     const goal = await prisma.academicGoal.findUnique({ where: { goal_id: goalId } });
     if (!goal || goal.student_id !== session.user.id) throw new Error("Goal not found or unauthorized");
+
+    const goalType = data.goalType ?? (goal.goal_type as QuantGoalType);
+    const targetValue = data.targetValue ?? goal.target_value_number ?? goal.target_gpa;
+    if (!targetValue) throw new Error('A numeric target value is required.');
+    validateQuantGoalPayload({
+        goalType,
+        targetValue,
+        baselineValue: data.baselineValue ?? goal.baseline_value
+    });
+    const moduleId = data.moduleId ?? goal.module_id;
+    if (goalType === 'MODULE_GRADE_TARGET' && !moduleId) {
+        throw new Error('Module grade goals require a module.');
+    }
+    const metrics = await getGoalMetrics(session.user.id, goalType, moduleId);
+    const progress = computeProgress({
+        goalType,
+        targetValue,
+        baselineValue: data.baselineValue ?? goal.baseline_value,
+        ...metrics
+    });
 
     const updated = await prisma.academicGoal.update({
         where: { goal_id: goalId },
         data: {
             title: data.title,
             description: data.description,
-            category: data.category,
-            priority: data.priority,
-            target_gpa: data.targetGPA ?? undefined,
-            target_class: data.targetClass ?? undefined,
-            target_value: data.targetValue ?? undefined,
+            goal_type: goalType,
+            metric_unit: getMetricUnit(goalType),
+            target_value_number: targetValue,
+            baseline_value: data.baselineValue ?? undefined,
+            module_id: moduleId,
+            target_gpa: goalType === 'GPA_TARGET' ? targetValue : undefined,
+            target_value: String(targetValue),
             deadline: data.deadline ?? undefined,
             milestones: data.milestones ?? undefined,
-            progress: data.progress ?? undefined,
-            status: data.status ?? undefined,
-            achieved_at: data.status === 'COMPLETED' ? new Date() : undefined
+            progress,
+            status: progress >= 100 ? 'COMPLETED' : 'IN_PROGRESS',
+            achieved_at: progress >= 100 ? new Date() : null
         }
     });
-
+    revalidatePath('/dashboard/student/goals');
+    revalidatePath('/dashboard/student');
     return updated;
 }
 
 export async function deleteGoal(goalId: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     // verify ownership
     const goal = await prisma.academicGoal.findUnique({ where: { goal_id: goalId } });
@@ -165,7 +295,8 @@ export async function deleteGoal(goalId: string) {
     await prisma.academicGoal.delete({
         where: { goal_id: goalId }
     });
-
+    revalidatePath('/dashboard/student/goals');
+    revalidatePath('/dashboard/student');
     return { success: true };
 }
 
@@ -282,6 +413,7 @@ export async function getSpecializationData() {
 export async function updateStudentPathway(programCode: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     const studentRecord = await prisma.student.findUnique({
         where: { student_id: session.user.id }
@@ -309,6 +441,7 @@ export async function updateStudentPathway(programCode: string) {
 export async function updateStudentSpecialization(specCode: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     // Perform the entire operation in a transaction to handle capacity race conditions
     return await prisma.$transaction(async (tx) => {
@@ -431,6 +564,7 @@ export async function saveInternship(data: {
 }) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     if (data.id) {
         // Update existing
@@ -477,6 +611,7 @@ export async function addInternshipMilestone(internshipId: string, data: {
 }) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     // verify ownership
     const internship = await prisma.internship.findUnique({ where: { internship_id: internshipId } });
@@ -496,6 +631,7 @@ export async function addInternshipMilestone(internshipId: string, data: {
 export async function toggleInternshipMilestone(milestoneId: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     const milestone = await prisma.internshipMilestone.findUnique({
         where: { milestone_id: milestoneId },
@@ -521,6 +657,7 @@ export async function addInternshipDocument(internshipId: string, data: {
 }) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     // verify ownership
     const internship = await prisma.internship.findUnique({ where: { internship_id: internshipId } });
@@ -611,6 +748,7 @@ export async function updateStudentProfile(data: {
 }) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
+    await assertStudentWriteAccess(session.user.id);
 
     await prisma.user.update({
         where: { user_id: session.user.id },
@@ -637,13 +775,34 @@ export async function getRankingsData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
+    let userId = session.user.id;
+    let userRecord = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+    if (!userRecord && session.user.email) {
+        userRecord = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
+    if (!userRecord) throw new Error("User not found");
+    userId = userRecord.user_id;
+
+    const currentStudent = await prisma.student.findUnique({
+        where: { student_id: userId },
+        select: { current_level: true },
+    });
+    if (!currentStudent) throw new Error("Student profile not found");
+
     // Fetch all active students with their associated user and pathway information
     const students = await prisma.student.findMany({
-        where: { enrollment_status: 'ENROLLED' },
+        where: {
+            enrollment_status: 'ENROLLED',
+            current_level: currentStudent.current_level,
+        },
         include: {
             user: true,
             degree_path: true,
             specialization: true,
+            gpa_history: {
+                orderBy: { calculation_date: 'desc' },
+                take: 1,
+            },
             grades: {
                 include: {
                     module: true // To get credits
@@ -660,11 +819,11 @@ export async function getRankingsData() {
     const passRateWeight = passRateWeightSetting ? parseFloat(passRateWeightSetting.value) : 0.4;
 
     // Compute rankings logic
-    const rankings = students.map(student => {
+    const rankings = await Promise.all(students.map(async (student) => {
         const studentGrades = student.grades;
 
-        // Ensure GPA falls back to 0
-        const gpa = student.current_gpa || 0;
+        // Keep rankings aligned with dashboard GPA source.
+        const { gpa } = await AcademicEngine.calculateStudentGPA(student.student_id);
 
         // Calculate other metrics
         const totalCreditsEarned = studentGrades
@@ -691,7 +850,7 @@ export async function getRankingsData() {
             academicClass: student.academic_class || null,
             weightedOverallScore: weightedScore
         };
-    });
+    }));
 
     return rankings;
 }
