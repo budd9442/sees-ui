@@ -4,6 +4,10 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { isWithinRegistrationWindow, SELECTION_ROUND_WINDOW_COPY } from '@/lib/registration-time-window';
+import { dispatchNotificationEmail } from '@/lib/notifications/dispatch';
+import { NotificationEventKey } from '@/lib/notifications/events';
+import { notifySelectionRoundWindowOpened } from '@/lib/notifications/window-opened';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -415,7 +419,8 @@ export async function createSelectionRound(data: {
     configs: RoundConfig[];
 }) {
     try {
-        if (!(await requireHodOrAdmin())) {
+        const actor = await requireHodOrAdmin();
+        if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
         const round = await prisma.selectionRound.create({
@@ -439,6 +444,15 @@ export async function createSelectionRound(data: {
             }
         });
 
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_ROUND_CREATE',
+            entityType: 'SELECTION_ROUND',
+            entityId: round.round_id,
+            category: 'STAFF',
+            metadata: { type: data.type, label: data.label, level: data.level },
+        });
+
         revalidatePath('/dashboard/hod/pathways');
         return { success: true, data: round };
     } catch (error) {
@@ -449,7 +463,8 @@ export async function createSelectionRound(data: {
 
 export async function updateRoundStatus(roundId: string, status: RoundStatus) {
     try {
-        if (!(await requireHodOrAdmin())) {
+        const actor = await requireHodOrAdmin();
+        if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
         const existing = await prisma.selectionRound.findUnique({
@@ -457,6 +472,7 @@ export async function updateRoundStatus(roundId: string, status: RoundStatus) {
             select: { status: true, closes_at: true },
         });
         if (!existing) return { success: false, error: 'Round not found' };
+        const previousStatus = existing.status;
         if (existing.status === 'APPROVED' && status !== 'APPROVED') {
             return { success: false, error: 'Cannot change status of an approved round' };
         }
@@ -481,6 +497,21 @@ export async function updateRoundStatus(roundId: string, status: RoundStatus) {
             data: updateData as { status: string; approved_at?: Date },
         });
 
+        if (status === 'OPEN' && previousStatus !== 'OPEN') {
+            void notifySelectionRoundWindowOpened(roundId).catch((err) =>
+                console.error('notifySelectionRoundWindowOpened', err)
+            );
+        }
+
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_ROUND_STATUS_UPDATE',
+            entityType: 'SELECTION_ROUND',
+            entityId: roundId,
+            category: 'STAFF',
+            metadata: { status, previousStatus },
+        });
+
         revalidatePath('/dashboard/hod/pathways');
         return { success: true };
     } catch (error) {
@@ -501,7 +532,8 @@ export async function updateSelectionRoundMeta(
     }
 ) {
     try {
-        if (!(await requireHodOrAdmin())) {
+        const actor = await requireHodOrAdmin();
+        if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
         const round = await prisma.selectionRound.findUnique({
@@ -532,6 +564,15 @@ export async function updateSelectionRoundMeta(
             },
         });
 
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_ROUND_META_UPDATE',
+            entityType: 'SELECTION_ROUND',
+            entityId: roundId,
+            category: 'STAFF',
+            metadata: { keys: Object.keys(data).filter((k) => (data as any)[k] !== undefined) },
+        });
+
         revalidatePath('/dashboard/hod/pathways');
         return { success: true };
     } catch (error) {
@@ -542,7 +583,8 @@ export async function updateSelectionRoundMeta(
 
 export async function updateRoundConfigs(roundId: string, configs: (RoundConfig & { config_id?: string })[]) {
     try {
-        if (!(await requireHodOrAdmin())) {
+        const actor = await requireHodOrAdmin();
+        if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
         const round = await prisma.selectionRound.findUnique({
@@ -566,6 +608,15 @@ export async function updateRoundConfigs(roundId: string, configs: (RoundConfig 
                 }))
             })
         ]);
+
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_ROUND_CONFIGS_UPDATE',
+            entityType: 'SELECTION_ROUND',
+            entityId: roundId,
+            category: 'STAFF',
+            metadata: { configCount: configs.length },
+        });
 
         revalidatePath('/dashboard/hod/pathways');
         return { success: true };
@@ -780,7 +831,8 @@ function allocateSpecialization(
 
 export async function runGPAAllocation(roundId: string) {
     try {
-        if (!(await requireHodOrAdmin())) {
+        const actor = await requireHodOrAdmin();
+        if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
         const roundFetched = await prisma.selectionRound.findUnique({
@@ -828,6 +880,18 @@ export async function runGPAAllocation(roundId: string) {
             )
         );
 
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_RUN_GPA_ALLOCATION',
+            entityType: 'SELECTION_ROUND',
+            entityId: roundId,
+            category: 'STAFF',
+            metadata: {
+                allocated: updates.filter((u) => u.status === 'ALLOCATED').length,
+                waitlisted: updates.filter((u) => u.status === 'WAITLISTED').length,
+            },
+        });
+
         revalidatePath('/dashboard/hod/pathways');
         return {
             success: true,
@@ -848,7 +912,8 @@ export async function runGPAAllocation(roundId: string) {
 
 export async function approveSelectionRound(roundId: string, forceApprove = false) {
     try {
-        if (!(await requireHodOrAdmin())) {
+        const actor = await requireHodOrAdmin();
+        if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
         const round = await prisma.selectionRound.findUnique({
@@ -938,6 +1003,80 @@ export async function approveSelectionRound(roundId: string, forceApprove = fals
             });
         });
 
+        const finalApps = await prisma.selectionApplication.findMany({
+            where: { round_id: roundId, status: 'ALLOCATED', allocated_to: { not: null } },
+        });
+        const studentIds = [...new Set(finalApps.map((a) => a.student_id))];
+        const studentsForMail = await prisma.student.findMany({
+            where: { student_id: { in: studentIds } },
+            include: { user: { select: { email: true, firstName: true, lastName: true } } },
+        });
+        const studentById = new Map(studentsForMail.map((s) => [s.student_id, s]));
+
+        const pathwayIds = [
+            ...new Set(
+                roundType === 'PATHWAY'
+                    ? finalApps.map((a) => a.allocated_to!).filter(Boolean)
+                    : []
+            ),
+        ];
+        const specIds = [
+            ...new Set(
+                roundType === 'SPECIALIZATION'
+                    ? finalApps.map((a) => a.allocated_to!).filter(Boolean)
+                    : []
+            ),
+        ];
+        const programs = pathwayIds.length
+            ? await prisma.degreeProgram.findMany({
+                  where: { program_id: { in: pathwayIds } },
+                  select: { program_id: true, name: true },
+              })
+            : [];
+        const specs = specIds.length
+            ? await prisma.specialization.findMany({
+                  where: { specialization_id: { in: specIds } },
+                  select: { specialization_id: true, name: true },
+              })
+            : [];
+        const programNameById = new Map(programs.map((p) => [p.program_id, p.name]));
+        const specNameById = new Map(specs.map((s) => [s.specialization_id, s.name]));
+
+        for (const app of finalApps) {
+            const st = studentById.get(app.student_id);
+            const email = st?.user?.email;
+            if (!email || !app.allocated_to || !st?.user) continue;
+            const studentName = `${st.user.firstName} ${st.user.lastName}`.trim();
+            let outcome: string;
+            if (roundType === 'PATHWAY') {
+                const nm = programNameById.get(app.allocated_to);
+                outcome = `Your degree pathway has been set to ${nm ?? app.allocated_to}.`;
+            } else {
+                const nm = specNameById.get(app.allocated_to);
+                outcome = `Your specialization has been set to ${nm ?? app.allocated_to}.`;
+            }
+            const dedupe = `${NotificationEventKey.PATHWAY_ALLOCATED}:${app.student_id}:${roundId}`;
+            await dispatchNotificationEmail({
+                eventKey: NotificationEventKey.PATHWAY_ALLOCATED,
+                dedupeKey: dedupe,
+                to: email,
+                toName: studentName,
+                recipientUserId: app.student_id,
+                entityType: 'selection_round',
+                entityId: roundId,
+                vars: { studentName, outcome },
+            });
+        }
+
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_ROUND_APPROVE',
+            entityType: 'SELECTION_ROUND',
+            entityId: roundId,
+            category: 'STAFF',
+            metadata: { forceApprove, roundType },
+        });
+
         revalidatePath('/dashboard/hod/pathways');
         revalidatePath('/dashboard/admin/users');
         return { success: true };
@@ -954,7 +1093,8 @@ export async function approveSelectionRound(roundId: string, forceApprove = fals
  */
 export async function commitApprovedPathwayAllocationsToStudents(roundId: string) {
     try {
-        if (!(await requireHodOrAdmin())) {
+        const actor = await requireHodOrAdmin();
+        if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
         const round = await prisma.selectionRound.findUnique({
@@ -995,6 +1135,15 @@ export async function commitApprovedPathwayAllocationsToStudents(roundId: string
             )
         );
 
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_COMMIT_PATHWAY_TO_STUDENTS',
+            entityType: 'SELECTION_ROUND',
+            entityId: roundId,
+            category: 'STAFF',
+            metadata: { updated: allocated.length },
+        });
+
         revalidatePath('/dashboard/hod/pathways');
         revalidatePath('/dashboard/admin/users');
         revalidatePath('/dashboard/student/pathway');
@@ -1007,7 +1156,8 @@ export async function commitApprovedPathwayAllocationsToStudents(roundId: string
 
 export async function moveWaitlistStudent(appId: string, targetSlotId: string) {
     try {
-        if (!(await requireHodOrAdmin())) {
+        const actor = await requireHodOrAdmin();
+        if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
         const app = await prisma.selectionApplication.findUnique({
@@ -1025,6 +1175,14 @@ export async function moveWaitlistStudent(appId: string, targetSlotId: string) {
             where: { app_id: appId },
             data: { status: 'ALLOCATED', allocated_to: targetSlotId, waitlist_pos: null }
         });
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_WAITLIST_MOVE',
+            entityType: 'SELECTION_APPLICATION',
+            entityId: appId,
+            category: 'STAFF',
+            metadata: { targetSlotId, round_id: app.round.round_id },
+        });
         revalidatePath('/dashboard/hod/pathways');
         return { success: true };
     } catch (error) {
@@ -1034,7 +1192,8 @@ export async function moveWaitlistStudent(appId: string, targetSlotId: string) {
 
 export async function rejectApplication(appId: string) {
     try {
-        if (!(await requireHodOrAdmin())) {
+        const actor = await requireHodOrAdmin();
+        if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
         const app = await prisma.selectionApplication.findUnique({
@@ -1050,6 +1209,13 @@ export async function rejectApplication(appId: string) {
             where: { app_id: appId },
             data: { status: 'REJECTED', allocated_to: null, waitlist_pos: null },
         });
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_APPLICATION_REJECT',
+            entityType: 'SELECTION_APPLICATION',
+            entityId: appId,
+            category: 'STAFF',
+        });
         revalidatePath('/dashboard/hod/pathways');
         return { success: true };
     } catch (error) {
@@ -1061,7 +1227,8 @@ export async function rejectApplication(appId: string) {
 /** Option A: move students off under-threshold specializations to 2nd choice where configured. */
 export async function redistributeUnderThresholdSpecs(roundId: string, specIds?: string[]) {
     try {
-        if (!(await requireHodOrAdmin())) {
+        const actor = await requireHodOrAdmin();
+        if (!actor) {
             return { success: false, error: 'Unauthorized' };
         }
         const round = await prisma.selectionRound.findUnique({
@@ -1113,6 +1280,15 @@ export async function redistributeUnderThresholdSpecs(roundId: string, specIds?:
                     });
                 }
             }
+        });
+
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_REDISTRIBUTE_UNDER_THRESHOLD',
+            entityType: 'SELECTION_ROUND',
+            entityId: roundId,
+            category: 'STAFF',
+            metadata: { moved },
         });
 
         revalidatePath('/dashboard/hod/pathways');
@@ -1518,6 +1694,13 @@ export async function resolveAllocationChangeRequest(requestId: string, decision
                     resolved_by_user_id: hod.userId,
                 },
             });
+            await writeAuditLog({
+                adminId: hod.userId,
+                action: 'SELECTION_ALLOCATION_CHANGE_REJECT',
+                entityType: 'SELECTION_ALLOCATION_CHANGE_REQUEST',
+                entityId: requestId,
+                category: 'STAFF',
+            });
             revalidatePath('/dashboard/hod/pathways');
             revalidatePath('/dashboard/student/pathway');
             revalidatePath('/dashboard/student/specialization');
@@ -1583,6 +1766,15 @@ export async function resolveAllocationChangeRequest(requestId: string, decision
                     resolved_by_user_id: hod.userId,
                 },
             });
+        });
+
+        await writeAuditLog({
+            adminId: hod.userId,
+            action: 'SELECTION_ALLOCATION_CHANGE_APPROVE',
+            entityType: 'SELECTION_ALLOCATION_CHANGE_REQUEST',
+            entityId: requestId,
+            category: 'STAFF',
+            metadata: { student_id: req.student_id, targetSlot },
         });
 
         revalidatePath('/dashboard/hod/pathways');

@@ -24,6 +24,13 @@ import {
     getInstitutionGradingBands,
     moduleUsesCustomGradingBands,
 } from '@/lib/grading/module-bands';
+import { dispatchNotificationEmail } from '@/lib/notifications/dispatch';
+import { NotificationEventKey } from '@/lib/notifications/events';
+import {
+    captureStandingBeforeRelease,
+    notifyAcademicStandingChangesAfterGradeRelease,
+} from '@/lib/notifications/academic-standing-on-grade-release';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 export async function getStaffModuleRoster(moduleId: string) {
     return _getStaffModuleRoster(moduleId);
@@ -91,6 +98,15 @@ export async function updateLectureSchedule(data: {
     await prisma.lectureSchedule.update({
         where: { schedule_id: data.scheduleId },
         data: updateData
+    });
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'STAFF_LECTURE_SCHEDULE_UPDATE',
+        entityType: 'LECTURE_SCHEDULE',
+        entityId: data.scheduleId,
+        category: 'STAFF',
+        metadata: { module_id: schedule.module_id },
     });
 
     revalidatePath('/dashboard/staff/schedule');
@@ -467,6 +483,15 @@ export async function setModuleCustomGradingBands(moduleId: string, bands: unkno
         });
     }
 
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'STAFF_MODULE_GRADING_BANDS_SET',
+        entityType: 'MODULE',
+        entityId: moduleId,
+        category: 'STAFF',
+        metadata: { cleared: bands === null },
+    });
+
     revalidatePath(`/dashboard/staff/modules/${moduleId}`);
     return { success: true };
 }
@@ -543,6 +568,15 @@ export async function updateStudentGrade(regId: string, input: UpdateStudentGrad
             grade_point: gradePoint,
             released_at: null
         }
+    });
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'STAFF_GRADE_UPSERT',
+        entityType: 'GRADE',
+        entityId: regId,
+        category: 'STAFF',
+        metadata: { module_id: reg.module_id, letterGrade, hasMarks },
     });
 
     revalidatePath(`/dashboard/staff/modules/${reg.module_id}`);
@@ -640,6 +674,19 @@ export async function bulkUploadStaffGrades(moduleId: string, data: { studentId:
             return { successCount, failCount, failures };
         });
 
+        await writeAuditLog({
+            adminId: session.user.id,
+            action: 'STAFF_GRADE_BULK_UPLOAD',
+            entityType: 'MODULE',
+            entityId: moduleId,
+            category: 'STAFF',
+            metadata: {
+                successCount: results.successCount,
+                failCount: results.failCount,
+                rowCount: data.length,
+            },
+        });
+
         revalidatePath(`/dashboard/staff/modules/${moduleId}`);
         return results;
     } catch (error) {
@@ -657,16 +704,69 @@ export async function releaseModuleGrades(moduleId: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
-    await prisma.grade.updateMany({
-        where: { 
+    const gradesToRelease = await prisma.grade.findMany({
+        where: {
             module_id: moduleId,
-            released_at: null 
+            released_at: null,
+        },
+        include: {
+            module: { select: { name: true, code: true } },
+            student: { include: { user: { select: { email: true, firstName: true, lastName: true } } } },
+        },
+    });
+
+    if (gradesToRelease.length === 0) {
+        revalidatePath(`/dashboard/staff/modules/${moduleId}`);
+        return { success: true, count: 0 };
+    }
+
+    const releaseBatchId = Date.now();
+    const affectedStudentIds = [...new Set(gradesToRelease.map((g) => g.student_id))];
+    const standingBefore = await captureStandingBeforeRelease(affectedStudentIds);
+
+    await prisma.grade.updateMany({
+        where: {
+            module_id: moduleId,
+            released_at: null,
         },
         data: {
-            released_at: new Date()
-        }
+            released_at: new Date(),
+        },
+    });
+
+    for (const g of gradesToRelease) {
+        const email = g.student.user?.email;
+        if (!email) continue;
+        const studentName = `${g.student.user.firstName} ${g.student.user.lastName}`.trim();
+        const dedupe = `${NotificationEventKey.GRADE_RELEASED}:${g.student_id}:${g.module_id}`;
+        await dispatchNotificationEmail({
+            eventKey: NotificationEventKey.GRADE_RELEASED,
+            dedupeKey: dedupe,
+            to: email,
+            toName: studentName,
+            recipientUserId: g.student_id,
+            entityType: 'grade',
+            entityId: g.grade_id,
+            vars: {
+                studentName,
+                moduleName: g.module.name,
+                moduleCode: g.module.code,
+                letterGrade: g.letter_grade,
+            },
+        });
+    }
+
+    await notifyAcademicStandingChangesAfterGradeRelease(affectedStudentIds, standingBefore, releaseBatchId);
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'STAFF_MODULE_GRADES_RELEASE',
+        entityType: 'MODULE',
+        entityId: moduleId,
+        category: 'STAFF',
+        metadata: { releasedCount: gradesToRelease.length, batchId: releaseBatchId },
     });
 
     revalidatePath(`/dashboard/staff/modules/${moduleId}`);
-    return { success: true };
+    return { success: true, count: gradesToRelease.length };
 }

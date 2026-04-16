@@ -6,6 +6,7 @@ import { parse } from 'csv-parse/sync';
 import { revalidatePath } from 'next/cache';
 import crypto from 'crypto';
 import { sendEmail } from '@/lib/email/brevo';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 /**
  * Upload and Initial Parse of Bulk Enrollment CSV
@@ -57,6 +58,15 @@ export async function uploadBulkEnrollment(formData: FormData) {
         data: batchRecords
     });
 
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_BULK_ENROLLMENT_UPLOAD',
+        entityType: 'BULK_ENROLLMENT_BATCH',
+        entityId: batch.batch_id,
+        category: 'ADMIN',
+        metadata: { filename: file.name, rowCount: records.length },
+    });
+
     revalidatePath('/dashboard/admin/enrollment');
     return { success: true, batchId: batch.batch_id };
 }
@@ -65,6 +75,11 @@ export async function uploadBulkEnrollment(formData: FormData) {
  * Process a Batch: Create Users, Students, and Dispatch Invites
  */
 export async function processEnrollmentBatch(batchId: string) {
+    const session = await auth();
+    if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
+        throw new Error('Unauthorized: Admin access required.');
+    }
+
     const batch = await prisma.bulkEnrollmentBatch.findUnique({
         where: { batch_id: batchId },
         include: { records: true }
@@ -163,6 +178,15 @@ export async function processEnrollmentBatch(batchId: string) {
         }
     });
 
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_BULK_ENROLLMENT_PROCESS',
+        entityType: 'BULK_ENROLLMENT_BATCH',
+        entityId: batchId,
+        category: 'ADMIN',
+        metadata: { successCount, failCount },
+    });
+
     revalidatePath('/dashboard/admin/enrollment');
     return { success: true, successCount, failCount };
 }
@@ -171,6 +195,11 @@ export async function processEnrollmentBatch(batchId: string) {
  * Dispatch Emails for a Batch
  */
 export async function dispatchEnrollmentInvites(batchId: string) {
+    const session = await auth();
+    if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
+        throw new Error('Unauthorized: Admin access required.');
+    }
+
     const records = await prisma.bulkEnrollmentRecord.findMany({
         where: { batch_id: batchId, status: 'SUCCESS', email_sent: false },
         include: { batch: true }
@@ -198,6 +227,15 @@ export async function dispatchEnrollmentInvites(batchId: string) {
             console.log(`[QUEUE] ${record.email} successfully queued.`);
         }
     }
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_BULK_ENROLLMENT_DISPATCH_INVITES',
+        entityType: 'BULK_ENROLLMENT_BATCH',
+        entityId: batchId,
+        category: 'ADMIN',
+        metadata: { candidates: records.length },
+    });
 
     revalidatePath('/dashboard/admin/enrollment');
     return { success: true };

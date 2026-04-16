@@ -8,6 +8,7 @@ import { evaluateStudentEligibility } from '@/lib/graduation/student-eligibility
 import { parseGraduationRulesDocument, type GraduationRulesDocument } from '@/lib/graduation/rule-schema';
 import type { PresetId } from '@/lib/graduation/rule-presets';
 import { getPresetRules, PRESET_IDS } from '@/lib/graduation/rule-presets';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 async function requireHodOrAdmin() {
     const session = await auth();
@@ -87,6 +88,15 @@ export async function upsertGraduationEligibilityProfile(programId: string, rule
             version: nextVersion,
             updated_by_staff_id: staffId,
         },
+    });
+
+    await writeAuditLog({
+        adminId: session.user!.id,
+        action: 'GRADUATION_ELIGIBILITY_PROFILE_UPSERT',
+        entityType: 'GRADUATION_ELIGIBILITY_PROFILE',
+        entityId: programId,
+        category: 'STAFF',
+        metadata: { version: nextVersion },
     });
 
     await syncThresholdSettingsFromMinGpaRules(toSave);

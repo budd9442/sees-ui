@@ -9,6 +9,7 @@ import {
     getAnalyticsEnabledOnboardingQuestions,
     pickAnalyticsMetadataValues,
 } from '@/lib/onboarding/analytics-metadata';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 /** HoD lists: same classification as `AcademicEngine.calculateStudentGPA` — see `student-eligibility.ts`. */
 async function attachEligibilityToStudents<T extends { id: string }>(students: T[]) {
@@ -353,8 +354,15 @@ export async function allocatePathway(studentIds: string[], pathway: string, rea
     // Removing approval task creation as model is missing from schema
     // In future, this should re-enable once HOD approval workflow is formalised
     console.log(`[HOD] Pathway Allocation requested for ${studentIds.length} students to ${pathway}`);
-    
-    // For now, we return success as if it's been logged
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'HOD_PATHWAY_ALLOCATE_REQUEST',
+        entityType: 'PATHWAY',
+        entityId: pathway,
+        category: 'STAFF',
+        metadata: { studentCount: studentIds.length, reason: reason.slice(0, 500) },
+    });
 
     return { success: true, allocated: studentIds.length, pathway };
 }
@@ -502,6 +510,15 @@ export async function updateRankingWeights(gpaWeight: number, passRateWeight: nu
             description: 'Weight of Pass Rate in student rankings score',
             updated_at: new Date(),
         },
+    });
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'HOD_RANKING_WEIGHTS_UPDATE',
+        entityType: 'SYSTEM_SETTING',
+        entityId: 'ranking_weights',
+        category: 'STAFF',
+        metadata: { gpaWeight, passRateWeight },
     });
 
     return { success: true };

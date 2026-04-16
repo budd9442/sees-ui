@@ -43,12 +43,22 @@ export async function createUserWithEmail(params: CreateUserParams) {
         if (sendWelcomeEmail) {
             try {
                 const emailTemplate = getWelcomeEmail(firstName, username, tempPassword);
-                await sendEmail({
-                    to: email,
-                    toName: firstName,
-                    subject: emailTemplate.subject,
-                    htmlContent: emailTemplate.htmlContent
-                });
+                await sendEmail(
+                    {
+                        to: email,
+                        toName: firstName,
+                        subject: emailTemplate.subject,
+                        htmlContent: emailTemplate.htmlContent,
+                    },
+                    {
+                        actorUserId: null,
+                        action: 'EMAIL_WELCOME',
+                        entityType: 'EMAIL',
+                        entityId: user.user_id,
+                        category: 'EMAIL',
+                        metadata: { source: 'createUserWithEmail', role },
+                    }
+                );
 
                 console.log(`[User Creation] Welcome email sent to ${email}`);
 

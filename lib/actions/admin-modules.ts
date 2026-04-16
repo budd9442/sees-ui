@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 const ModuleSchema = z.object({
     code: z.string().min(2, "Code is required"),
@@ -17,7 +18,7 @@ const ModuleSchema = z.object({
 
 export async function getModules(query?: string, academicYearId?: string) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     // If academicYearId is 'all', we don't filter by year
     // If not provided, we default to the currently active year
@@ -46,7 +47,7 @@ export async function getModules(query?: string, academicYearId?: string) {
 
 export async function upsertModule(data: z.infer<typeof ModuleSchema> & { moduleId?: string, academicYearId?: string }) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     const validated = ModuleSchema.parse(data);
     let targetYearId = data.academicYearId;
@@ -70,6 +71,14 @@ export async function upsertModule(data: z.infer<typeof ModuleSchema> & { module
                 academic_year_id: targetYearId // Allow moving years if explicitly passed
             }
         });
+        await writeAuditLog({
+            adminId: session.user.id,
+            action: 'ADMIN_MODULE_UPDATE',
+            entityType: 'MODULE',
+            entityId: data.moduleId,
+            category: 'ADMIN',
+            metadata: { code: validated.code },
+        });
     } else {
         // Check uniqueness of [code, academic_year_id]
         const existing = await prisma.module.findUnique({
@@ -82,7 +91,7 @@ export async function upsertModule(data: z.infer<typeof ModuleSchema> & { module
         });
         if (existing) throw new Error("Module with this code already exists in this academic year");
 
-        await prisma.module.create({
+        const mod = await prisma.module.create({
             data: {
                 code: validated.code,
                 name: validated.name,
@@ -94,13 +103,21 @@ export async function upsertModule(data: z.infer<typeof ModuleSchema> & { module
                 academic_year_id: targetYearId
             }
         });
+        await writeAuditLog({
+            adminId: session.user.id,
+            action: 'ADMIN_MODULE_CREATE',
+            entityType: 'MODULE',
+            entityId: mod.module_id,
+            category: 'ADMIN',
+            metadata: { code: validated.code },
+        });
     }
     revalidatePath('/dashboard/admin/modules');
 }
 
 export async function toggleModuleStatus(moduleId: string) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     const mod = await prisma.module.findUnique({ where: { module_id: moduleId } });
     if (!mod) throw new Error("Module not found");
@@ -109,6 +126,14 @@ export async function toggleModuleStatus(moduleId: string) {
         where: { module_id: moduleId },
         data: { active: !mod.active }
     });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_MODULE_TOGGLE_ACTIVE',
+        entityType: 'MODULE',
+        entityId: moduleId,
+        category: 'ADMIN',
+        metadata: { active: !mod.active },
+    });
     revalidatePath('/dashboard/admin/modules');
 }
 
@@ -116,7 +141,7 @@ export async function toggleModuleStatus(moduleId: string) {
 
 export async function getAllStaffList() {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     // Fetch all staff
     const staff = await prisma.staff.findMany({
@@ -141,7 +166,7 @@ export async function getAllStaffList() {
 
 export async function getModuleAssignments(moduleId: string) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     const assignments = await prisma.staffAssignment.findMany({
         where: { module_id: moduleId, active: true },
@@ -166,7 +191,7 @@ export async function getModuleAssignments(moduleId: string) {
 
 export async function assignStaffToModule(moduleId: string, staffId: string, role: string, yearId?: string) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     // 1. Resolve target Academic Year (default to active)
     let targetYearId = yearId;
@@ -192,11 +217,19 @@ export async function assignStaffToModule(moduleId: string, staffId: string, rol
                 where: { assignment_id: existing.assignment_id },
                 data: { role }
             });
+            await writeAuditLog({
+                adminId: session.user.id,
+                action: 'ADMIN_STAFF_ASSIGNMENT_UPDATE_ROLE',
+                entityType: 'STAFF_ASSIGNMENT',
+                entityId: existing.assignment_id,
+                category: 'ADMIN',
+                metadata: { module_id: moduleId, staff_id: staffId, role },
+            });
         }
         return;
     }
 
-    await prisma.staffAssignment.create({
+    const assignment = await prisma.staffAssignment.create({
         data: {
             module_id: moduleId,
             staff_id: staffId,
@@ -204,15 +237,30 @@ export async function assignStaffToModule(moduleId: string, staffId: string, rol
             academic_year_id: targetYearId
         }
     });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_STAFF_ASSIGNMENT_CREATE',
+        entityType: 'STAFF_ASSIGNMENT',
+        entityId: assignment.assignment_id,
+        category: 'ADMIN',
+        metadata: { module_id: moduleId, staff_id: staffId, role },
+    });
     revalidatePath('/dashboard/admin/modules');
 }
 
 export async function removeStaffAssignment(assignmentId: string) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     await prisma.staffAssignment.delete({
         where: { assignment_id: assignmentId }
+    });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_STAFF_ASSIGNMENT_DELETE',
+        entityType: 'STAFF_ASSIGNMENT',
+        entityId: assignmentId,
+        category: 'ADMIN',
     });
     revalidatePath('/dashboard/admin/modules');
 }

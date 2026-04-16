@@ -4,20 +4,17 @@ import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
-/**
- * Audit Action Wrapper
- */
 async function createAuditLog(adminId: string, action: string, entityId: string, oldVal: string | null, newVal: string | null) {
-    await prisma.auditLog.create({
-        data: {
-            admin_id: adminId,
-            action,
-            entity_type: 'SYSTEM_SETTING',
-            entity_id: entityId,
-            old_value: oldVal,
-            new_value: newVal,
-        }
+    await writeAuditLog({
+        adminId,
+        action,
+        entityType: 'SYSTEM_SETTING',
+        entityId,
+        oldValue: oldVal,
+        newValue: newVal,
+        category: 'ADMIN',
     });
 }
 

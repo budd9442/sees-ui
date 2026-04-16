@@ -37,12 +37,13 @@ export async function startEmailWorker() {
 
                 try {
                     console.log(`[EMAIL] Invoking Brevo API for ${email}...`);
-                    
-                    const res = await sendEmail({
-                        to: email,
-                        toName: `${firstName} ${lastName}`,
-                        subject: "Welcome to SEES! Setup your academic account",
-                        htmlContent: `
+
+                    await sendEmail(
+                        {
+                            to: email,
+                            toName: `${firstName} ${lastName}`,
+                            subject: 'Welcome to SEES! Setup your academic account',
+                            htmlContent: `
                             <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
                                 <h1 style="color: #1e3a8a;">Welcome to SEES Platform</h1>
                                 <p>Hi ${firstName},</p>
@@ -52,8 +53,17 @@ export async function startEmailWorker() {
                                 </div>
                                 <p style="color: #64748b; font-size: 0.875rem;">This link will expire in 7 days. If you did not expect this email, please ignore it.</p>
                             </div>
-                        `
-                    });
+                        `,
+                        },
+                        {
+                            actorUserId: null,
+                            action: 'EMAIL_BULK_ENROLLMENT_INVITE',
+                            entityType: 'BULK_ENROLLMENT',
+                            entityId: recordId,
+                            category: 'EMAIL',
+                            metadata: { source: 'bulk_enrollment_worker' },
+                        }
+                    );
 
                     console.log(`[EMAIL] Brevo response for ${email}: SUCCESS`);
 
@@ -77,7 +87,7 @@ export async function startEmailWorker() {
                     // Negative ACK: Re-queue the message if it's a transient failure
                     // In a production app, we'd check if error is 4xx or 5xx
                     console.warn(`[QUEUE] Re-queuing message for ${email} due to error.`);
-                    channel.nack(msg, false, true); 
+                    channel.nack(msg, false, true);
                 }
             }
         });

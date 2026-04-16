@@ -3,11 +3,18 @@
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/auth';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 /**
  * Update system-wide GPA thresholds (e.g., First Class at 3.7)
  */
 export async function updateAcademicThresholds(settings: Record<string, string>) {
+    const session = await auth();
+    if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
+        throw new Error('Unauthorized');
+    }
+
     const operations = Object.entries(settings).map(([key, value]) =>
         prisma.systemSetting.upsert({
             where: { key },
@@ -23,6 +30,16 @@ export async function updateAcademicThresholds(settings: Record<string, string>)
     );
 
     await prisma.$transaction(operations);
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_ACADEMIC_THRESHOLDS_UPDATE',
+        entityType: 'SYSTEM_SETTING',
+        entityId: 'academic_thresholds',
+        category: 'ADMIN',
+        metadata: { keys: Object.keys(settings) },
+    });
+
     revalidatePath('/dashboard/admin/settings/academic');
     return { success: true };
 }
@@ -31,6 +48,11 @@ export async function updateAcademicThresholds(settings: Record<string, string>)
  * Configure Grading Scheme (Points for each letter grade)
  */
 export async function updateGradingScheme(schemeId: string, bands: { letter: string, points: number, minMarks: number, maxMarks: number }[]) {
+    const session = await auth();
+    if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
+        throw new Error('Unauthorized');
+    }
+
     await prisma.$transaction(async (tx) => {
         // Delete existing bands for this scheme
         await tx.gradingBand.deleteMany({ where: { scheme_id: schemeId } });
@@ -55,6 +77,11 @@ export async function updateGradingScheme(schemeId: string, bands: { letter: str
  * Initial Seeding of Settings if missing
  */
 export async function ensureDefaultSettings() {
+    const session = await auth();
+    if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
+        throw new Error('Unauthorized');
+    }
+
     const defaults = [
         { key: 'threshold_first_class', value: '3.7', description: 'Minimum GPA for First Class' },
         { key: 'threshold_second_upper', value: '3.0', description: 'Minimum GPA for Second Upper' },
@@ -105,6 +132,14 @@ export async function ensureDefaultSettings() {
             }))
         });
     }
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_GRADING_ENSURE_DEFAULTS',
+        entityType: 'GRADING_SCHEME',
+        entityId: 'defaults',
+        category: 'ADMIN',
+    });
 
     return { success: true };
 }

@@ -2,6 +2,8 @@
 
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/auth';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 /**
  * Fetch all academic years with impact statistics for Admin
@@ -52,6 +54,11 @@ export async function createAcademicYear(data: {
     endDate: Date
 }) {
     try {
+        const session = await auth();
+        if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
+            return { success: false, error: 'Unauthorized' };
+        }
+
         // Validation: Unique label
         const existing = await prisma.academicYear.findUnique({
             where: { label: data.label }
@@ -94,6 +101,15 @@ export async function createAcademicYear(data: {
             return year;
         });
 
+        await writeAuditLog({
+            adminId: session.user.id,
+            action: 'ADMIN_ACADEMIC_YEAR_CREATE',
+            entityType: 'ACADEMIC_YEAR',
+            entityId: result.academic_year_id,
+            category: 'ADMIN',
+            metadata: { label: data.label },
+        });
+
         revalidatePath('/dashboard/admin/config/academic');
         return { success: true, data: result };
     } catch (error: any) {
@@ -107,6 +123,11 @@ export async function createAcademicYear(data: {
  */
 export async function setActiveAcademicYear(id: string) {
     try {
+        const session = await auth();
+        if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
+            return { success: false, error: 'Unauthorized' };
+        }
+
         await prisma.$transaction([
             // 1. Deactivate all others
             prisma.academicYear.updateMany({
@@ -119,6 +140,14 @@ export async function setActiveAcademicYear(id: string) {
                 data: { active: true }
             })
         ]);
+
+        await writeAuditLog({
+            adminId: session.user.id,
+            action: 'ADMIN_ACADEMIC_YEAR_SET_ACTIVE',
+            entityType: 'ACADEMIC_YEAR',
+            entityId: id,
+            category: 'ADMIN',
+        });
 
         revalidatePath('/dashboard/admin/config/academic');
         return { success: true };
@@ -133,6 +162,11 @@ export async function setActiveAcademicYear(id: string) {
  */
 export async function deleteAcademicYear(id: string) {
     try {
+        const session = await auth();
+        if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
+            return { success: false, error: 'Unauthorized' };
+        }
+
         const year = await prisma.academicYear.findUnique({
             where: { academic_year_id: id },
             include: {
@@ -161,6 +195,14 @@ export async function deleteAcademicYear(id: string) {
             prisma.academicYear.delete({ where: { academic_year_id: id } })
         ]);
 
+        await writeAuditLog({
+            adminId: session.user.id,
+            action: 'ADMIN_ACADEMIC_YEAR_DELETE',
+            entityType: 'ACADEMIC_YEAR',
+            entityId: id,
+            category: 'ADMIN',
+        });
+
         revalidatePath('/dashboard/admin/config/academic');
         return { success: true };
     } catch (error: any) {
@@ -176,6 +218,11 @@ export async function updateAcademicYear(id: string, data: {
     endDate: Date
 }) {
     try {
+        const session = await auth();
+        if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
+            return { success: false, error: 'Unauthorized' };
+        }
+
         // Validation: Unique label (excluding current)
         const duplicate = await prisma.academicYear.findFirst({
             where: { 
@@ -223,6 +270,15 @@ export async function updateAcademicYear(id: string, data: {
             }
 
             return year;
+        });
+
+        await writeAuditLog({
+            adminId: session.user.id,
+            action: 'ADMIN_ACADEMIC_YEAR_UPDATE',
+            entityType: 'ACADEMIC_YEAR',
+            entityId: id,
+            category: 'ADMIN',
+            metadata: { label: data.label },
         });
 
         revalidatePath('/dashboard/admin/config/academic');

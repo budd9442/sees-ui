@@ -2,7 +2,7 @@
 /**
  * Shared base layout for Shadcn-style emails
  */
-function getBaseEmailLayout(title: string, content: string) {
+export function getBaseEmailLayout(title: string, content: string) {
   return `
     <!DOCTYPE html>
     <html>

@@ -73,9 +73,9 @@ export function HodDashboardView({
                         </Link>
                     </Button>
                     <Button asChild>
-                        <Link href="/dashboard/hod/reports" className="inline-flex items-center">
+                        <Link href="/dashboard/hod/analytics" className="inline-flex items-center">
                             <FileText className="mr-2 h-4 w-4" />
-                            Generate Report
+                            Open Analytics
                         </Link>
                     </Button>
                 </div>

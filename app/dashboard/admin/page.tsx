@@ -26,7 +26,6 @@ export default async function AdminDashboardPage() {
           systemErrors={data.systemErrors}
           databaseSize={data.databaseSize}
           roleDistribution={data.roleDistribution}
-          featureFlags={data.featureFlags}
           systemMetrics={data.systemMetrics}
           performanceData={data.performanceData}
           recentLogs={data.recentLogs}

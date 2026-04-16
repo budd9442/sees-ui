@@ -6,6 +6,81 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { ensureDefaultGradingSchemeInDb } from '@/lib/grading/module-bands';
 import { DEFAULT_INSTITUTION_GRADING_BANDS, validateBands } from '@/lib/grading/marks-to-grade';
+import { ensureDefaultNotificationConfig } from '@/lib/notifications/defaults';
+import { categoryToEventKey, eventKeyToCategory } from '@/lib/notifications/category-map';
+import { interpolateTemplate, plainTextToEmailHtml } from '@/lib/notifications/render';
+import { getBaseEmailLayout } from '@/lib/email/templates';
+import type { NotificationTemplate } from '@/types';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
+
+/** Audit rows + notification dispatch log, sorted for admin monitoring / logs UI. */
+async function buildUnifiedLogsForAdmin() {
+    const [dbLogs, dispatchLogs] = await Promise.all([
+        prisma.auditLog.findMany({ take: 400, orderBy: { timestamp: 'desc' } }),
+        prisma.notificationDispatchLog.findMany({ take: 400, orderBy: { created_at: 'desc' } }),
+    ]);
+
+    const actorIds = [...new Set(dbLogs.map((l) => l.admin_id).filter((id): id is string => !!id))];
+    const users =
+        actorIds.length > 0
+            ? await prisma.user.findMany({
+                  where: { user_id: { in: actorIds } },
+                  select: { user_id: true, email: true },
+              })
+            : [];
+    const emailByUserId = Object.fromEntries(users.map((u) => [u.user_id, u.email]));
+
+    const auditMapped = dbLogs.map((l) => {
+        const meta = (l.metadata ?? null) as Record<string, unknown> | null;
+        const actorEmail = l.admin_id ? emailByUserId[l.admin_id] ?? l.admin_id : null;
+        const displayEmail = actorEmail ?? (meta?.email as string | undefined) ?? '';
+        return {
+            id: l.log_id,
+            timestamp: l.timestamp.toISOString(),
+            level: 'INFO',
+            status: 'info',
+            source: l.category ?? 'AUDIT',
+            message: `${l.action} — ${l.entity_type}`,
+            details: `${l.action} on ${l.entity_type} (${l.entity_id})`,
+            userEmail: displayEmail || '—',
+            userId: l.admin_id ?? '',
+            action: l.action,
+            resource: l.entity_type,
+            metadata: {
+                ...(meta && typeof meta === 'object' ? meta : {}),
+                entity_id: l.entity_id,
+                entity_type: l.entity_type,
+                category: l.category,
+                ip_address: l.ip_address,
+                user_agent: l.user_agent,
+            },
+        };
+    });
+
+    const dispatchMapped = dispatchLogs.map((d) => ({
+        id: `ndl-${d.log_id}`,
+        timestamp: d.created_at.toISOString(),
+        level: d.status === 'FAILED' ? 'ERROR' : 'INFO',
+        status: d.status === 'FAILED' ? 'failed' : 'success',
+        source: 'NOTIFICATION_DISPATCH',
+        message: `Email ${d.event_key} → ${d.recipient_email}`,
+        details: d.error_message ?? `Dispatch ${d.status}`,
+        userEmail: d.recipient_email,
+        userId: d.recipient_user_id ?? '',
+        action: 'email_dispatch',
+        resource: d.event_key,
+        metadata: {
+            event_key: d.event_key,
+            entity_type: d.entity_type,
+            entity_id: d.entity_id,
+            category: 'EMAIL',
+        },
+    }));
+
+    return [...auditMapped, ...dispatchMapped]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 500);
+}
 
 export async function getAdminDashboardData() {
     const session = await auth();
@@ -52,12 +127,7 @@ export async function getAdminDashboardData() {
         { name: 'Admins', value: adminCount, color: '#ef4444' },
     ];
 
-    // 2. System Settings/Features
-    const featureFlags = await prisma.featureFlag.findMany({
-        orderBy: { name: 'asc' }
-    });
-
-    // 3. System Metrics
+    // 2. System Metrics
     const latestMetric = await prisma.systemMetric.findFirst({
         orderBy: { timestamp: 'desc' }
     });
@@ -102,7 +172,6 @@ export async function getAdminDashboardData() {
         systemErrors: recentAuditLogs.length, 
         databaseSize: '1.2 GB',
         roleDistribution,
-        featureFlags,
         systemMetrics,
         performanceData,
         recentLogs
@@ -135,20 +204,7 @@ export async function getSystemMonitoringData() {
     };
 
     const alerts: any[] = [];
-    // Real Audit Logs for monitoring view
-    const dbLogs = await prisma.auditLog.findMany({
-        take: 20,
-        orderBy: { timestamp: 'desc' }
-    });
-
-    const logs = dbLogs.map(l => ({
-        id: l.log_id,
-        timestamp: l.timestamp.toISOString(),
-        level: 'INFO',
-        source: 'AUDIT',
-        message: `${l.action} performed by ${l.admin_id} on ${l.entity_type}`,
-        metadata: { entity_id: l.entity_id }
-    }));
+    const logs = await buildUnifiedLogsForAdmin();
 
     // Fetch System Settings
     const dbSettings = await prisma.systemSetting.findMany();
@@ -220,22 +276,243 @@ export async function restoreAdminBackup(backupId: string) {
 // NOTIFICATION ENGINE ACTIONS
 // ----------------------------------------------------------------------
 
-export async function getAdminNotificationsData() {
+async function requireAdminForNotifications() {
     const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-    return { templates: [] }; 
+    if (!session?.user?.id || session.user.role !== 'admin') {
+        throw new Error('Unauthorized');
+    }
+    return session;
 }
 
-export async function createAdminNotificationTemplate(data: any) {
-    return { success: true, data };
+export async function getAdminNotificationsData() {
+    await requireAdminForNotifications();
+    await ensureDefaultNotificationConfig();
+
+    const templates = await prisma.notificationEmailTemplate.findMany({
+        orderBy: { updated_at: 'desc' },
+    });
+    const triggers = await prisma.notificationTriggerConfig.findMany({
+        orderBy: { event_key: 'asc' },
+    });
+
+    return {
+        templates: templates.map((t) => ({
+            id: t.template_id,
+            name: t.name,
+            category: eventKeyToCategory(t.event_key),
+            eventKey: t.event_key,
+            subject: t.subject,
+            body: t.body,
+            placeholders: (t.placeholders as string[] | null) ?? [],
+            isActive: t.is_active,
+            createdAt: t.created_at.toISOString(),
+            updatedAt: t.updated_at.toISOString(),
+        })),
+        triggers: triggers.map((tr) => ({
+            eventKey: tr.event_key,
+            enabled: tr.enabled,
+            configJson: tr.config_json as { daysBeforeClose?: number[] } | null,
+        })),
+    };
 }
 
-export async function updateAdminNotificationTemplate(id: string, data: any) {
-    return { success: true, data };
+export async function createAdminNotificationTemplate(data: Partial<NotificationTemplate> & { category: NotificationTemplate['category'] }) {
+    const session = await requireAdminForNotifications();
+    if (!data.name?.trim() || !data.subject?.trim() || !data.body?.trim() || !data.category) {
+        throw new Error('Name, category, subject, and body are required');
+    }
+
+    const event_key = categoryToEventKey(data.category);
+    const created = await prisma.notificationEmailTemplate.create({
+        data: {
+            template_id: randomUUID(),
+            name: data.name.trim(),
+            event_key,
+            subject: data.subject.trim(),
+            body: data.body.trim(),
+            placeholders: data.placeholders ?? [],
+            is_active: data.isActive !== false,
+            channel: 'email',
+        },
+    });
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_NOTIFICATION_TEMPLATE_CREATE',
+        entityType: 'NOTIFICATION_TEMPLATE',
+        entityId: created.template_id,
+        category: 'ADMIN',
+        metadata: { event_key: created.event_key, name: created.name },
+    });
+
+    revalidatePath('/dashboard/admin/config/notifications');
+    return {
+        success: true,
+        data: {
+            id: created.template_id,
+            name: created.name,
+            category: data.category,
+            eventKey: created.event_key,
+            subject: created.subject,
+            body: created.body,
+            placeholders: (created.placeholders as string[]) ?? [],
+            isActive: created.is_active,
+            createdAt: created.created_at.toISOString(),
+            updatedAt: created.updated_at.toISOString(),
+        },
+    };
+}
+
+export async function updateAdminNotificationTemplate(id: string, data: Partial<NotificationTemplate>) {
+    const session = await requireAdminForNotifications();
+    const existing = await prisma.notificationEmailTemplate.findUnique({
+        where: { template_id: id },
+    });
+    if (!existing) throw new Error('Template not found');
+
+    const event_key = data.category ? categoryToEventKey(data.category) : existing.event_key;
+
+    const updated = await prisma.notificationEmailTemplate.update({
+        where: { template_id: id },
+        data: {
+            ...(data.name !== undefined ? { name: data.name.trim() } : {}),
+            ...(data.subject !== undefined ? { subject: data.subject.trim() } : {}),
+            ...(data.body !== undefined ? { body: data.body.trim() } : {}),
+            ...(data.placeholders !== undefined ? { placeholders: data.placeholders } : {}),
+            ...(data.isActive !== undefined ? { is_active: data.isActive } : {}),
+            ...(data.category !== undefined ? { event_key } : {}),
+        },
+    });
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_NOTIFICATION_TEMPLATE_UPDATE',
+        entityType: 'NOTIFICATION_TEMPLATE',
+        entityId: updated.template_id,
+        category: 'ADMIN',
+        metadata: { event_key: updated.event_key },
+    });
+
+    revalidatePath('/dashboard/admin/config/notifications');
+    return {
+        success: true,
+        data: {
+            id: updated.template_id,
+            name: updated.name,
+            category: eventKeyToCategory(updated.event_key),
+            eventKey: updated.event_key,
+            subject: updated.subject,
+            body: updated.body,
+            placeholders: (updated.placeholders as string[]) ?? [],
+            isActive: updated.is_active,
+            createdAt: updated.created_at.toISOString(),
+            updatedAt: updated.updated_at.toISOString(),
+        },
+    };
 }
 
 export async function deleteAdminNotificationTemplate(id: string) {
+    const session = await requireAdminForNotifications();
+    await prisma.notificationEmailTemplate.delete({
+        where: { template_id: id },
+    });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_NOTIFICATION_TEMPLATE_DELETE',
+        entityType: 'NOTIFICATION_TEMPLATE',
+        entityId: id,
+        category: 'ADMIN',
+    });
+    revalidatePath('/dashboard/admin/config/notifications');
     return { success: true };
+}
+
+export async function updateNotificationTriggerEnabled(eventKey: string, enabled: boolean) {
+    const session = await requireAdminForNotifications();
+    await prisma.notificationTriggerConfig.update({
+        where: { event_key: eventKey },
+        data: { enabled },
+    });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_NOTIFICATION_TRIGGER_TOGGLE',
+        entityType: 'NOTIFICATION_TRIGGER',
+        entityId: eventKey,
+        category: 'ADMIN',
+        metadata: { enabled },
+    });
+    revalidatePath('/dashboard/admin/config/notifications');
+    return { success: true as const };
+}
+
+export async function updateDeadlineReminderConfig(daysBeforeClose: number[]) {
+    const session = await requireAdminForNotifications();
+    const clean = [...new Set(daysBeforeClose.map((n) => Math.floor(Number(n))).filter((n) => n >= 0 && n <= 30))].sort(
+        (a, b) => a - b
+    );
+    if (clean.length === 0) {
+        throw new Error('At least one reminder day is required');
+    }
+    await prisma.notificationTriggerConfig.update({
+        where: { event_key: 'DEADLINE_REMINDER' },
+        data: { config_json: { daysBeforeClose: clean } },
+    });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_DEADLINE_REMINDER_CONFIG',
+        entityType: 'NOTIFICATION_TRIGGER',
+        entityId: 'DEADLINE_REMINDER',
+        category: 'ADMIN',
+        metadata: { daysBeforeClose: clean },
+    });
+    revalidatePath('/dashboard/admin/config/notifications');
+    return { success: true as const, daysBeforeClose: clean };
+}
+
+function sampleVarsForEventKey(eventKey: string): Record<string, string> {
+    const common = {
+        studentName: 'Jane Student',
+        firstName: 'Jane',
+        lastName: 'Student',
+        moduleName: 'Data Structures',
+        moduleCode: 'CS201',
+        letterGrade: 'A-',
+        previousLevel: 'L1',
+        newLevel: 'L2',
+        username: 'jane.student',
+        tempPassword: 'TempP@ss123',
+        loginUrl: 'https://sees.budd.codes/login',
+        setupLink: 'https://sees.budd.codes/register?token=sample',
+        deadlineTitle: 'Module registration window',
+        deadlineDate: new Date().toISOString(),
+        extraMessage: 'Please complete registration before the deadline.',
+        outcome: 'Allocated to BSc Computer Science',
+        alertTitle: 'Maintenance',
+        alertBody: 'The system will be unavailable tonight.',
+        windowLabel: 'Example registration window',
+        closesAt: new Date().toISOString(),
+        level: 'L2',
+        previousAcademicStanding: 'Second Upper',
+        newAcademicStanding: 'First Class',
+        currentGpa: '3.72',
+    };
+    return common;
+}
+
+export async function previewAdminNotificationTemplate(templateId: string) {
+    await requireAdminForNotifications();
+    const t = await prisma.notificationEmailTemplate.findUnique({
+        where: { template_id: templateId },
+    });
+    if (!t) throw new Error('Template not found');
+
+    const vars = sampleVarsForEventKey(t.event_key);
+    const subject = interpolateTemplate(t.subject, vars);
+    const body = interpolateTemplate(t.body, vars);
+    const innerHtml = plainTextToEmailHtml(body);
+    const html = getBaseEmailLayout(subject || 'Preview', `<div class="email-body">${innerHtml}</div>`);
+
+    return { success: true as const, subject, body, html };
 }
 
 // ANONYMOUS REPORTS ACTIONS
@@ -414,6 +691,15 @@ export async function updateAdminGpaConfigData(data: any) {
         });
     });
 
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_GPA_CONFIG_UPDATE',
+        entityType: 'GPA_CONFIG',
+        entityId: 'gpa_settings',
+        category: 'ADMIN',
+        metadata: { calculationMethod: String(calculationMethod ?? '') },
+    });
+
     return { success: true };
 }
 
@@ -469,28 +755,17 @@ export async function saveAdminGradingBands(
         });
     });
 
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_GRADING_BANDS_SAVE',
+        entityType: 'GRADING_SCHEME',
+        entityId: 'active',
+        category: 'ADMIN',
+        metadata: { bandCount: v.bands.length },
+    });
+
     revalidatePath('/dashboard/admin/config/gpa');
     return { success: true as const };
-}
-
-// REPORT TEMPLATES ACTIONS
-
-export async function getAdminReportTemplatesData() {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-    return { templates: [] }; 
-}
-
-export async function createAdminReportTemplate(data: any) {
-    return { success: true, data };
-}
-
-export async function updateAdminReportTemplate(id: string, data: any) {
-    return { success: true, data };
-}
-
-export async function deleteAdminReportTemplate(id: string) {
-    return { success: true };
 }
 
 // DEGREE PROGRAMS ACTIONS

@@ -20,10 +20,14 @@ export default async function HODAnalyticsPage({
   const sp = await searchParams;
   const pathway = typeof sp.pathway === 'string' ? sp.pathway : undefined;
   const level = typeof sp.level === 'string' ? sp.level : undefined;
+  const metadataKey = typeof sp.metadataKey === 'string' ? sp.metadataKey : undefined;
+  const metadataValue = typeof sp.metadataValue === 'string' ? sp.metadataValue : undefined;
 
   const data = await getHODAnalyticsData({
     pathway: pathway === 'all' ? undefined : pathway,
     level: level === 'all' ? undefined : level,
+    metadataKey: metadataKey === 'all' ? undefined : metadataKey,
+    metadataValue: metadataValue === 'all' ? undefined : metadataValue,
   });
 
   return (
@@ -32,6 +36,8 @@ export default async function HODAnalyticsPage({
         initialData={data}
         initialPathway={pathway ?? 'all'}
         initialLevel={level ?? 'all'}
+        initialMetadataKey={metadataKey ?? 'all'}
+        initialMetadataValue={metadataValue ?? 'all'}
       />
     </Suspense>
   );

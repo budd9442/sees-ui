@@ -1,7 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
-import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +35,8 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { Download } from 'lucide-react';
+import { ReportBuilderPanel } from '@/components/analytics/report-builder-panel';
+import { defaultHodReportDefinition } from '@/lib/analytics/default-reports';
 
 type HODAnalyticsClientProps = {
     initialData: {
@@ -50,25 +51,56 @@ type HODAnalyticsClientProps = {
     };
     initialPathway?: string;
     initialLevel?: string;
+    initialMetadataKey?: string;
+    initialMetadataValue?: string;
 };
 
 export default function HODAnalyticsClient({
     initialData,
     initialPathway = 'all',
     initialLevel = 'all',
+    initialMetadataKey = 'all',
+    initialMetadataValue = 'all',
 }: HODAnalyticsClientProps) {
     const router = useRouter();
     const pathname = usePathname();
+    const [showCustomAnalysis, setShowCustomAnalysis] = useState(false);
     const { students, modules, grades, enrollmentTrend, departmentGpaTrend, department, pathwayOptions, levelOptions } =
         initialData;
 
-    const pushFilters = (pathway: string, level: string) => {
+    const pushFilters = (pathway: string, level: string, metadataKey: string, metadataValue: string) => {
         const p = new URLSearchParams();
         if (pathway !== 'all') p.set('pathway', pathway);
         if (level !== 'all') p.set('level', level);
+        if (metadataKey !== 'all') p.set('metadataKey', metadataKey);
+        if (metadataValue !== 'all') p.set('metadataValue', metadataValue);
         const q = p.toString();
         router.push(q ? `${pathname}?${q}` : pathname);
     };
+
+    const metadataKeys = useMemo(() => {
+        const keySet = new Set<string>();
+        for (const s of students) {
+            const md = (s.analyticsMetadata ?? {}) as Record<string, unknown>;
+            Object.keys(md).forEach((k) => {
+                if (k) keySet.add(k);
+            });
+        }
+        return Array.from(keySet).sort((a, b) => a.localeCompare(b));
+    }, [students]);
+
+    const metadataValuesForKey = useMemo(() => {
+        if (!initialMetadataKey || initialMetadataKey === 'all') return [];
+        const values = new Set<string>();
+        for (const s of students) {
+            const md = (s.analyticsMetadata ?? {}) as Record<string, unknown>;
+            const raw = md[initialMetadataKey];
+            if (raw == null) continue;
+            const value = String(raw).trim();
+            if (value) values.add(value);
+        }
+        return Array.from(values).sort((a, b) => a.localeCompare(b));
+    }, [students, initialMetadataKey]);
 
     const totalStudents = students.length;
     const totalModules = modules.length;
@@ -166,23 +198,27 @@ export default function HODAnalyticsClient({
         console.log('Exporting analytics data...');
     };
 
-    const builderParams = new URLSearchParams();
-    if (initialPathway !== 'all') builderParams.set('pathway', initialPathway);
-    if (initialLevel !== 'all') builderParams.set('level', initialLevel);
-    const builderHref = `/dashboard/hod/analytics/builder${builderParams.toString() ? `?${builderParams.toString()}` : ''}`;
+    const builderFilterContext = {
+        pathway: initialPathway === 'all' ? undefined : initialPathway,
+        level: initialLevel === 'all' ? undefined : initialLevel,
+        metadataKey: initialMetadataKey === 'all' ? undefined : initialMetadataKey,
+        metadataValue: initialMetadataValue === 'all' ? undefined : initialMetadataValue,
+    };
+
+    const aggregateSummary = `Students: ${totalStudents}; modules: ${totalModules}; pathway=${initialPathway}; level=${initialLevel}; metadataKey=${initialMetadataKey}; metadataValue=${initialMetadataValue}`;
 
     return (
         <div className="space-y-6">
             <Card>
                 <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p className="text-sm font-medium">Report builder</p>
+                        <p className="text-sm font-medium">Custom analysis builder</p>
                         <p className="text-xs text-muted-foreground">
-                            Full-page canvas with department-scoped datasets. Filters carry over.
+                            Keep default insights and add custom visuals with saved reports, exports, and assistant support.
                         </p>
                     </div>
-                    <Button variant="default" size="sm" asChild>
-                        <Link href={builderHref}>Open report builder</Link>
+                    <Button variant="default" size="sm" onClick={() => setShowCustomAnalysis((v) => !v)}>
+                        {showCustomAnalysis ? 'Hide custom analysis' : 'Open custom analysis'}
                     </Button>
                 </CardContent>
             </Card>
@@ -208,12 +244,12 @@ export default function HODAnalyticsClient({
             </div>
 
             <Card>
-                <CardHeader><CardTitle>Filters</CardTitle><CardDescription>Pathway and level slice all charts (URL-backed).</CardDescription></CardHeader>
+                <CardHeader><CardTitle>Filters</CardTitle><CardDescription>Pathway, level, and onboarding metadata slice all charts (URL-backed).</CardDescription></CardHeader>
                 <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <div className="space-y-2">
                             <Label htmlFor="pathway">Pathway</Label>
-                            <Select value={initialPathway} onValueChange={(v) => pushFilters(v, initialLevel)}>
+                            <Select value={initialPathway} onValueChange={(v) => pushFilters(v, initialLevel, initialMetadataKey, initialMetadataValue)}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Pathways</SelectItem>
@@ -225,12 +261,43 @@ export default function HODAnalyticsClient({
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="year">Level</Label>
-                            <Select value={initialLevel} onValueChange={(v) => pushFilters(initialPathway, v)}>
+                            <Select value={initialLevel} onValueChange={(v) => pushFilters(initialPathway, v, initialMetadataKey, initialMetadataValue)}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All levels</SelectItem>
                                     {(levelOptions.length ? levelOptions : ['L1', 'L2', 'L3']).map((y) => (
                                         <SelectItem key={y} value={y}>{y}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="metadataKey">Metadata key</Label>
+                            <Select
+                                value={initialMetadataKey}
+                                onValueChange={(v) => pushFilters(initialPathway, initialLevel, v, 'all')}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All metadata keys</SelectItem>
+                                    {metadataKeys.map((k) => (
+                                        <SelectItem key={k} value={k}>{k}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="metadataValue">Metadata value</Label>
+                            <Select
+                                value={initialMetadataValue}
+                                onValueChange={(v) => pushFilters(initialPathway, initialLevel, initialMetadataKey, v)}
+                                disabled={initialMetadataKey === 'all'}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All values</SelectItem>
+                                    {metadataValuesForKey.map((v) => (
+                                        <SelectItem key={v} value={v}>{v}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -264,6 +331,26 @@ export default function HODAnalyticsClient({
                     <Card><CardHeader><CardTitle>Module Performance Analysis</CardTitle><CardDescription>Performance metrics across modules</CardDescription></CardHeader><CardContent><div className="space-y-4">{modulePerformance.slice(0, 10).map((module: any) => (<div key={module.code} className="flex items-center justify-between p-3 rounded-lg border"><div className="flex-1"><h4 className="font-medium">{module.module}</h4><p className="text-sm text-muted-foreground">{module.code}</p></div><div className="flex items-center gap-6"><div className="text-center"><p className="text-sm text-muted-foreground">Avg Grade</p><p className="font-semibold">{module.averageGrade}</p></div><div className="text-center"><p className="text-sm text-muted-foreground">Pass Rate</p><p className="font-semibold">{module.passRate}%</p></div><div className="text-center"><p className="text-sm text-muted-foreground">Students</p><p className="font-semibold">{module.students}</p></div></div></div>))}</div></CardContent></Card>
                 </TabsContent>
             </Tabs>
+
+            {showCustomAnalysis && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Custom analysis</CardTitle>
+                        <CardDescription>
+                            Add and customize visuals on top of the default HoD analytics view.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ReportBuilderPanel
+                            variant="embedded"
+                            defaultDefinition={defaultHodReportDefinition()}
+                            filterContext={builderFilterContext}
+                            builderRole="hod"
+                            aggregatesSummary={aggregateSummary}
+                        />
+                    </CardContent>
+                </Card>
+            )}
             </div>
         </div>
     );

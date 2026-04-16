@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { hash } from 'bcryptjs';
-import { sendEmail } from '@/lib/email/brevo';
-import { getWelcomeEmail, generateTempPassword } from '@/lib/email/templates';
+import { generateTempPassword } from '@/lib/email/templates';
+import { dispatchNotificationEmail } from '@/lib/notifications/dispatch';
+import { NotificationEventKey } from '@/lib/notifications/events';
 import { parse } from 'csv-parse/sync';
 import { auth } from '@/auth';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 export async function POST(req: Request) {
     try {
@@ -168,15 +170,29 @@ export async function POST(req: Request) {
                 let emailSentAt = null;
 
                 try {
-                    const emailTemplate = getWelcomeEmail(firstName, finalUsername, tempPassword);
-                    await sendEmail({
+                    const loginBase = process.env.NEXT_PUBLIC_APP_URL || 'https://sees.budd.codes';
+                    const loginUrl = `${loginBase.replace(/\/$/, '')}/login`;
+                    const dispatch = await dispatchNotificationEmail({
+                        eventKey: NotificationEventKey.ENROLLMENT_WELCOME,
+                        dedupeKey: `${NotificationEventKey.ENROLLMENT_WELCOME}:${user.user_id}`,
                         to: email,
-                        toName: firstName,
-                        subject: emailTemplate.subject,
-                        htmlContent: emailTemplate.htmlContent
+                        toName: `${firstName} ${lastName}`.trim(),
+                        recipientUserId: user.user_id,
+                        entityType: 'user',
+                        entityId: user.user_id,
+                        vars: {
+                            firstName,
+                            username: finalUsername,
+                            tempPassword,
+                            loginUrl,
+                        },
                     });
-                    emailSent = true;
-                    emailSentAt = new Date();
+                    if (dispatch.ok && !('skipped' in dispatch && dispatch.skipped)) {
+                        emailSent = true;
+                        emailSentAt = new Date();
+                    } else if (!dispatch.ok) {
+                        console.error(`Failed to send email to ${email}:`, dispatch.error);
+                    }
                 } catch (emailError) {
                     console.error(`Failed to send email to ${email}:`, emailError);
                 }
@@ -226,6 +242,24 @@ export async function POST(req: Request) {
                 status: 'COMPLETED'
             }
         });
+
+        const uid = (session.user as { id?: string }).id;
+        if (uid) {
+            await writeAuditLog({
+                adminId: uid,
+                action: 'ADMIN_BULK_ENROLL_API_COMPLETE',
+                entityType: 'BULK_ENROLLMENT_BATCH',
+                entityId: batch.batch_id,
+                category: 'ADMIN',
+                metadata: {
+                    success: results.success,
+                    failed: results.failed,
+                    programId,
+                    level,
+                    filename,
+                },
+            });
+        }
 
         return NextResponse.json({
             ...results,

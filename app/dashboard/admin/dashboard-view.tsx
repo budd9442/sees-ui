@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import {
     Users,
@@ -13,7 +12,6 @@ import {
     Database,
     ShieldAlert,
     Activity,
-    Settings,
     RefreshCw,
     HardDrive,
     Cpu,
@@ -43,7 +41,6 @@ interface AdminDashboardViewProps {
     systemErrors: number;
     databaseSize: string;
     roleDistribution: any[];
-    featureFlags: any[];
     systemMetrics: any;
     performanceData: any[];
     recentLogs: any[];
@@ -56,7 +53,6 @@ export function AdminDashboardView({
     systemErrors,
     databaseSize,
     roleDistribution,
-    featureFlags,
     systemMetrics,
     performanceData,
     recentLogs
@@ -77,12 +73,6 @@ export function AdminDashboardView({
                         <Link href="/dashboard/admin" className="inline-flex items-center">
                             <RefreshCw className="mr-2 h-4 w-4" />
                             Refresh Data
-                        </Link>
-                    </Button>
-                    <Button asChild>
-                        <Link href="/dashboard/admin/config/features" className="inline-flex items-center">
-                            <Settings className="mr-2 h-4 w-4" />
-                            Global Settings
                         </Link>
                     </Button>
                 </div>
@@ -159,7 +149,6 @@ export function AdminDashboardView({
                 <TabsList>
                     <TabsTrigger value="monitoring">System Monitoring</TabsTrigger>
                     <TabsTrigger value="users">User Distribution</TabsTrigger>
-                    <TabsTrigger value="configuration">Feature Flags</TabsTrigger>
                     <TabsTrigger value="logs">System Logs</TabsTrigger>
                 </TabsList>
 
@@ -289,34 +278,6 @@ export function AdminDashboardView({
                             </CardContent>
                         </Card>
                     </div>
-                </TabsContent>
-
-                {/* Configuration Tab */}
-                <TabsContent value="configuration" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Feature Flags</CardTitle>
-                            <CardDescription>Toggle system features and modules globally</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-6">
-                                {featureFlags.map(flag => (
-                                    <div key={flag.flag_id} className="flex items-center justify-between rounded-lg border p-4">
-                                        <div className="space-y-0.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-semibold text-base">{flag.name}</span>
-                                                <Badge variant={flag.enabled ? 'default' : 'secondary'} className="text-xs">
-                                                    {flag.enabled ? 'Active' : 'Disabled'}
-                                                </Badge>
-                                            </div>
-                                            <p className="text-sm text-muted-foreground">{flag.description}</p>
-                                        </div>
-                                        <Switch checked={flag.enabled} />
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
                 </TabsContent>
 
                 {/* System Logs Tab */}

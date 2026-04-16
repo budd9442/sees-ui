@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 // Zod Schemas
 const ProgramSchema = z.object({
@@ -23,7 +24,7 @@ const SpecializationSchema = z.object({
 // GET Actions
 export async function getAllPrograms(query: string = '', yearId: string = 'active') {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     let academicYearId = yearId;
     if (yearId === 'active') {
@@ -54,7 +55,7 @@ export async function getAllPrograms(query: string = '', yearId: string = 'activ
 
 export async function getProgramById(programId: string) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     return await prisma.degreeProgram.findUnique({
         where: { program_id: programId },
@@ -73,7 +74,7 @@ export async function getProgramById(programId: string) {
 // CREATE / UPDATE Programs
 export async function createProgram(data: z.infer<typeof ProgramSchema>) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     const validated = ProgramSchema.parse(data);
 
@@ -83,7 +84,7 @@ export async function createProgram(data: z.infer<typeof ProgramSchema>) {
         academicYearId = activeYear?.academic_year_id;
     }
 
-    await prisma.degreeProgram.create({
+    const created = await prisma.degreeProgram.create({
         data: {
             code: validated.code,
             name: validated.name,
@@ -91,12 +92,20 @@ export async function createProgram(data: z.infer<typeof ProgramSchema>) {
             academic_year_id: academicYearId
         }
     });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_PROGRAM_CREATE',
+        entityType: 'DEGREE_PROGRAM',
+        entityId: created.program_id,
+        category: 'ADMIN',
+        metadata: { code: validated.code },
+    });
     revalidatePath('/dashboard/admin/programs');
 }
 
 export async function updateProgram(programId: string, data: Partial<z.infer<typeof ProgramSchema>>) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     await prisma.degreeProgram.update({
         where: { program_id: programId },
@@ -104,13 +113,20 @@ export async function updateProgram(programId: string, data: Partial<z.infer<typ
             ...data
         }
     });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_PROGRAM_UPDATE',
+        entityType: 'DEGREE_PROGRAM',
+        entityId: programId,
+        category: 'ADMIN',
+    });
     revalidatePath('/dashboard/admin/programs');
 }
 
 // CREATE / UPDATE Specializations
 export async function createSpecialization(data: z.infer<typeof SpecializationSchema> & { academicYearId?: string }) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     const validated = SpecializationSchema.parse(data);
 
@@ -124,7 +140,7 @@ export async function createSpecialization(data: z.infer<typeof SpecializationSc
         academicYearId = program?.academic_year_id || undefined;
     }
 
-    await prisma.specialization.create({
+    const spec = await prisma.specialization.create({
         data: {
             code: validated.code,
             name: validated.name,
@@ -132,6 +148,14 @@ export async function createSpecialization(data: z.infer<typeof SpecializationSc
             program_id: validated.programId,
             ...(academicYearId ? { academic_year_id: academicYearId } : {}),
         },
+    });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_SPECIALIZATION_CREATE',
+        entityType: 'SPECIALIZATION',
+        entityId: spec.specialization_id,
+        category: 'ADMIN',
+        metadata: { code: validated.code, programId: validated.programId },
     });
     revalidatePath(`/dashboard/admin/programs`);
 }
@@ -147,7 +171,7 @@ export async function addModuleToStructure(data: {
     academicYearId?: string
 }) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     let academicYearId = data.academicYearId;
     if (!academicYearId) {
@@ -158,7 +182,7 @@ export async function addModuleToStructure(data: {
         academicYearId = program?.academic_year_id || undefined;
     }
 
-    await prisma.programStructure.create({
+    const row = await prisma.programStructure.create({
         data: {
             program_id: data.programId,
             module_id: data.moduleId,
@@ -169,23 +193,37 @@ export async function addModuleToStructure(data: {
             ...(academicYearId ? { academic_year_id: academicYearId } : {}),
         },
     });
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_PROGRAM_STRUCTURE_ADD',
+        entityType: 'PROGRAM_STRUCTURE',
+        entityId: row.structure_id,
+        category: 'ADMIN',
+        metadata: { program_id: data.programId, module_id: data.moduleId },
+    });
     revalidatePath(`/dashboard/admin/programs`);
 }
 
 export async function removeModuleFromStructure(structureId: string) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     await prisma.programStructure.delete({
         where: { structure_id: structureId }
     });
-    // revalidate generic?
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_PROGRAM_STRUCTURE_REMOVE',
+        entityType: 'PROGRAM_STRUCTURE',
+        entityId: structureId,
+        category: 'ADMIN',
+    });
     revalidatePath(`/dashboard/admin/programs`);
 }
 
 export async function getAllModulesSimple() {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     return await prisma.module.findMany({
         where: { active: true },
@@ -203,7 +241,7 @@ export async function getAllModulesSimple() {
 
 export async function getAllAcademicYears() {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
     return await prisma.academicYear.findMany({ orderBy: { start_date: 'desc' } });
 }
 
@@ -215,7 +253,7 @@ export async function upsertProgramIntake(data: {
     status: 'OPEN' | 'CLOSED' | 'UPCOMING'
 }) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
 
     // Check if exists
     const existing = await prisma.programIntake.findFirst({
@@ -234,8 +272,16 @@ export async function upsertProgramIntake(data: {
                 status: data.status
             }
         });
+        await writeAuditLog({
+            adminId: session.user.id,
+            action: 'ADMIN_PROGRAM_INTAKE_UPSERT',
+            entityType: 'PROGRAM_INTAKE',
+            entityId: existing.intake_id,
+            category: 'ADMIN',
+            metadata: { program_id: data.programId, status: data.status },
+        });
     } else {
-        await prisma.programIntake.create({
+        const intake = await prisma.programIntake.create({
             data: {
                 degree_program: { connect: { program_id: data.programId } },
                 academic_year: { connect: { academic_year_id: data.academicYearId } },
@@ -243,6 +289,14 @@ export async function upsertProgramIntake(data: {
                 max_students: data.maxStudents,
                 status: data.status
             }
+        });
+        await writeAuditLog({
+            adminId: session.user.id,
+            action: 'ADMIN_PROGRAM_INTAKE_UPSERT',
+            entityType: 'PROGRAM_INTAKE',
+            entityId: intake.intake_id,
+            category: 'ADMIN',
+            metadata: { program_id: data.programId, status: data.status },
         });
     }
     revalidatePath(`/dashboard/admin/programs`);

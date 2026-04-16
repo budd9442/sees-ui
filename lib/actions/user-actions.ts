@@ -136,6 +136,9 @@ export async function createUser(data: CreateUserSchema) {
         return { success: false, error: result.error.flatten() };
     }
 
+    const session = await auth();
+    const actorUserId = session?.user?.id ?? null;
+
     const { firstName, lastName, email, role, ...otherDetails } = result.data;
 
     console.log("Creating User:", { firstName, lastName, email, role, degreePathId: otherDetails.degreePathId });
@@ -252,12 +255,21 @@ export async function createUser(data: CreateUserSchema) {
         try {
             const invitationLink = `${process.env.NEXTAUTH_URL}/register?token=${token}`;
             const emailTemplate = getInvitationEmail(firstName, username, invitationLink);
-            await sendEmail({
-                to: email,
-                toName: firstName,
-                subject: emailTemplate.subject,
-                htmlContent: emailTemplate.htmlContent
-            });
+            await sendEmail(
+                {
+                    to: email,
+                    toName: firstName,
+                    subject: emailTemplate.subject,
+                    htmlContent: emailTemplate.htmlContent,
+                },
+                {
+                    actorUserId,
+                    action: 'EMAIL_USER_INVITATION',
+                    entityType: 'EMAIL',
+                    entityId: newUser.user_id,
+                    metadata: { source: 'admin_createUser', role },
+                }
+            );
             console.log(`Invitation email sent to ${email}`);
         } catch (emailError) {
             console.error('Failed to send invitation email:', emailError);

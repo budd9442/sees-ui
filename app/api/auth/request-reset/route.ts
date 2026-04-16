@@ -66,12 +66,21 @@ export async function POST(req: Request) {
         // Send reset email
         try {
             const emailTemplate = getPasswordResetEmail(user.firstName || 'User', token);
-            await sendEmail({
-                to: user.email,
-                toName: user.firstName || undefined,
-                subject: emailTemplate.subject,
-                htmlContent: emailTemplate.htmlContent
-            });
+            await sendEmail(
+                {
+                    to: user.email,
+                    toName: user.firstName || undefined,
+                    subject: emailTemplate.subject,
+                    htmlContent: emailTemplate.htmlContent,
+                },
+                {
+                    actorUserId: null,
+                    action: 'EMAIL_PASSWORD_RESET',
+                    entityType: 'EMAIL',
+                    entityId: user.user_id,
+                    metadata: { source: 'request_reset_api' },
+                }
+            );
 
             console.log(`[Password Reset] Reset email sent to ${user.email}`);
         } catch (emailError) {

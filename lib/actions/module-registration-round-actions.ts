@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { levelsOverlap, studentMatchesRoundLevels } from '@/lib/module-registration-round-utils';
 import { isWithinRegistrationWindow, MODULE_REGISTRATION_WINDOW_COPY } from '@/lib/registration-time-window';
+import { notifyModuleRegistrationWindowOpened } from '@/lib/notifications/window-opened';
 
 export type ModuleRegistrationRoundStatus = 'DRAFT' | 'OPEN' | 'CLOSED' | 'FINALIZED';
 
@@ -207,6 +208,9 @@ export async function openModuleRegistrationRound(roundId: string) {
             where: { round_id: roundId },
             data: { status: 'OPEN' },
         });
+        void notifyModuleRegistrationWindowOpened(roundId).catch((err) =>
+            console.error('notifyModuleRegistrationWindowOpened', err)
+        );
         revalidatePath('/dashboard/hod/module-registration');
         revalidatePath('/dashboard/student/modules');
         return { success: true, data: updated };

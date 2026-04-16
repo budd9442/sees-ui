@@ -12,6 +12,7 @@ import {
     type OnboardingQuestion,
     type OnboardingQuestionsDocument,
 } from '@/lib/onboarding/question-schema';
+import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
 function canManageOnboarding(role: string | undefined) {
     return role === 'admin' || role === 'hod';
@@ -57,8 +58,12 @@ export async function getOnboardingQuestionsForAdmin() {
 export async function saveOnboardingQuestionsForAdmin(input: unknown) {
     const { session } = await requireAdminOrHod();
     const normalized = normalizeOnboardingQuestions(input);
+    const normalizedAnalytics = {
+        ...normalized,
+        questions: normalized.questions.map((q) => ({ ...q, includeInAnalytics: true })),
+    };
     const keys = new Set<string>();
-    for (const q of normalized.questions) {
+    for (const q of normalizedAnalytics.questions) {
         if (keys.has(q.key)) {
             throw new Error(`Duplicate question key: ${q.key}`);
         }
@@ -68,7 +73,7 @@ export async function saveOnboardingQuestionsForAdmin(input: unknown) {
         keys.add(q.key);
     }
     const payload = {
-        ...normalized,
+        ...normalizedAnalytics,
         updatedAt: new Date().toISOString(),
     };
     await prisma.systemSetting.upsert({
@@ -86,15 +91,15 @@ export async function saveOnboardingQuestionsForAdmin(input: unknown) {
             updated_at: new Date(),
         },
     });
-    await prisma.auditLog.create({
-        data: {
-            admin_id: session.user.id,
-            action: 'UPDATE_ONBOARDING_QUESTIONS',
-            entity_type: 'SYSTEM_SETTING',
-            entity_id: ONBOARDING_QUESTIONS_SETTING_KEY,
-            old_value: null,
-            new_value: JSON.stringify(payload),
-        },
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'UPDATE_ONBOARDING_QUESTIONS',
+        entityType: 'SYSTEM_SETTING',
+        entityId: ONBOARDING_QUESTIONS_SETTING_KEY,
+        oldValue: null,
+        newValue: JSON.stringify(payload),
+        category: 'ADMIN',
+        metadata: { questionCount: payload.questions.length },
     });
     return { ok: true, count: payload.questions.length };
 }

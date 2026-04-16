@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build",
     "start": "next start",
-    "test:graduation": "node --import tsx --test lib/graduation/evaluate-eligibility.test.ts"
+    "test:graduation": "node --import tsx --test lib/graduation/evaluate-eligibility.test.ts",
+    "test:notifications": "node --import tsx --test lib/notifications/render.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

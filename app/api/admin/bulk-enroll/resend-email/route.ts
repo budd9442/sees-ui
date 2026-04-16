@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { hash } from 'bcryptjs';
-import { sendEmail } from '@/lib/email/brevo';
-import { getWelcomeEmail, generateTempPassword } from '@/lib/email/templates';
+import { generateTempPassword } from '@/lib/email/templates';
+import { dispatchNotificationEmail } from '@/lib/notifications/dispatch';
+import { NotificationEventKey } from '@/lib/notifications/events';
 import { auth } from '@/auth';
 
 export async function POST(req: Request) {
@@ -60,20 +61,32 @@ export async function POST(req: Request) {
             data: { password_hash: passwordHash }
         });
 
-        // Send registration email
+        // Send registration email (new dedupe per resend so repeat sends are not blocked)
         try {
-            const emailTemplate = getWelcomeEmail(
-                record.firstName,
-                user.username,
-                tempPassword
-            );
-
-            await sendEmail({
+            const loginBase = process.env.NEXT_PUBLIC_APP_URL || 'https://sees.budd.codes';
+            const loginUrl = `${loginBase.replace(/\/$/, '')}/login`;
+            const dispatch = await dispatchNotificationEmail({
+                eventKey: NotificationEventKey.ENROLLMENT_WELCOME,
+                dedupeKey: `${NotificationEventKey.ENROLLMENT_WELCOME}:resend:${recordId}:${Date.now()}`,
                 to: record.email,
-                toName: record.firstName,
-                subject: emailTemplate.subject,
-                htmlContent: emailTemplate.htmlContent
+                toName: `${record.firstName} ${record.lastName}`.trim(),
+                recipientUserId: user.user_id,
+                entityType: 'bulk_enrollment_record',
+                entityId: recordId,
+                vars: {
+                    firstName: record.firstName,
+                    username: user.username,
+                    tempPassword,
+                    loginUrl,
+                },
             });
+
+            if (!dispatch.ok) {
+                throw new Error('error' in dispatch ? dispatch.error : 'Send failed');
+            }
+            if ('skipped' in dispatch && dispatch.skipped) {
+                throw new Error(dispatch.reason === 'trigger_disabled' ? 'Welcome emails are disabled in admin notification settings' : 'Email was skipped');
+            }
 
             // Update record with resend information
             await prisma.bulkEnrollmentRecord.update({

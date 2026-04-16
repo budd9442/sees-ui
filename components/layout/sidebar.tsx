@@ -40,7 +40,6 @@ import {
   Archive,
   Search,
   ShieldCheck,
-  Settings2,
   Scale,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -224,30 +223,6 @@ const navigationItems: NavItem[] = [
     roles: ['hod'],
   },
   {
-    title: 'Report builder',
-    href: '/dashboard/hod/analytics/builder',
-    icon: FileSpreadsheet,
-    roles: ['hod'],
-  },
-  {
-    title: 'Trend Analysis',
-    href: '/dashboard/hod/trends',
-    icon: TrendingUp,
-    roles: ['hod'],
-  },
-  {
-    title: 'Trends builder',
-    href: '/dashboard/hod/trends/builder',
-    icon: FileSpreadsheet,
-    roles: ['hod'],
-  },
-  {
-    title: 'Reports',
-    href: '/dashboard/hod/reports',
-    icon: FileText,
-    roles: ['hod'],
-  },
-  {
     title: 'Rankings',
     href: '/dashboard/hod/rankings',
     icon: Star,
@@ -340,27 +315,9 @@ const navigationItems: NavItem[] = [
     roles: ['admin'],
   },
   {
-    title: 'Feature Governance',
-    href: '/dashboard/admin/config/features',
-    icon: Settings2,
-    roles: ['admin'],
-  },
-  {
-    title: 'Calendar Config',
-    href: '/dashboard/admin/academic-calendar',
-    icon: Calendar,
-    roles: ['admin'],
-  },
-  {
     title: 'Notifications Config',
     href: '/dashboard/admin/config/notifications',
     icon: MessageSquare,
-    roles: ['admin'],
-  },
-  {
-    title: 'Reports Config',
-    href: '/dashboard/admin/config/reports',
-    icon: FileSpreadsheet,
     roles: ['admin'],
   },
   {

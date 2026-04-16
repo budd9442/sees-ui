@@ -28,6 +28,18 @@ interface Program {
     name: string;
 }
 
+type OnboardingUiQuestion = OnboardingQuestion & {
+    uiId: string;
+    optionsInput: string;
+};
+
+function parseOptionsInput(input: string) {
+    return input
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean);
+}
+
 export default function BulkEnrollPage() {
     const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
@@ -41,7 +53,7 @@ export default function BulkEnrollPage() {
     const [isValidating, setIsValidating] = useState(false);
     const [customPrefix, setCustomPrefix] = useState<string>('');
     const [showSettings, setShowSettings] = useState(false);
-    const [onboardingQuestions, setOnboardingQuestions] = useState<OnboardingQuestion[]>([]);
+    const [onboardingQuestions, setOnboardingQuestions] = useState<OnboardingUiQuestion[]>([]);
     const [savingQuestions, setSavingQuestions] = useState(false);
 
     useEffect(() => {
@@ -56,7 +68,14 @@ export default function BulkEnrollPage() {
         const load = async () => {
             try {
                 const doc = await getOnboardingQuestionsForAdmin();
-                setOnboardingQuestions(doc.questions);
+                setOnboardingQuestions(
+                    doc.questions.map((q) => ({
+                        ...q,
+                        includeInAnalytics: true,
+                        uiId: crypto.randomUUID(),
+                        optionsInput: q.options.join(', '),
+                    }))
+                );
             } catch (e) {
                 console.error('Failed to load onboarding questions', e);
             }
@@ -157,17 +176,19 @@ export default function BulkEnrollPage() {
         setOnboardingQuestions((prev) => [
             ...prev,
             {
+                uiId: crypto.randomUUID(),
                 key: `custom_field_${suffix}`,
                 label: `Custom field ${suffix}`,
                 type: 'text',
                 required: false,
-                includeInAnalytics: false,
+                includeInAnalytics: true,
                 options: [],
+                optionsInput: '',
             },
         ]);
     };
 
-    const updateQuestion = (idx: number, next: Partial<OnboardingQuestion>) => {
+    const updateQuestion = (idx: number, next: Partial<OnboardingUiQuestion>) => {
         setOnboardingQuestions((prev) => prev.map((q, i) => (i === idx ? { ...q, ...next } : q)));
     };
 
@@ -176,11 +197,10 @@ export default function BulkEnrollPage() {
     };
 
     const updateQuestionOption = (idx: number, optionsText: string) => {
-        const options = optionsText
-            .split(',')
-            .map((x) => x.trim())
-            .filter(Boolean);
-        updateQuestion(idx, { options });
+        updateQuestion(idx, {
+            optionsInput: optionsText,
+            options: parseOptionsInput(optionsText),
+        });
     };
 
     const saveQuestions = async () => {
@@ -188,7 +208,11 @@ export default function BulkEnrollPage() {
         try {
             await saveOnboardingQuestionsForAdmin({
                 version: 1,
-                questions: onboardingQuestions,
+                questions: onboardingQuestions.map(({ uiId: _uiId, optionsInput, ...q }) => ({
+                    ...q,
+                    includeInAnalytics: true,
+                    options: parseOptionsInput(optionsInput),
+                })),
             });
             toast.success('Onboarding questions saved');
         } catch (e) {
@@ -456,11 +480,11 @@ export default function BulkEnrollPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="md:col-span-3">
                     <CardHeader>
                         <CardTitle className="text-lg">First-Login Onboarding Questions</CardTitle>
                         <CardDescription>
-                            Configure student questions asked after first sign-in. Mark fields for analytics usage.
+                            Configure student questions asked after first sign-in. All fields are used for analytics.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -470,7 +494,7 @@ export default function BulkEnrollPage() {
                             </p>
                         )}
                         {onboardingQuestions.map((q, idx) => (
-                            <div key={`${q.key}-${idx}`} className="rounded-md border p-3 space-y-3">
+                            <div key={q.uiId} className="rounded-md border p-3 space-y-3">
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
                                         <Label className="text-xs">Field key</Label>
@@ -521,8 +545,15 @@ export default function BulkEnrollPage() {
                                     <div className="space-y-1">
                                         <Label className="text-xs">Options (comma-separated)</Label>
                                         <Input
-                                            value={q.options.join(', ')}
+                                            value={q.optionsInput}
                                             onChange={(e) => updateQuestionOption(idx, e.target.value)}
+                                            onBlur={(e) => {
+                                                const normalized = parseOptionsInput(e.target.value).join(', ');
+                                                updateQuestion(idx, {
+                                                    optionsInput: normalized,
+                                                    options: parseOptionsInput(normalized),
+                                                });
+                                            }}
                                             className="h-8 text-xs"
                                             placeholder="Physical Science, Biology"
                                         />
@@ -537,14 +568,7 @@ export default function BulkEnrollPage() {
                                         />
                                         Required on first login
                                     </label>
-                                    <label className="flex items-center gap-2 text-xs">
-                                        <input
-                                            type="checkbox"
-                                            checked={q.includeInAnalytics}
-                                            onChange={(e) => updateQuestion(idx, { includeInAnalytics: e.target.checked })}
-                                        />
-                                        Include in analytics dimensions
-                                    </label>
+                                    <span className="text-xs text-muted-foreground">Included in analytics</span>
                                 </div>
                                 <Button variant="ghost" className="h-7 text-xs" onClick={() => removeQuestion(idx)}>
                                     Remove question

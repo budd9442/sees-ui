@@ -417,6 +417,51 @@ model Notification {
   user            User      @relation(fields: [user_id], references: [user_id])
 }
 
+/// Admin-configurable transactional email templates (event-driven).
+model NotificationEmailTemplate {
+  template_id String   @id @default(uuid())
+  name         String
+  event_key    String
+  subject      String
+  body         String   @db.Text
+  placeholders Json?
+  is_active    Boolean  @default(true)
+  channel      String   @default("email")
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@index([event_key])
+  @@map("notification_email_templates")
+}
+
+/// Per-event enable/disable and optional JSON options (e.g. days-before for reminders).
+model NotificationTriggerConfig {
+  config_id   String   @id @default(uuid())
+  event_key   String   @unique
+  enabled     Boolean  @default(true)
+  config_json Json?
+  updated_at  DateTime @updatedAt
+
+  @@map("notification_trigger_configs")
+}
+
+/// Idempotent send audit log (dedupe_key prevents duplicate deliveries).
+model NotificationDispatchLog {
+  log_id            String   @id @default(cuid())
+  dedupe_key        String   @unique
+  event_key         String
+  recipient_email   String
+  recipient_user_id String?
+  entity_type       String?
+  entity_id         String?
+  status            String
+  error_message     String?
+  created_at        DateTime @default(now())
+
+  @@index([event_key, created_at])
+  @@map("notification_dispatch_logs")
+}
+
 model AnonymousReport {
   report_id  String   @id @default(uuid())
   student_id String
@@ -592,16 +637,23 @@ model SystemSetting {
 
 model AuditLog {
   log_id      String   @id @default(uuid())
-  admin_id    String
+  /// Actor user_id; null for anonymous/system events (e.g. failed login, worker email).
+  admin_id    String?
   action      String
   entity_type String
   entity_id   String
   old_value   String?
   new_value   String?
   timestamp   DateTime @default(now())
+  /// AUTH | EMAIL | ADMIN | STAFF | SYSTEM
+  category    String   @default("ADMIN")
+  metadata    Json?
+  ip_address  String?
+  user_agent  String?  @db.Text
 
   @@index([timestamp])
   @@index([admin_id])
+  @@index([category])
   @@map("audit_logs")
 }
 

@@ -329,7 +329,10 @@ export interface AuditLog {
   ipAddress?: string;
   userAgent?: string;
   timestamp: string;
-  status: 'success' | 'failed' | 'warning';
+  status: 'success' | 'failed' | 'warning' | 'info';
+  /** AUTH | EMAIL | ADMIN | STAFF | SYSTEM when sourced from `audit_logs`. */
+  category?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Backup {
@@ -348,7 +351,19 @@ export interface Backup {
 export interface NotificationTemplate {
   id: string;
   name: string;
-  category: 'grade_release' | 'gpa_change' | 'pathway_allocated' | 'deadline_reminder' | 'system_alert';
+  category:
+    | 'grade_release'
+    | 'academic_class_change'
+    | 'academic_standing_changed'
+    | 'enrollment_welcome'
+    | 'pathway_allocated'
+    | 'deadline_reminder'
+    | 'module_registration_opened'
+    | 'pathway_selection_opened'
+    | 'specialization_selection_opened'
+    | 'system_alert';
+  /** Persisted event key (optional on client until loaded from server). */
+  eventKey?: string;
   subject: string;
   body: string;
   placeholders: string[]; // Available placeholders like {{studentName}}, {{gpa}}
@@ -357,46 +372,10 @@ export interface NotificationTemplate {
   updatedAt: string;
 }
 
-export interface ReportTemplate {
-  id: string;
-  name: string;
-  description: string;
-  category: 'performance' | 'pathway' | 'module' | 'student' | 'system';
-  sections: ReportSection[];
-  layout: 'portrait' | 'landscape';
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ReportSection {
-  id: string;
-  title: string;
-  type: 'text' | 'table' | 'chart' | 'summary';
-  dataFields: string[];
-  chartType?: 'bar' | 'line' | 'pie' | 'area';
-  position: number;
-}
-
-export interface AcademicCalendar {
-  id: string;
-  name: string;
-  academicYear: string;
-  events: CalendarEvent[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  description?: string;
-  startDate: string;
-  endDate: string;
-  type: 'semester_start' | 'semester_end' | 'registration' | 'examination' | 'holiday' | 'deadline';
-  isRecurring: boolean;
-  recurrencePattern?: string;
+export interface NotificationTriggerRow {
+  eventKey: string;
+  enabled: boolean;
+  configJson?: { daysBeforeClose?: number[] } | null;
 }
 
 export interface FeatureFlag {
