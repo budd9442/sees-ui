@@ -636,7 +636,7 @@ Return strict JSON:
                 
                 Provide a JSON object with:
                 {
-                    "message": "Enthusiastic and empathetic message to the student.",
+                    "message": "Enthusiastic and empathetic message to the student. Do not use first-person pronouns like 'I', 'me', or 'my' as this is an automated system message.",
                     "recovery_actions": ["Action 1", "Action 2"],
                     "advisor_outreach_subject": "A good pre-filled subject for emailing their advisor.",
                     "advisor_outreach_body": "A short, professional template the student can use.",

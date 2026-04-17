@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,18 +17,21 @@ import {
   CheckCheck,
   UserPlus,
   Loader2,
+  Users,
 } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/dateFormatters';
 import { toast } from 'sonner';
 import type { MessageCursor, MessageEntry } from '@/types/messaging';
 import {
   getMyMessages,
+  getAvailableAdvisorsForMessaging,
   markMessagesRead,
   searchUsersForMessaging,
   sendDirectMessage,
 } from '@/lib/actions/message-actions';
 import { useMessagingRealtime } from '@/lib/hooks/use-messaging-realtime';
 import { getPublicPusherConfig } from '@/lib/realtime/public-config';
+import { useSearchParams } from 'next/navigation';
 
 type PeerInfo = { firstName: string; lastName: string; role: string };
 
@@ -119,12 +123,14 @@ export default function DirectMessagesClient({
   currentUserId,
   currentUserName,
   listDescription = 'Message anyone in the system. New messages appear instantly.',
+  initialOpenAdvisorModal = false,
 }: {
   initialMessages: MessageEntry[];
   initialNextCursor: MessageCursor | null;
   currentUserId: string;
   currentUserName: string;
   listDescription?: string;
+  initialOpenAdvisorModal?: boolean;
 }) {
   const [messages, setMessages] = useState<MessageEntry[]>(initialMessages);
   const [nextCursor, setNextCursor] = useState<MessageCursor | null>(initialNextCursor);
@@ -140,7 +146,14 @@ export default function DirectMessagesClient({
     { id: string; firstName: string; lastName: string; name: string; role: string }[]
   >([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
+  const [advisorModalOpen, setAdvisorModalOpen] = useState(initialOpenAdvisorModal);
+  const [advisorLoading, setAdvisorLoading] = useState(false);
+  const [advisorQuery, setAdvisorQuery] = useState('');
+  const [advisorResults, setAdvisorResults] = useState<
+    { id: string; firstName: string; lastName: string; name: string; role: string; department: string; specialties: string[]; bio: string | null }[]
+  >([]);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchParams = useSearchParams();
 
   const realtimeEnabled = !!getPublicPusherConfig();
 
@@ -174,6 +187,40 @@ export default function DirectMessagesClient({
       }
     });
   }, [selectedConversation]);
+
+  useEffect(() => {
+    if (initialOpenAdvisorModal) {
+      setAdvisorModalOpen(true);
+    }
+  }, [initialOpenAdvisorModal]);
+
+  useEffect(() => {
+    if (searchParams.get('openAdvisorModal') === '1') {
+      setAdvisorModalOpen(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!advisorModalOpen) return;
+    let active = true;
+    setAdvisorLoading(true);
+    void getAvailableAdvisorsForMessaging()
+      .then((rows) => {
+        if (!active) return;
+        setAdvisorResults(rows);
+      })
+      .catch(() => {
+        if (!active) return;
+        toast.error('Failed to load advisors');
+      })
+      .finally(() => {
+        if (!active) return;
+        setAdvisorLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [advisorModalOpen]);
 
   useEffect(() => {
     if (!newChatOpen) return;
@@ -222,6 +269,14 @@ export default function DirectMessagesClient({
   }, [conversations, convoFilter]);
 
   const selectedConv = conversations.find((c) => c.userId === selectedConversation) ?? null;
+  const filteredAdvisors = useMemo(() => {
+    const q = advisorQuery.trim().toLowerCase();
+    if (!q) return advisorResults;
+    return advisorResults.filter((a) => {
+      const hay = `${a.name} ${a.department} ${a.specialties.join(' ')}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [advisorQuery, advisorResults]);
 
   const loadMore = async () => {
     if (!nextCursor || loadingMore) return;
@@ -300,7 +355,19 @@ export default function DirectMessagesClient({
     setUserResults([]);
   };
 
+  const pickAdvisor = (u: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  }) => {
+    pickUserFromSearch(u);
+    setAdvisorModalOpen(false);
+    setAdvisorQuery('');
+  };
+
   return (
+    <>
     <div className="flex h-[calc(100vh-8rem)] gap-4">
       <Card className="flex w-96 flex-col">
         <CardHeader>
@@ -322,6 +389,15 @@ export default function DirectMessagesClient({
             >
               <UserPlus className="h-4 w-4" />
               New conversation
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={() => setAdvisorModalOpen(true)}
+            >
+              <Users className="h-4 w-4" />
+              Contact advisors
             </Button>
             {newChatOpen && (
               <div className="space-y-2 rounded-md border p-2">
@@ -598,5 +674,62 @@ export default function DirectMessagesClient({
         </Card>
       )}
     </div>
+    <Dialog open={advisorModalOpen} onOpenChange={setAdvisorModalOpen}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Available Advisors</DialogTitle>
+          <DialogDescription>
+            Choose an advisor to open a conversation in messages.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input
+            placeholder="Search by name, department, or specialty..."
+            value={advisorQuery}
+            onChange={(e) => setAdvisorQuery(e.target.value)}
+          />
+          <div className="max-h-[420px] overflow-y-auto rounded-md border">
+            {advisorLoading ? (
+              <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading advisors...
+              </div>
+            ) : filteredAdvisors.length === 0 ? (
+              <div className="p-4 text-sm text-muted-foreground">
+                No advisors available right now.
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredAdvisors.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => pickAdvisor(a)}
+                    className="w-full space-y-2 p-4 text-left hover:bg-accent"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium">{a.name}</p>
+                      <Badge variant="outline">{a.department || 'Department not set'}</Badge>
+                    </div>
+                    {a.specialties.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Specialties: {a.specialties.join(', ')}
+                      </p>
+                    )}
+                    {a.bio && <p className="text-xs text-muted-foreground">{a.bio}</p>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setAdvisorModalOpen(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

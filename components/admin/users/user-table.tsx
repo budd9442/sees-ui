@@ -24,7 +24,7 @@ import { Badge } from '@/components/ui/badge';
 
 import { MoreHorizontal, Search, UserPlus } from 'lucide-react';
 import { UserDialog } from './user-dialog';
-import { toggleUserStatus, deleteUser, toggleHODStatus } from '@/lib/actions/user-actions';
+import { toggleUserStatus, deleteUser, toggleHODStatus, toggleAdvisorStatus } from '@/lib/actions/user-actions';
 import { toast } from 'sonner';
 
 // Extended UserData interface to include potential flattened properties
@@ -49,6 +49,10 @@ interface UserData {
     department?: string;
     type?: string;
     isHOD?: boolean;
+    isAdvisor?: boolean;
+    advisorSpecialties?: string;
+    advisorAvailableForContact?: boolean;
+    advisorBio?: string;
 }
 
 interface UserTableProps {
@@ -152,6 +156,20 @@ export function UserTable({ initialUsers, totalPages, degreePrograms, role, curr
         }
     };
 
+    const handleToggleAdvisor = async (user: UserData) => {
+        try {
+            const result = await toggleAdvisorStatus(user.user_id);
+            if (result.success) {
+                toast.success(`Advisor status updated successfully`);
+                router.refresh();
+            } else {
+                toast.error("Failed to update Advisor status");
+            }
+        } catch (error) {
+            toast.error("An error occurred");
+        }
+    };
+
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -230,8 +248,18 @@ export function UserTable({ initialUsers, totalPages, degreePrograms, role, curr
                                                     HOD
                                                 </Badge>
                                             )}
+                                            {user.isAdvisor && (
+                                                <Badge variant="outline" className="text-[10px] py-0 px-1 bg-blue-50 text-blue-700 border-blue-200">
+                                                    Advisor
+                                                </Badge>
+                                            )}
                                         </div>
                                         <span className="text-xs text-muted-foreground">{user.email}</span>
+                                        {role === 'staff' && user.isAdvisor && user.advisorSpecialties && (
+                                            <span className="text-xs text-muted-foreground truncate max-w-[260px]">
+                                                Specialties: {user.advisorSpecialties}
+                                            </span>
+                                        )}
                                     </div>
                                 </TableCell>
 
@@ -284,9 +312,14 @@ export function UserTable({ initialUsers, totalPages, degreePrograms, role, curr
                                                 {user.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                                             </DropdownMenuItem>
                                             {role === 'staff' && (
-                                                <DropdownMenuItem onClick={() => handleToggleHOD(user)}>
-                                                    {user.isHOD ? 'Remove HOD Status' : 'Set as HOD'}
-                                                </DropdownMenuItem>
+                                                <>
+                                                    <DropdownMenuItem onClick={() => handleToggleHOD(user)}>
+                                                        {user.isHOD ? 'Remove HOD Status' : 'Set as HOD'}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleToggleAdvisor(user)}>
+                                                        {user.isAdvisor ? 'Remove Advisor Status' : 'Set as Advisor'}
+                                                    </DropdownMenuItem>
+                                                </>
                                             )}
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem

@@ -74,7 +74,8 @@ export async function getUsers({
                     },
                     staff: {
                         include: {
-                            hod: true
+                            hod: true,
+                            advisor: true,
                         }
                     },
                 },
@@ -104,7 +105,13 @@ export async function getUsers({
                     staffNumber: u.staff.staff_number,
                     department: u.staff.department,
                     type: u.staff.staff_type,
-                    isHOD: !!u.staff.hod
+                    isHOD: !!u.staff.hod,
+                    isAdvisor: !!u.staff.advisor,
+                    advisorAvailableForContact: u.staff.advisor?.is_available_for_contact ?? true,
+                    advisorSpecialties: Array.isArray(u.staff.advisor?.specialty_areas)
+                        ? (u.staff.advisor?.specialty_areas as string[]).join(', ')
+                        : '',
+                    advisorBio: u.staff.advisor?.bio ?? '',
                 };
             }
             else if (u.email.includes('admin')) role = 'admin';
@@ -247,6 +254,26 @@ export async function createUser(data: CreateUserSchema) {
                         department: otherDetails.department || 'General',
                     },
                 });
+                if (otherDetails.isAdvisor) {
+                    const specialties =
+                        typeof otherDetails.advisorSpecialties === 'string'
+                            ? otherDetails.advisorSpecialties
+                                  .split(',')
+                                  .map((s) => s.trim())
+                                  .filter(Boolean)
+                            : [];
+                    await tx.advisor.create({
+                        data: {
+                            advisor_id: user.user_id,
+                            is_available_for_contact: otherDetails.advisorAvailableForContact !== false,
+                            specialty_areas: specialties,
+                            bio:
+                                typeof otherDetails.advisorBio === 'string' && otherDetails.advisorBio.trim()
+                                    ? otherDetails.advisorBio.trim()
+                                    : null,
+                        },
+                    });
+                }
             }
             return user;
         });
@@ -328,6 +355,37 @@ export async function updateUser(updatedData: UpdateUserSchema) {
                         staff_type: otherDetails.staffType
                     }
                 });
+                if (otherDetails.isAdvisor) {
+                    const specialties =
+                        typeof otherDetails.advisorSpecialties === 'string'
+                            ? otherDetails.advisorSpecialties
+                                  .split(',')
+                                  .map((s: string) => s.trim())
+                                  .filter(Boolean)
+                            : [];
+                    await tx.advisor.upsert({
+                        where: { advisor_id: id },
+                        update: {
+                            is_available_for_contact: otherDetails.advisorAvailableForContact !== false,
+                            specialty_areas: specialties,
+                            bio:
+                                typeof otherDetails.advisorBio === 'string' && otherDetails.advisorBio.trim()
+                                    ? otherDetails.advisorBio.trim()
+                                    : null,
+                        },
+                        create: {
+                            advisor_id: id,
+                            is_available_for_contact: otherDetails.advisorAvailableForContact !== false,
+                            specialty_areas: specialties,
+                            bio:
+                                typeof otherDetails.advisorBio === 'string' && otherDetails.advisorBio.trim()
+                                    ? otherDetails.advisorBio.trim()
+                                    : null,
+                        },
+                    });
+                } else {
+                    await tx.advisor.deleteMany({ where: { advisor_id: id } });
+                }
             }
         });
 
@@ -603,5 +661,36 @@ export async function toggleHODStatus(staffId: string) {
     } catch (error) {
         console.error('Failed to toggle HOD status:', error);
         return { success: false, error: 'Failed to update HOD status' };
+    }
+}
+export async function toggleAdvisorStatus(staffId: string) {
+    try {
+        const staff = await prisma.staff.findUnique({
+            where: { staff_id: staffId },
+            include: { advisor: true }
+        });
+
+        if (!staff) throw new Error("Staff record not found");
+
+        if (staff.advisor) {
+            // Remove Advisor status
+            await prisma.advisor.delete({
+                where: { advisor_id: staffId }
+            });
+        } else {
+            // Create Advisor record
+            await prisma.advisor.create({
+                data: {
+                    advisor_id: staffId,
+                    is_available_for_contact: true,
+                }
+            });
+        }
+
+        revalidatePath('/dashboard/admin/users');
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to toggle Advisor status:', error);
+        return { success: false, error: 'Failed to update Advisor status' };
     }
 }

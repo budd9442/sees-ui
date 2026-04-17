@@ -227,48 +227,6 @@ export function CreditsClient({ studentGrades }: CreditsClientProps) {
                 </Card>
             </div>
 
-            {/* Credit Breakdown */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <BookOpen className="h-5 w-5" />
-                            Academic Department
-                        </CardTitle>
-                        <CardDescription>Departmental credit distribution</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-sm text-muted-foreground">Detailed categorical breakdown is available in the full transcript view.</div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Zap className="h-5 w-5" />
-                            Requirement Categories
-                        </CardTitle>
-                        <CardDescription>Degree requirement tracking</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-sm text-muted-foreground">Track core and elective requirements via the academic year overview.</div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Award className="h-5 w-5" />
-                            Honours Specialization
-                        </CardTitle>
-                        <CardDescription>Specialization credit status</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-sm text-muted-foreground">Specialization requirements are verified upon successful completion of core modules.</div>
-                    </CardContent>
-                </Card>
-            </div>
-
             {/* Detailed Progress */}
             <Tabs defaultValue="semester" className="space-y-4">
                 <TabsList>

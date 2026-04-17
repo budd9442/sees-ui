@@ -56,12 +56,19 @@ export class GPAMonitoringService {
             orderBy: { start_date: 'asc' }
         });
 
+        let cumulativePoints = 0;
+        let cumulativeCredits = 0;
+
         const semesterData: SemesterGPA[] = semesters.map((s: any) => {
             const data = semesterGroups[s.semester_id];
+            
+            cumulativePoints += data.points;
+            cumulativeCredits += data.credits;
+
             return {
                 semesterId: s.semester_id,
                 label: s.label,
-                gpa: data.credits > 0 ? Number((data.points / data.credits).toFixed(2)) : 0,
+                gpa: cumulativeCredits > 0 ? Number((cumulativePoints / cumulativeCredits).toFixed(2)) : 0,
                 credits: data.credits
             };
         });
@@ -73,8 +80,8 @@ export class GPAMonitoringService {
 
         const current = semesterData[semesterData.length - 1].gpa;
         const previous = semesterData[semesterData.length - 2].gpa;
-        const dipAmount = previous - current;
-        const dipDetected = dipAmount > 0.2; // Trigger threshold
+        const dipAmount = Number((previous - current).toFixed(2));
+        const dipDetected = dipAmount >= 0.2; // Trigger threshold
 
         return {
             currentGPA: current,

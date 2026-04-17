@@ -15,6 +15,10 @@ export const userSchema = z.object({
     staffNumber: z.string().optional(),
     department: z.string().optional(),
     staffType: z.string().optional(),
+    isAdvisor: z.boolean().optional(),
+    advisorSpecialties: z.string().optional(),
+    advisorAvailableForContact: z.boolean().optional(),
+    advisorBio: z.string().optional(),
 });
 
 export type CreateUserSchema = z.infer<typeof userSchema>;

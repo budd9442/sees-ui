@@ -831,17 +831,6 @@ export async function getAdminGpaConfigData() {
     const session = await auth();
     if (!session?.user?.id || session.user.role !== 'admin') throw new Error("Unauthorized");
 
-    const settings = await prisma.systemSetting.findMany({
-        where: {
-            OR: [
-                { key: 'gpa_calculation_method' },
-                { key: 'gpa_rounding_rules' },
-                { key: 'gpa_academic_class_thresholds' },
-                { key: 'gpa_tiebreaker_formula' }
-            ]
-        }
-    });
-
     await ensureDefaultGradingSchemeInDb();
     const activeScheme = await prisma.gradingScheme.findFirst({
         where: { active: true },
@@ -865,117 +854,9 @@ export async function getAdminGpaConfigData() {
                   maxMarks: b.max_marks,
               }));
 
-    const config = {
-        calculationMethod: settings.find(s => s.key === 'gpa_calculation_method')?.value || 'weighted_average',
+    return {
         gradePointScale,
-        academicClassThresholds: JSON.parse(settings.find(s => s.key === 'gpa_academic_class_thresholds')?.value || JSON.stringify({
-            firstClass: 3.7, secondUpper: 3.0, secondLower: 2.5, thirdPass: 2.0,
-        })),
-        tiebreakerFormula: JSON.parse(settings.find(s => s.key === 'gpa_tiebreaker_formula')?.value || JSON.stringify({
-            gpa: 0.6, credits: 0.2, attendance: 0.1, participation: 0.1,
-        })),
-        roundingRules: JSON.parse(settings.find(s => s.key === 'gpa_rounding_rules')?.value || JSON.stringify({
-            decimalPlaces: 2, roundingMethod: 'round',
-        })),
     };
-
-    return config;
-}
-
-export async function updateAdminGpaConfigData(data: any) {
-    const session = await auth();
-    if (!session?.user?.id || session.user.role !== 'admin') throw new Error("Unauthorized");
-
-    const { calculationMethod, gradePointScale, academicClassThresholds, tiebreakerFormula, roundingRules } = data;
-
-    await prisma.$transaction(async (tx) => {
-        // Update basic settings
-        await tx.systemSetting.upsert({
-            where: { key: 'gpa_calculation_method' },
-            create: {
-                setting_id: randomUUID(),
-                key: 'gpa_calculation_method',
-                value: String(calculationMethod),
-                category: 'GPA',
-                updated_at: new Date(),
-            },
-            update: { value: String(calculationMethod), updated_at: new Date() },
-        });
-
-        await tx.systemSetting.upsert({
-            where: { key: 'gpa_academic_class_thresholds' },
-            create: {
-                setting_id: randomUUID(),
-                key: 'gpa_academic_class_thresholds',
-                value: JSON.stringify(academicClassThresholds),
-                category: 'GPA',
-                updated_at: new Date(),
-            },
-            update: { value: JSON.stringify(academicClassThresholds), updated_at: new Date() },
-        });
-
-        await tx.systemSetting.upsert({
-            where: { key: 'gpa_tiebreaker_formula' },
-            create: {
-                setting_id: randomUUID(),
-                key: 'gpa_tiebreaker_formula',
-                value: JSON.stringify(tiebreakerFormula),
-                category: 'GPA',
-                updated_at: new Date(),
-            },
-            update: { value: JSON.stringify(tiebreakerFormula), updated_at: new Date() },
-        });
-
-        await tx.systemSetting.upsert({
-            where: { key: 'gpa_rounding_rules' },
-            create: {
-                setting_id: randomUUID(),
-                key: 'gpa_rounding_rules',
-                value: JSON.stringify(roundingRules),
-                category: 'GPA',
-                updated_at: new Date(),
-            },
-            update: { value: JSON.stringify(roundingRules), updated_at: new Date() },
-        });
-
-        // Update Grading Scheme
-        // For simplicity, we either create a new scheme or update the existing active one
-        let scheme = await tx.gradingScheme.findFirst({
-            where: { active: true }
-        });
-
-        if (!scheme) {
-            scheme = await tx.gradingScheme.create({
-                data: { name: 'Main Grading Scheme', version: '1.0' }
-            });
-        }
-
-        // Delete old bands and recreate to handle additions/deletions easily
-        await tx.gradingBand.deleteMany({
-            where: { scheme_id: scheme.scheme_id }
-        });
-
-        await tx.gradingBand.createMany({
-            data: gradePointScale.map((band: any) => ({
-                scheme_id: (scheme as any).scheme_id,
-                min_marks: parseFloat(band.minMarks),
-                max_marks: parseFloat(band.maxMarks),
-                grade_point: parseFloat(band.points),
-                letter_grade: band.grade
-            }))
-        });
-    });
-
-    await writeAuditLog({
-        adminId: session.user.id,
-        action: 'ADMIN_GPA_CONFIG_UPDATE',
-        entityType: 'GPA_CONFIG',
-        entityId: 'gpa_settings',
-        category: 'ADMIN',
-        metadata: { calculationMethod: String(calculationMethod ?? '') },
-    });
-
-    return { success: true };
 }
 
 /** Persist only institution mark → letter → points bands (active grading scheme). Does not touch GPA settings tabs. */

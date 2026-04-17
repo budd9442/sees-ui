@@ -34,10 +34,27 @@ export async function getAcademicRecoveryData() {
         }
     });
 
+    let activeAdvisor = student?.advisor?.staff?.user;
+
+    // Fallback logic: If no specific advisor assigned, pick the first available one from the system
+    if (!activeAdvisor) {
+        const fallbackAdvisorRecord = await prisma.advisor.findFirst({
+            where: { is_available_for_contact: true },
+            include: {
+                staff: {
+                    include: {
+                        user: true
+                    }
+                }
+            }
+        });
+        activeAdvisor = fallbackAdvisorRecord?.staff?.user;
+    }
+
     return {
         dipDetected: true,
         trend,
         advice,
-        advisor: student?.advisor?.staff?.user
+        advisor: activeAdvisor
     };
 }

@@ -668,20 +668,23 @@ export async function getStudentGrades() {
     }
     const record = studentRecord as any;
 
-    return record.module_registrations.map((reg: any) => ({
+    return record.module_registrations.map((reg: any) => {
+        const isReleased = !!reg.grade?.released_at;
+        return {
         id: reg.grade?.grade_id || reg.reg_id, // Use reg_id if no grade yet
         moduleCode: reg.module.code,
         moduleName: reg.module.name,
         credits: reg.module.credits,
-        grade: reg.grade?.letter_grade || 'Pending',
-        gradePoint: reg.grade?.grade_point || 0.0,
+        grade: isReleased ? reg.grade?.letter_grade : 'Pending',
+        gradePoint: isReleased ? reg.grade?.grade_point || 0.0 : 0.0,
         countsTowardGpa: gradeContributesToGpa(reg.module),
         semester: reg.semester?.label || 'Unknown',
         // User requested "Year" to mean Level (L1, L2)
         level: reg.module.level || 'L1',
         date: reg.grade?.released_at || reg.registration_date,
-        isReleased: !!reg.grade
-    }));
+        isReleased
+    };
+    });
 }
 
 export async function getStudentSchedule() {

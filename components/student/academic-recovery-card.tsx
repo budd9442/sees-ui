@@ -1,34 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-    AlertCircle, 
-    ArrowRight, 
-    Calendar, 
-    CheckCircle, 
-    GraduationCap, 
-    History, 
-    LayoutDashboard, 
-    Lightbulb, 
-    Loader2, 
-    Mail, 
-    MessageCircle, 
-    ShieldAlert, 
-    Sparkles, 
-    Star, 
-    TrendingDown, 
-    UserIcon, 
-    Users 
-} from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertTriangle, CheckCircle2, Lightbulb, Mail, ShieldAlert, TrendingDown } from 'lucide-react';
 import { getAcademicRecoveryData } from '@/lib/actions/monitoring-actions';
-import { toast } from 'sonner';
 
 export function AcademicRecoveryCard() {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
+    const [open, setOpen] = useState(false);
+    const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
         async function fetchSupport() {
@@ -36,10 +20,16 @@ export function AcademicRecoveryCard() {
             try {
                 const res = await getAcademicRecoveryData();
                 if (res.dipDetected) {
-                    setData(res);
+                    // Check if *this specific* dip was dismissed in this session
+                    const dismissedDip = sessionStorage.getItem('academic_recovery_dismissed_amount');
+                    if (dismissedDip === res.trend.dipAmount.toString()) {
+                        setDismissed(true);
+                    } else {
+                        setData(res);
+                    }
                 }
             } catch (err) {
-                console.error("Monitoring check failed", err);
+                console.error('Monitoring check failed', err);
             } finally {
                 setLoading(false);
             }
@@ -47,120 +37,121 @@ export function AcademicRecoveryCard() {
         fetchSupport();
     }, []);
 
-    if (loading) return null;
+    if (loading || dismissed) return null;
     if (!data) return null;
 
     const { trend, advice, advisor } = data;
 
     const handleMessageAdvisor = () => {
-        // Pre-fill a message for the advisor in local storage or state
-        localStorage.setItem('advisor_subject_draft', advice.advisor_outreach_subject);
-        localStorage.setItem('advisor_body_draft', advice.advisor_outreach_body);
-        window.location.href = `/dashboard/student/messages?recipient=${advisor?.user_id}`;
+        window.location.href = '/dashboard/student/messages?openAdvisorModal=1';
+    };
+
+    const handleDismiss = () => {
+        setDismissed(true);
+        if (data?.trend?.dipAmount) {
+            sessionStorage.setItem('academic_recovery_dismissed_amount', data.trend.dipAmount.toString());
+        }
     };
 
     return (
-        <Card className="border-amber-200 bg-amber-50/50 shadow-lg animate-in fade-in slide-in-from-top-4 duration-700">
-            <CardHeader className="bg-amber-100/50 rounded-t-xl border-b border-amber-200">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-amber-500 flex items-center justify-center text-white">
-                            <ShieldAlert className="h-6 w-6" />
+        <>
+            {/* Simple Horizontal Banner */}
+            <Card className="border-amber-200 bg-amber-50/50">
+                <CardContent className="p-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-full bg-amber-100 p-2 text-amber-600">
+                                <ShieldAlert className="h-5 w-5" />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-sm font-semibold text-amber-900 leading-none">Academic Support Required</p>
+                                <p className="text-xs text-amber-800/80">A GPA dip has been detected. Please review your recovery plan.</p>
+                            </div>
+                            <Badge variant="outline" className="bg-white text-amber-700 border-amber-200">
+                                -{trend.dipAmount.toFixed(2)} Dip
+                            </Badge>
                         </div>
-                        <div>
-                            <CardTitle className="text-amber-900">Academic Support & Recovery</CardTitle>
-                            <CardDescription className="text-amber-700 flex items-center gap-1">
-                                <TrendingDown className="h-3 w-3" />
-                                We've noticed a change in your GPA trajectory this semester.
-                            </CardDescription>
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-amber-700 hover:bg-amber-100/50">
+                                Dismiss
+                            </Button>
+                            <Button size="sm" onClick={() => setOpen(true)} className="bg-amber-600 hover:bg-amber-700 text-white">
+                                View Plan
+                            </Button>
                         </div>
                     </div>
-                    <Badge variant="outline" className="bg-white text-amber-700 border-amber-200">
-                        Dip Detected: -{trend.dipAmount.toFixed(2)}
-                    </Badge>
-                </div>
-            </CardHeader>
-            <CardContent className="py-6 space-y-6">
-                {/* Empathetic AI Message */}
-                <div className="relative p-5 bg-white border border-amber-100 rounded-2xl shadow-sm">
-                    <Sparkles className="absolute top-2 right-2 h-5 w-5 text-amber-400 opacity-50" />
-                    <div className="flex gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <GraduationCap className="h-6 w-6 text-primary" />
-                        </div>
-                        <p className="text-sm leading-relaxed text-slate-800 italic">
-                            "{advice.message}"
-                        </p>
-                    </div>
-                </div>
+                </CardContent>
+            </Card>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                    {/* Recovery Roadmap */}
-                    <div className="space-y-4">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-2">
-                            <Lightbulb className="h-4 w-4" />
-                            Recovery Roadmap
-                        </h4>
-                        <ul className="space-y-2">
-                            {advice.recovery_actions.map((action: string, i: number) => (
-                                <li key={i} className="flex items-start gap-3 p-3 bg-white/80 rounded-xl border border-amber-100 text-sm">
-                                    <div className="h-5 w-5 rounded-full bg-green-100 flex items-center justify-center mt-0.5">
-                                        <CheckCircle className="h-3 w-3 text-green-600" />
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <ShieldAlert className="h-5 w-5 text-amber-600" />
+                            Academic Recovery Plan
+                        </DialogTitle>
+                        <DialogDescription>
+                            Guidance generated based on your latest academic performance.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6">
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                            <h4 className="text-sm font-semibold mb-2">Support Note</h4>
+                            <p className="text-sm text-muted-foreground leading-relaxed italic">
+                                "{advice.message}"
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <h4 className="text-sm font-semibold flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                Recommended Actions
+                            </h4>
+                            <div className="grid gap-2">
+                                {advice.recovery_actions.map((action: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-3 rounded-md border p-3 bg-white dark:bg-slate-900/50">
+                                        <div className="text-xs font-bold text-muted-foreground mt-0.5">{i + 1}.</div>
+                                        <p className="text-sm">{action}</p>
                                     </div>
-                                    <span className="text-slate-700">{action}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    {/* Support Channels */}
-                    <div className="space-y-4">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            Immediate Support
-                        </h4>
-                        <div className="grid grid-cols-1 gap-2">
-                            <Button variant="outline" className="justify-start bg-white border-amber-200 hover:bg-amber-100" asChild>
-                                <a href="/resources/tutoring">
-                                    <Star className="h-4 w-4 mr-2 text-amber-500" />
-                                    Peer Tutoring Center
-                                </a>
-                            </Button>
-                            <Button variant="outline" className="justify-start bg-white border-amber-200 hover:bg-amber-100" asChild>
-                                <a href="/resources/library">
-                                    <ArrowRight className="h-4 w-4 mr-2 text-amber-500" />
-                                    Library Research Assistant
-                                </a>
-                            </Button>
+                                ))}
+                            </div>
                         </div>
-                        
-                        {advisor && (
-                            <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 mt-4">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                        <UserIcon className="h-5 w-5 text-primary" />
+
+                        {advisor ? (
+                            <div className="flex items-center justify-between gap-4 rounded-lg border p-4 bg-amber-50/20">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
+                                        {advisor.firstName?.[0]}{advisor.lastName?.[0]}
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold text-primary uppercase">Your Advisor</p>
-                                        <p className="text-sm font-medium">{advisor.firstName} {advisor.lastName}</p>
+                                        <p className="text-sm font-semibold">{advisor.firstName} {advisor.lastName}</p>
+                                        <p className="text-xs text-muted-foreground">Academic Advisor</p>
                                     </div>
                                 </div>
-                                <Button className="w-full bg-primary" onClick={handleMessageAdvisor}>
-                                    <Mail className="h-4 w-4 mr-2" />
-                                    Reach Out for Guidance
+                                <Button size="sm" variant="outline" onClick={handleMessageAdvisor} className="gap-2">
+                                    <Mail className="h-4 w-4" />
+                                    Contact
                                 </Button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50/50 p-4 text-amber-900">
+                                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                                <p className="text-xs font-medium">No specific advisor assigned. Contact available staff from messaging.</p>
                             </div>
                         )}
                     </div>
-                </div>
-            </CardContent>
-            <CardFooter className="bg-slate-50/50 rounded-b-xl border-t text-[10px] text-muted-foreground flex justify-between items-center py-2 px-6">
-                <span>Personalized Support Policy: Your recovery data is only visible to you and your advisor.</span>
-                <div className="flex items-center gap-1">
-                    <History className="h-3 w-3" />
-                    Last Analysis: {new Array().length === 0 ? "Real-time" : "Today"}
-                </div>
-            </CardFooter>
-        </Card>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setOpen(false)}>
+                            Close
+                        </Button>
+                        <Button onClick={() => setOpen(false)} className="bg-amber-600 hover:bg-amber-700 text-white">
+                            I Understand
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

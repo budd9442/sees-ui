@@ -7,12 +7,17 @@ import Loading from '../loading';
 
 export const dynamic = 'force-dynamic';
 
-export default async function MessagesPage() {
+export default async function MessagesPage({
+  searchParams,
+}: {
+  searchParams?: { openAdvisorModal?: string };
+}) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect('/login');
   }
 
+  const initialOpenAdvisorModal = searchParams?.openAdvisorModal === '1';
   const { messages, nextCursor } = await getMyMessages({ limit: 100 });
 
   return (
@@ -23,6 +28,7 @@ export default async function MessagesPage() {
         currentUserId={session.user.id}
         currentUserName={session.user.name || 'You'}
         listDescription="Message advisors, staff, and other users. New messages appear instantly."
+        initialOpenAdvisorModal={initialOpenAdvisorModal}
       />
     </Suspense>
   );

@@ -39,21 +39,24 @@ export async function getCreditsData() {
 
     const record = studentRecord as any;
 
-    const studentGrades = record.grades.map((g: any) => ({
+    const studentGrades = record.grades.map((g: any) => {
+        const isReleased = !!g.released_at;
+        return {
         id: g.grade_id,
         moduleId: g.module_id,
         moduleCode: g.module.code,
         moduleTitle: g.module.name,
         credits: g.module.credits,
-        marks: g.marks ?? null,
-        grade: g.marks ?? null,
-        letterGrade: g.letter_grade,
-        points: g.grade_point,
-        gradePoint: g.grade_point,
+        marks: isReleased ? g.marks ?? null : null,
+        grade: isReleased ? g.marks ?? null : null,
+        letterGrade: isReleased ? g.letter_grade : 'Pending',
+        points: isReleased ? g.grade_point : 0,
+        gradePoint: isReleased ? g.grade_point : 0,
         semester: g.semester.label || 'Unknown',
         academicYear: g.module.level || 'L1', // Fallback to module level
-        isReleased: !!g.released_at
-    }));
+        isReleased
+    };
+    });
 
     return { studentGrades };
 }

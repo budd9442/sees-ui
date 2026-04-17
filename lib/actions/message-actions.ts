@@ -240,3 +240,50 @@ export async function markMessagesRead(input: { otherUserId: string }) {
 
   return { updated: unread.length, messageIds: unread.map((m) => m.message_id) };
 }
+
+export async function getAvailableAdvisorsForMessaging() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+
+  const advisors = await prisma.advisor.findMany({
+    where: {
+      is_available_for_contact: true,
+    },
+    include: {
+      staff: {
+        include: {
+          user: {
+            include: userInclude,
+          },
+        },
+      },
+    },
+    orderBy: {
+      staff: {
+        user: {
+          lastName: 'asc',
+        },
+      },
+    },
+  });
+
+  return advisors
+    .map((a) => {
+      const user = a.staff.user as UserWithRelations;
+      if (!user || user.status !== 'ACTIVE' || user.user_id === session.user!.id) return null;
+      const specialties = Array.isArray(a.specialty_areas)
+        ? (a.specialty_areas as string[]).map((s) => String(s).trim()).filter(Boolean)
+        : [];
+      return {
+        id: user.user_id,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        role: appRoleFromUserRecord(user),
+        department: a.staff.department,
+        specialties,
+        bio: a.bio ?? null,
+      };
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== null);
+}

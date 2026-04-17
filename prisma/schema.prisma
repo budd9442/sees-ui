@@ -122,6 +122,9 @@ model Staff {
 model Advisor {
   advisor_id              String    @id
   assigned_degree_path_id String?
+  is_available_for_contact Boolean  @default(true)
+  specialty_areas         Json?
+  bio                     String?
   staff                   Staff     @relation(fields: [advisor_id], references: [staff_id], onDelete: Cascade)
   students                Student[]
 }

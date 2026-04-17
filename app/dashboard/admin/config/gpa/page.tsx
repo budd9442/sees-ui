@@ -8,8 +8,8 @@ import { Loader2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'GPA & grading defaults (admin) | SEES',
-  description: 'Institution-wide GPA calculation, class thresholds, and default mark-to-grade bands.',
+  title: 'Grading defaults (admin) | SEES',
+  description: 'Institution-wide default mark-to-grade bands used by staff grading and imports.',
 };
 
 export default async function AdminGpaConfigPage() {

@@ -54,7 +54,11 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
             degreePathId: '',
             staffNumber: '',
             department: '',
-            staffType: 'ACADEMIC'
+            staffType: 'ACADEMIC',
+            isAdvisor: false,
+            advisorSpecialties: '',
+            advisorAvailableForContact: true,
+            advisorBio: '',
         },
     });
 
@@ -110,7 +114,11 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
                     degreePathId: user.degreeId || '', // Check if user object has degreeId from flattening
                     staffNumber: user.staffNumber || '',
                     department: user.department || '',
-                    staffType: user.type || 'ACADEMIC'
+                    staffType: user.type || 'ACADEMIC',
+                    isAdvisor: !!user.isAdvisor,
+                    advisorSpecialties: user.advisorSpecialties || '',
+                    advisorAvailableForContact: user.advisorAvailableForContact !== false,
+                    advisorBio: user.advisorBio || '',
                 });
             } else {
                 reset({
@@ -122,7 +130,11 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
                     degreePathId: '',
                     staffNumber: '',
                     department: '',
-                    staffType: 'ACADEMIC'
+                    staffType: 'ACADEMIC',
+                    isAdvisor: false,
+                    advisorSpecialties: '',
+                    advisorAvailableForContact: true,
+                    advisorBio: '',
                 });
             }
         }
@@ -358,6 +370,73 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="isAdvisor"
+                                    render={({ field }: { field: any }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                                            <div className="space-y-0.5">
+                                                <FormLabel>Advisor Role</FormLabel>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Mark this staff member as an advisor for student messaging.
+                                                </p>
+                                            </div>
+                                            <FormControl>
+                                                <Checkbox checked={!!field.value} onCheckedChange={(checked) => field.onChange(!!checked)} />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                {watch('isAdvisor') && (
+                                    <div className="space-y-4 rounded-md border p-3">
+                                        <FormField
+                                            control={form.control}
+                                            name="advisorSpecialties"
+                                            render={({ field }: { field: any }) => (
+                                                <FormItem>
+                                                    <FormLabel>Specialty Areas</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="eg: GPA recovery, internship planning, MIT pathway" {...field} />
+                                                    </FormControl>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Comma-separated list shown to students in Contact Advisors.
+                                                    </p>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="advisorBio"
+                                            render={({ field }: { field: any }) => (
+                                                <FormItem>
+                                                    <FormLabel>Advisor Bio (Optional)</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Short description shown in advisor picker" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="advisorAvailableForContact"
+                                            render={({ field }: { field: any }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                                                    <div className="space-y-0.5">
+                                                        <FormLabel>Available for Contact</FormLabel>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            If off, students will not see this advisor in messaging contact list.
+                                                        </p>
+                                                    </div>
+                                                    <FormControl>
+                                                        <Checkbox checked={field.value !== false} onCheckedChange={(checked) => field.onChange(!!checked)} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
 
