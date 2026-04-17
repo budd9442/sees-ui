@@ -96,12 +96,6 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
     const pendingReleaseGrades = moduleGrades.filter((g: any) => hasRecord(g) && !g.isReleased);
     const awaitingMarksGrades = moduleGrades.filter((g: any) => g.hasGradeRecord === false);
 
-    const csvTemplate = [
-        ['Student Id', 'Grade'],
-        ['STU001', '85'],
-        ['STU002', '72'],
-    ];
-
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
@@ -226,14 +220,34 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
     };
 
     const downloadTemplate = () => {
-        const csvContent = csvTemplate.map(row => row.join(',')).join('\\n');
+        if (!selectedModule || !currentModule) {
+            toast.error('Select a module first to download its template.');
+            return;
+        }
+
+        const rows = moduleGrades.map((g: any) => {
+            const student = students.find((s: any) => s.id === g.studentId);
+            const studentName = student?.name || '';
+            const gradeCell = g.hasGradeRecord ? (g.grade ?? '') : '';
+            return [g.studentId, studentName, gradeCell];
+        });
+
+        const csvRows = [
+            ['Student Id', 'Student Name', 'Grade'],
+            ...rows,
+        ];
+        const csvContent = csvRows
+            .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+            .join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'grade_template.csv';
+        const safeCode = String(currentModule.code || 'module').replace(/[^a-zA-Z0-9_-]/g, '_');
+        a.download = `grades_${safeCode}_student_list.csv`;
         a.click();
         URL.revokeObjectURL(url);
+        toast.success(`Downloaded template for ${currentModule.title}`);
     };
 
     const filteredGrades = moduleGrades.filter((grade: any) => {
@@ -257,10 +271,10 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                     <p className="text-muted-foreground mt-1">Upload, manage, and release student grades</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={downloadTemplate}>
-                        <Download className="mr-2 h-4 w-4" /> Download Template
+                    <Button variant="outline" onClick={downloadTemplate} disabled={!selectedModule}>
+                        <Download className="mr-2 h-4 w-4" /> Download Module Template
                     </Button>
-                    <Button onClick={() => setShowUploadDialog(true)}>
+                    <Button onClick={() => setShowUploadDialog(true)} disabled={!selectedModule}>
                         <Upload className="mr-2 h-4 w-4" /> Upload Grades
                     </Button>
                 </div>

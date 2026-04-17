@@ -17,7 +17,27 @@ export async function ensureDefaultGradingSchemeInDb(): Promise<void> {
         include: { bands: { orderBy: { min_marks: 'desc' } } },
     });
 
-    if (active && active.bands.length > 0) return;
+    const requiredLetters = DEFAULT_INSTITUTION_GRADING_BANDS.map((b) => b.letter_grade);
+    if (active && active.bands.length > 0) {
+        const existingLetters = new Set(active.bands.map((b) => b.letter_grade));
+        const missing = requiredLetters.filter((l) => !existingLetters.has(l));
+        if (missing.length === 0) return;
+
+        // Add missing bands without changing existing ones.
+        await prisma.gradingBand.createMany({
+            data: missing.map((letter) => {
+                const band = DEFAULT_INSTITUTION_GRADING_BANDS.find((b) => b.letter_grade === letter)!;
+                return {
+                    scheme_id: active.scheme_id,
+                    letter_grade: band.letter_grade,
+                    grade_point: band.grade_point,
+                    min_marks: band.min_marks,
+                    max_marks: band.max_marks,
+                };
+            }),
+        });
+        return;
+    }
 
     if (active && active.bands.length === 0) {
         await prisma.gradingBand.createMany({

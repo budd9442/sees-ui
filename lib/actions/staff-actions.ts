@@ -341,14 +341,6 @@ export async function getStaffDashboardData() {
         take: 3
     });
 
-    // 9. Performance Data (Aggregate across modules)
-    const performanceData = [
-        { month: 'Jan', avgGrade: 3.2 },
-        { month: 'Feb', avgGrade: 3.3 },
-        { month: 'Mar', avgGrade: 3.1 },
-        { month: 'Apr', avgGrade: 3.4 },
-    ];
-
     return {
         staff: { firstName: staff.firstName, lastName: staff.lastName, email: staff.email },
         myModules,
@@ -357,7 +349,6 @@ export async function getStaffDashboardData() {
         upcomingClasses: upcomingClassesCount,
         gradeDistribution,
         moduleWorkload,
-        performanceData,
         recentActivities,
         upcomingDeadlines: upcomingDeadlines.map(d => ({
             id: d.schedule_id,
@@ -424,7 +415,29 @@ export async function getEnrolledStudents(moduleId: string) {
               include: regInclude,
           });
 
-    return registrations.map(reg => ({
+    const regByStudent = new Map<string, (typeof registrations)[number]>();
+    for (const reg of registrations) {
+        const existing = regByStudent.get(reg.student_id);
+        if (!existing) {
+            regByStudent.set(reg.student_id, reg);
+            continue;
+        }
+        const existingExactModule = existing.module_id === moduleId;
+        const currentExactModule = reg.module_id === moduleId;
+        if (currentExactModule && !existingExactModule) {
+            regByStudent.set(reg.student_id, reg);
+            continue;
+        }
+        if (currentExactModule === existingExactModule) {
+            const existingTs = existing.registration_date?.getTime?.() ?? 0;
+            const currentTs = reg.registration_date?.getTime?.() ?? 0;
+            if (currentTs > existingTs) {
+                regByStudent.set(reg.student_id, reg);
+            }
+        }
+    }
+
+    return [...regByStudent.values()].map(reg => ({
         registrationId: reg.reg_id,
         studentNumber: reg.student.student_id,
         studentName: `${reg.student.user.firstName || ''} ${reg.student.user.lastName || ''}`.trim(),

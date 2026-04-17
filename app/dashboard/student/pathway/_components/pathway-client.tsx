@@ -52,7 +52,7 @@ export default function PathwayClient({ initialData }: PathwayClientProps) {
     const [aiAdvice, setAIAdvice] = useState<any>(null);
     const [loadingAI, setLoadingAI] = useState(false);
 
-    const isL1Student = currentStudent.academicYear === 'L1';
+    const isL1Student = currentStudent.academicYear === 'Level 1';
     const hasSelectedPathway = currentStudent.degreeProgram === 'MIT' || currentStudent.degreeProgram === 'IT';
     const isLocked = currentStudent.pathwayLocked;
 

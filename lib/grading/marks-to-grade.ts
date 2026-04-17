@@ -15,14 +15,20 @@ export type GradingBandRow = {
  * Must stay in sync with admin GPA “Grade scale” defaults and with `ensureDefaultGradingSchemeInDb`.
  */
 export const DEFAULT_INSTITUTION_GRADING_BANDS: GradingBandRow[] = [
+    // Expanded ladder to cover LMS letter outputs like `A-` / `B-`.
     { letter_grade: 'A+', grade_point: 4.0, min_marks: 85, max_marks: 100 },
-    { letter_grade: 'A', grade_point: 4.0, min_marks: 75, max_marks: 84 },
+    { letter_grade: 'A', grade_point: 4.0, min_marks: 80, max_marks: 84 },
+    { letter_grade: 'A-', grade_point: 3.7, min_marks: 75, max_marks: 79 },
     { letter_grade: 'B+', grade_point: 3.3, min_marks: 70, max_marks: 74 },
     { letter_grade: 'B', grade_point: 3.0, min_marks: 65, max_marks: 69 },
-    { letter_grade: 'C+', grade_point: 2.3, min_marks: 60, max_marks: 64 },
-    { letter_grade: 'C', grade_point: 2.0, min_marks: 55, max_marks: 59 },
-    { letter_grade: 'D', grade_point: 1.0, min_marks: 45, max_marks: 54 },
-    { letter_grade: 'F', grade_point: 0.0, min_marks: 0, max_marks: 44 },
+    { letter_grade: 'B-', grade_point: 2.7, min_marks: 60, max_marks: 64 },
+    { letter_grade: 'C+', grade_point: 2.3, min_marks: 55, max_marks: 59 },
+    { letter_grade: 'C', grade_point: 2.0, min_marks: 50, max_marks: 54 },
+    { letter_grade: 'C-', grade_point: 1.7, min_marks: 45, max_marks: 49 },
+    { letter_grade: 'D', grade_point: 1.0, min_marks: 40, max_marks: 44 },
+    // LMS sometimes uses `E` (treated as 0 points).
+    { letter_grade: 'E', grade_point: 0.0, min_marks: 0, max_marks: 0 },
+    { letter_grade: 'F', grade_point: 0.0, min_marks: 1, max_marks: 39 },
 ];
 
 /** @deprecated Use DEFAULT_INSTITUTION_GRADING_BANDS — kept as alias for older imports */

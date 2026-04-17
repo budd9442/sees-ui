@@ -62,6 +62,23 @@ function computeGraceEndsAt(approved_at: Date | null, graceDays: number): Date |
     return d;
 }
 
+function normalizeSelectionLevel(value: string | null | undefined): string | null {
+    const raw = String(value ?? '').trim().toUpperCase();
+    if (!raw) return null;
+    if (raw === 'L1' || raw === 'LEVEL 1') return 'L1';
+    if (raw === 'L2' || raw === 'LEVEL 2') return 'L2';
+    if (raw === 'L3' || raw === 'LEVEL 3') return 'L3';
+    if (raw === 'L4' || raw === 'LEVEL 4') return 'L4';
+    return raw;
+}
+
+function levelMatches(roundLevel: string | null | undefined, studentLevel: string | null | undefined): boolean {
+    if (!roundLevel) return true;
+    const r = normalizeSelectionLevel(roundLevel);
+    const s = normalizeSelectionLevel(studentLevel);
+    return !!r && !!s && r === s;
+}
+
 // ─────────────────────────────────────────────────────────────
 // Read actions (HOD / admin)
 // ─────────────────────────────────────────────────────────────
@@ -1371,21 +1388,11 @@ export async function getStudentActiveSelectionRound(type: RoundType) {
             return { success: true, data: null };
         }
 
-        const roundOpen = await prisma.selectionRound.findFirst({
+        const openCandidates = await prisma.selectionRound.findMany({
             where: {
                 type,
                 status: 'OPEN',
-                AND: [
-                    {
-                        OR: [{ level: { not: null } }, { target_program_id: { not: null } }],
-                    },
-                    {
-                        OR: [{ level: null }, { level: student.current_level }],
-                    },
-                    {
-                        OR: [{ target_program_id: null }, { target_program_id: student.degree_path.program_id }],
-                    },
-                ],
+                OR: [{ level: { not: null } }, { target_program_id: { not: null } }],
             },
             include: {
                 configs: {
@@ -1398,6 +1405,11 @@ export async function getStudentActiveSelectionRound(type: RoundType) {
                 },
             },
             orderBy: { created_at: 'desc' },
+        });
+        const roundOpen = openCandidates.find((round) => {
+            const levelOk = levelMatches(round.level, student.current_level);
+            const programOk = !round.target_program_id || round.target_program_id === student.degree_path.program_id;
+            return levelOk && programOk;
         });
 
         if (roundOpen) {
@@ -1493,21 +1505,11 @@ export async function getStudentActiveSelectionRound(type: RoundType) {
             };
         }
 
-        const approvedRound = await prisma.selectionRound.findFirst({
+        const approvedCandidates = await prisma.selectionRound.findMany({
             where: {
                 type,
                 status: 'APPROVED',
-                AND: [
-                    {
-                        OR: [{ level: { not: null } }, { target_program_id: { not: null } }],
-                    },
-                    {
-                        OR: [{ level: null }, { level: student.current_level }],
-                    },
-                    {
-                        OR: [{ target_program_id: null }, { target_program_id: student.degree_path.program_id }],
-                    },
-                ],
+                OR: [{ level: { not: null } }, { target_program_id: { not: null } }],
                 approved_at: { not: null },
                 applications: { some: { student_id: studentId } },
             },
@@ -1522,6 +1524,11 @@ export async function getStudentActiveSelectionRound(type: RoundType) {
                 },
             },
             orderBy: { approved_at: 'desc' },
+        });
+        const approvedRound = approvedCandidates.find((round) => {
+            const levelOk = levelMatches(round.level, student.current_level);
+            const programOk = !round.target_program_id || round.target_program_id === student.degree_path.program_id;
+            return levelOk && programOk;
         });
 
         if (!approvedRound) return { success: true, data: null };
@@ -1916,7 +1923,7 @@ export async function submitSelectionApplication(data: {
         if (!round.level && !round.target_program_id) {
             return { success: false, error: 'This round is misconfigured: no target level or program.' };
         }
-        if (round.level && student.current_level && round.level !== student.current_level) {
+        if (!levelMatches(round.level, student.current_level)) {
             return { success: false, error: 'You are not eligible for this selection round (level mismatch).' };
         }
         if (round.target_program_id && round.target_program_id !== student.degree_path.program_id) {

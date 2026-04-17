@@ -1,0 +1,371 @@
+{
+  "fetchedAt": "2026-04-16T11:37:41.246Z",
+  "authedUrl": "http://www.science.kln.ac.lk:8080/(S(3bvr2j02ty5ybylym34xkzck))/sfkn.aspx",
+  "student": {
+    "nameWithInitial": "Mr R.M.B.N.N. BANDARA",
+    "fullName": "Mr RATHNAYAKE MUDIYANSELAGE BUDDHIKA NAWOD NETHSARA BANDARA",
+    "universityId": "IM/2022/053",
+    "handbookAcademicYear": "2022/2023"
+  },
+  "years": {
+    "1": {
+      "totals": {
+        "totalCredit": "41",
+        "totalCreditNonGpa": "5",
+        "gpa": "3.840000"
+      },
+      "rows": [
+        {
+          "courseCode": "ACLT 11013",
+          "courseName": "Academic Literacy I",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A-"
+        },
+        {
+          "courseCode": "DELT 11232",
+          "courseName": "English for Professionals",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A-"
+        },
+        {
+          "courseCode": "GNCT 11212",
+          "courseName": "Personal Progress Development I",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "Pass"
+        },
+        {
+          "courseCode": "INTE 11213",
+          "courseName": "Fundamentals of Computing",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A+"
+        },
+        {
+          "courseCode": "INTE 11223",
+          "courseName": "Programming Concepts",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A+"
+        },
+        {
+          "courseCode": "INTE 12213",
+          "courseName": "Object Oriented Programming",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A"
+        },
+        {
+          "courseCode": "INTE 12223",
+          "courseName": "Database Design and Development",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A"
+        },
+        {
+          "courseCode": "INTE 12243",
+          "courseName": "Computer Networks",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A+"
+        },
+        {
+          "courseCode": "MGTE 11233",
+          "courseName": "BUSINESS STATISTICS AND ECONOMICS",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A+"
+        },
+        {
+          "courseCode": "MGTE 11243",
+          "courseName": "PRINCIPLES OF MANAGEMENT & ORGANIZATIONAL BEHAVIOUR",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A+"
+        },
+        {
+          "courseCode": "MGTE 12253",
+          "courseName": "ACCOUNTING CONCEPTS AND COSTING",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A+"
+        },
+        {
+          "courseCode": "MGTE 12263",
+          "courseName": "OPTIMIZATION METHODS IN MANAGEMENT SCIENCE",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "B"
+        },
+        {
+          "courseCode": "MGTE 12273",
+          "courseName": "INDUSTRY AND TECHNOLOGY",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A"
+        },
+        {
+          "courseCode": "PMAT 11212",
+          "courseName": "Discrete Mathematics for Computing I",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A"
+        },
+        {
+          "courseCode": "PMAT 12212",
+          "courseName": "Discrete Mathematics for Computing II",
+          "acYear": "2022/2023",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "B"
+        }
+      ]
+    },
+    "2": {
+      "totals": {
+        "totalCredit": "38",
+        "totalCreditNonGpa": "2",
+        "gpa": "2.190000"
+      },
+      "rows": [
+        {
+          "courseCode": "GNCT 23212",
+          "courseName": "",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 21213",
+          "courseName": "Information Systems Modelling",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A"
+        },
+        {
+          "courseCode": "INTE 21243",
+          "courseName": "Computer Architecture and Operating Systems",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A+"
+        },
+        {
+          "courseCode": "INTE 21313",
+          "courseName": "BUSINESS INFORMATION SYSTEMS",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A"
+        },
+        {
+          "courseCode": "INTE 21323",
+          "courseName": "WEB APPLICATION DEVELOPMENT",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A"
+        },
+        {
+          "courseCode": "INTE 21333",
+          "courseName": "EVENT DRIVEN PROGRAMMING",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "B"
+        },
+        {
+          "courseCode": "INTE 22213",
+          "courseName": "",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 22253",
+          "courseName": "Distributed Systems and Cloud Computing",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "B+"
+        },
+        {
+          "courseCode": "INTE 22263",
+          "courseName": "Embedded Systems Development",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 22283",
+          "courseName": "Mobile Applications Development",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 22293",
+          "courseName": "Software Architecture and Process Models",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 22303",
+          "courseName": "Artificial Intelligence",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 22343",
+          "courseName": "DATA STRUCTURES AND ALGORITHMS",
+          "acYear": "2023/2024",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": "A"
+        }
+      ]
+    },
+    "3": {
+      "totals": {
+        "totalCredit": "30",
+        "totalCreditNonGpa": "0",
+        "gpa": "0.000000"
+      },
+      "rows": [
+        {
+          "courseCode": "GNCT 32216",
+          "courseName": "Internship",
+          "acYear": "2024/2025",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 31233",
+          "courseName": "Human Computer Interaction",
+          "acYear": "2024/2025",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 31283",
+          "courseName": "Big Data and Data Warehousing",
+          "acYear": "2024/2025",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 31356",
+          "courseName": "Software Development Project",
+          "acYear": "2024/2025",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 31393",
+          "courseName": "INFORMATION SECURITY",
+          "acYear": "2024/2025",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "INTE 31403",
+          "courseName": "SYSTEM ADMINISTRATION AND MAINTENANCE",
+          "acYear": "2024/2025",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "MGTE 31373",
+          "courseName": "PROJECT MANAGEMENT",
+          "acYear": "2024/2025",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        },
+        {
+          "courseCode": "MGTE 31383",
+          "courseName": "RESEARCH METHODS",
+          "acYear": "2024/2025",
+          "attempt": "1",
+          "examStatus": "",
+          "examNote": "",
+          "grade": ""
+        }
+      ]
+    },
+    "4": {
+      "totals": {
+        "totalCredit": null,
+        "totalCreditNonGpa": "0",
+        "gpa": null
+      },
+      "rows": []
+    }
+  }
+}

@@ -44,6 +44,7 @@ export default async function DashboardLayout({
         : (dbUser as any)?.staff
           ? 'staff'
           : (session.user as any).role || 'student',
+    currentLevel: (dbUser as any)?.student?.current_level || undefined,
     degreeProgram: (dbUser as any)?.student?.degree_path?.code || undefined,
     specialization: (dbUser as any)?.student?.specialization?.code || undefined,
     isActive: dbUser ? dbUser.status === 'ACTIVE' : true,
@@ -57,6 +58,25 @@ export default async function DashboardLayout({
 
   if ((dbUser as any)?.student && !(dbUser as any).student.onboarding_completed_at) {
     redirect('/onboarding/student');
+  }
+
+  // If onboarding is done but LMS import isn't committed yet, force the student
+  // through the LMS import flow before exposing the dashboard.
+  if ((dbUser as any)?.student && (dbUser as any).student.onboarding_completed_at) {
+    const metadata = (dbUser as any).student.metadata as any;
+    const lmsCompletedAt =
+      metadata?.lms_import_completed_at ??
+      metadata?.lmsImportCompletedAt ??
+      (metadata?.lms_import_completed === true ? new Date().toISOString() : null);
+
+    const lmsSkippedAt =
+      metadata?.lms_import_skipped_at ??
+      metadata?.lmsImportSkippedAt ??
+      (metadata?.lms_import_skipped === true ? new Date().toISOString() : null);
+
+    if (!lmsCompletedAt && !lmsSkippedAt) {
+      redirect('/onboarding/student/lms-import');
+    }
   }
 
   // Fetch Feature Flags

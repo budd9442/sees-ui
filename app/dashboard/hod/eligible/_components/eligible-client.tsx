@@ -116,8 +116,20 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
 
     const studentsByClass = getStudentsByClass();
 
-    const pathwayOptions = Array.from(new Set(students.map((s: any) => s.specialization).filter(Boolean))).sort();
-    const yearOptions = Array.from(new Set(students.map((s: any) => s.academicYear).filter(Boolean))).sort();
+    const pathwayOptions = Array.from(
+        new Set<string>(
+            students
+                .map((s: any) => s.specialization)
+                .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+        )
+    ).sort();
+    const yearOptions = Array.from(
+        new Set<string>(
+            students
+                .map((s: any) => s.academicYear)
+                .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+        )
+    ).sort();
 
     const filterStudents = (studentList: any[]) => {
         return studentList.filter(student => {

@@ -11,17 +11,14 @@ import {
     Calendar,
     TrendingUp,
     FileText,
-    Clock,
     CheckCircle,
     AlertCircle,
-    BarChart3,
     Award,
     ClipboardCheck,
-    Settings,
 } from 'lucide-react';
 import {
-    LineChart,
-    Line,
+    BarChart,
+    Bar,
     PieChart,
     Pie,
     Cell,
@@ -41,7 +38,6 @@ interface StaffDashboardViewProps {
     upcomingClasses: number;
     gradeDistribution: any[];
     moduleWorkload: any[];
-    performanceData: any[];
     recentActivities: any[];
     upcomingDeadlines: any[];
 }
@@ -54,7 +50,6 @@ export function StaffDashboardView({
     upcomingClasses,
     gradeDistribution,
     moduleWorkload,
-    performanceData,
     recentActivities,
     upcomingDeadlines
 }: StaffDashboardViewProps) {
@@ -142,31 +137,27 @@ export function StaffDashboardView({
 
             {/* Charts Row */}
             <div className="grid gap-4 md:grid-cols-2">
-                {/* Performance Trends */}
+                {/* Grading Throughput */}
                 <Link
-                    href="/dashboard/staff/analytics"
+                    href="/dashboard/staff/grades"
                     className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                     <Card className="h-full transition-colors hover:border-primary/35 hover:bg-muted/20 cursor-pointer">
                     <CardHeader>
-                        <CardTitle>Student Performance Trends</CardTitle>
-                        <CardDescription>Average grades across all modules</CardDescription>
+                        <CardTitle>Grading Throughput by Module</CardTitle>
+                        <CardDescription>Measured from current roster and draft/released grades</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={250}>
-                            <LineChart data={performanceData}>
+                            <BarChart data={moduleWorkload}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="month" />
+                                <XAxis dataKey="name" />
                                 <YAxis />
                                 <Tooltip />
-                                <Line
-                                    type="monotone"
-                                    dataKey="avgGrade"
-                                    stroke="#3b82f6"
-                                    strokeWidth={2}
-                                    dot={{ r: 4 }}
-                                />
-                            </LineChart>
+                                <Legend />
+                                <Bar dataKey="students" name="Enrolled" fill="#3b82f6" />
+                                <Bar dataKey="pendingGrades" name="Pending" fill="#ef4444" />
+                            </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
                     </Card>
@@ -280,79 +271,6 @@ export function StaffDashboardView({
                 </Card>
             </div>
 
-            {/* Quick Actions */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                    <CardDescription>Frequently used tasks</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid gap-4 md:grid-cols-4">
-                        <Button className="h-24 flex-col gap-2 rounded-2xl bg-primary/5 border-primary/10 hover:bg-primary/10 text-primary transition-all" variant="outline" asChild>
-                            <Link href="/dashboard/staff/modules">
-                                <BookOpen className="h-6 w-6" />
-                                <span className="text-xs font-bold uppercase tracking-tighter">My Modules</span>
-                            </Link>
-                        </Button>
-                        <Button className="h-24 flex-col gap-2 rounded-2xl hover:bg-accent/50 transition-all" variant="outline" asChild>
-                            <Link href="/dashboard/staff/schedule">
-                                <Calendar className="h-6 w-6" />
-                                <span className="text-xs font-bold uppercase tracking-tighter">Global Schedule</span>
-                            </Link>
-                        </Button>
-                        <Button className="h-24 flex-col gap-2 rounded-2xl hover:bg-accent/50 transition-all" variant="outline" asChild>
-                            <Link href="/dashboard/staff/analytics">
-                                <BarChart3 className="h-6 w-6" />
-                                <span className="text-xs font-bold uppercase tracking-tighter">Academic Insights</span>
-                            </Link>
-                        </Button>
-                        <Button className="h-24 flex-col gap-2 rounded-2xl hover:bg-accent/50 transition-all" variant="outline" disabled>
-                            <Settings className="h-6 w-6" />
-                            <span className="text-xs font-bold uppercase tracking-tighter">Profile Settings</span>
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Upcoming Deadlines / Sessions - Premium List */}
-            <Card className="rounded-3xl border-none shadow-xl shadow-muted/20">
-                <CardHeader>
-                    <CardTitle className="text-lg font-black flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-primary" />
-                        Upcoming Sessions
-                    </CardTitle>
-                    <CardDescription className="text-xs font-bold uppercase tracking-tight">Scheduled lectures and tutorials for this week</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {upcomingDeadlines.length > 0 ? (
-                            upcomingDeadlines.map((deadline) => (
-                                <div key={deadline.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-muted-foreground/5 hover:bg-muted/50 transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                            <Calendar className="h-5 w-5" />
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-sm">{deadline.title}</p>
-                                            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">
-                                                {deadline.date} • {deadline.type}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <Button variant="ghost" size="sm" className="rounded-xl text-[10px] font-black uppercase tracking-tighter" asChild>
-                                        <Link href={`/dashboard/staff/modules/${deadline.moduleId}`}>Prepare</Link>
-                                    </Button>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="text-center py-12 text-muted-foreground">
-                                <Clock className="h-12 w-12 mx-auto mb-3 opacity-10" />
-                                <p className="text-sm font-medium">No sessions recorded for this timeframe.</p>
-                            </div>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
         </div>
     );
 }

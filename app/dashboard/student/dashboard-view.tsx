@@ -11,7 +11,6 @@ import {
     GraduationCap,
     BookOpen,
     TrendingUp,
-    Award,
     Target,
     Calendar,
     Bell,
@@ -19,7 +18,6 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { formatRelativeTime } from '@/lib/dateFormatters';
-import { useRouter } from 'next/navigation';
 import type { Student, StudentGoalsSummary } from '@/types';
 
 import { AcademicRecoveryCard } from '@/components/student/academic-recovery-card';
@@ -27,15 +25,12 @@ import { AcademicRecoveryCard } from '@/components/student/academic-recovery-car
 interface DashboardViewProps {
     student: Student;
     notifications: any[];
-    schedules: any[];
     pathwayDemand: any;
     gpaHistory: { semester: string; gpa: number }[];
     goalsSummary: StudentGoalsSummary;
 }
 
-export function DashboardView({ student, notifications, schedules, pathwayDemand, gpaHistory, goalsSummary }: DashboardViewProps) {
-    const router = useRouter();
-
+export function DashboardView({ student, notifications, pathwayDemand, gpaHistory, goalsSummary }: DashboardViewProps) {
     // Use real semester-wise cumulative GPA history
     const gpaData = gpaHistory;
 
@@ -97,7 +92,7 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
             </div>
 
             {/* Pathway Warning if applicable */}
-            {student.academicYear === 'L1' &&
+            {student.academicYear === 'Level 1' &&
                 !student.pathwayLocked &&
                 pathwayDemand.thresholdReached && (
                     <Alert className="mb-6 border-orange-500 bg-orange-50">
@@ -287,86 +282,6 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-                {/* Quick Actions */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Quick Actions</CardTitle>
-                        <CardDescription>Common tasks and shortcuts</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <Button
-                            className="w-full justify-start"
-                            variant="outline"
-                            onClick={() => router.push('/dashboard/student/modules')}
-                        >
-                            <BookOpen className="mr-2 h-4 w-4" />
-                            Register for Modules
-                        </Button>
-                        <Button
-                            className="w-full justify-start"
-                            variant="outline"
-                            onClick={() => router.push('/dashboard/student/grades')}
-                        >
-                            <Award className="mr-2 h-4 w-4" />
-                            View Grades
-                        </Button>
-                        <Button
-                            className="w-full justify-start"
-                            variant="outline"
-                            onClick={() => router.push('/dashboard/student/schedule')}
-                        >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            Check Schedule
-                        </Button>
-                        <Button
-                            className="w-full justify-start"
-                            variant="outline"
-                            onClick={() => router.push('/dashboard/student/messages')}
-                        >
-                            <Bell className="mr-2 h-4 w-4" />
-                            Contact Advisor
-                        </Button>
-                    </CardContent>
-                </Card>
-
-                <Link
-                    href="/dashboard/student/schedule"
-                    className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                    <Card className="h-full transition-all hover:shadow-lg hover:border-primary/35 cursor-pointer">
-                    <CardHeader>
-                        <CardTitle>Upcoming Events</CardTitle>
-                        <CardDescription>Important dates and deadlines</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {schedules.length === 0 ? (
-                                <p className="text-sm text-muted-foreground text-center py-4">
-                                    No upcoming events
-                                </p>
-                            ) : (
-                                schedules.map((schedule, i) => (
-                                    <div
-                                        key={schedule.id || i}
-                                        className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                                    >
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                                            <Calendar className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="font-medium text-sm">{schedule.module?.name}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                {schedule.day} {schedule.startTime} - {schedule.endTime}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </CardContent>
-                    </Card>
-                </Link>
-
                 {/* Recent Notifications */}
                 <Link
                     href="/dashboard/student/messages"

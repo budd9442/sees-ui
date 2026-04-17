@@ -19,6 +19,13 @@ const programStructureInclude = {
     },
 } as const;
 
+function canonicalModuleCodeForEnrollment(raw: string | null | undefined) {
+    const code = String(raw ?? '').trim().toUpperCase();
+    // Treat variant suffixes as the same logical module for enrollment display:
+    // e.g. "GNCT 11212a" and "GNCT 11212", "INTE 43216b" and "INTE 43216".
+    return code.replace(/([0-9]{5})[A-Z]$/, '$1');
+}
+
 /** Program catalogue rows for registration: active year first, then legacy rows with null academic_year_id. */
 async function fetchProgramStructuresForEnrollment(opts: {
     programId: string;
@@ -47,11 +54,22 @@ async function fetchProgramStructuresForEnrollment(opts: {
         include: programStructureInclude,
     });
 
-    if (structures.length === 0) {
-        structures = await prisma.programStructure.findMany({
-            where: buildWhere(null) as any,
-            include: programStructureInclude,
-        });
+    // Also include legacy catalogue rows (academic_year_id = null). Many datasets only have
+    // partial active-year structures, and falling back only when active-year is empty can hide modules.
+    const legacy = await prisma.programStructure.findMany({
+        where: buildWhere(null) as any,
+        include: programStructureInclude,
+    });
+
+    if (legacy.length) {
+        const key = (s: any) => `${s.module_id}::${s.semester_number}::${s.specialization_id ?? 'null'}`;
+        const seen = new Set(structures.map(key));
+        for (const row of legacy) {
+            const k = key(row);
+            if (seen.has(k)) continue;
+            structures.push(row);
+            seen.add(k);
+        }
     }
 
     return structures;
@@ -190,7 +208,8 @@ async function getCurrentSemester() {
             where: { semester_id: activeSetting.value },
             include: { academic_year: true }
         });
-        if (manualSemester) return manualSemester;
+        // Only respect manual override when it points to the active academic year.
+        if (manualSemester?.academic_year?.active) return manualSemester;
     }
 
     // 2. Fallback: Date-based logic
@@ -284,19 +303,115 @@ export async function getModuleRegistrationData() {
         where: { level: studentYear }
     });
 
+    const semesterIds = semesters.map((s) => s.semester_id);
+    const activeAcademicYearId = semesters[0]?.academic_year_id ?? null;
+    const programIntake = activeAcademicYearId
+        ? await prisma.programIntake.findFirst({
+              where: {
+                  program_id: record.degree_path_id,
+                  academic_year_id: activeAcademicYearId,
+              },
+              select: { max_students: true },
+          })
+        : null;
+    const moduleCapacity = programIntake?.max_students ?? 0;
+    const structureModuleCodes = Array.from(new Set(structures.map((s: any) => s.module?.code).filter(Boolean)));
+    const structureCanonicalCodes = Array.from(
+        new Set(structureModuleCodes.map((code) => canonicalModuleCodeForEnrollment(code)))
+    );
+
+    // Enrollment is displayed per "module offering", but seed/import history can create
+    // multiple module_id rows for the same module code across academic years.
+    // Count by module code + semester so numbers remain accurate for students.
+    const codeSemesterRegistrations = structureModuleCodes.length
+        ? await prisma.moduleRegistration.findMany({
+              where: {
+                  semester_id: { in: semesterIds },
+                  status: { not: 'DROPPED' },
+                  module: { code: { in: structureModuleCodes as string[] } },
+              },
+              select: {
+                  semester_id: true,
+                  module: { select: { code: true } },
+              },
+          } as any)
+        : [];
+
+    // Include variant module codes that map to the same canonical code (e.g. 11212 vs 11212A).
+    const siblingModules = structureCanonicalCodes.length
+        ? await prisma.module.findMany({
+              where: {
+                  OR: structureCanonicalCodes.map((canonical) => ({
+                      code: {
+                          startsWith: canonical,
+                          mode: 'insensitive',
+                      },
+                  })),
+              },
+              select: { module_id: true, code: true },
+          } as any)
+        : [];
+
+    const siblingCodeSet = new Set(siblingModules.map((m: any) => String(m.code ?? '').trim().toUpperCase()));
+    const extraCodes = Array.from(siblingCodeSet).filter((c) => !structureModuleCodes.includes(c));
+
+    const siblingRegistrations = extraCodes.length
+        ? await prisma.moduleRegistration.findMany({
+              where: {
+                  semester_id: { in: semesterIds },
+                  status: { not: 'DROPPED' },
+                  module: { code: { in: extraCodes } },
+              },
+              select: {
+                  semester_id: true,
+                  module: { select: { code: true } },
+              },
+          } as any)
+        : [];
+
+    const enrolledByCodeAndSemester = new Map<string, number>();
+    const allRows = [...(codeSemesterRegistrations as any[]), ...(siblingRegistrations as any[])];
+    for (const row of allRows) {
+        const code = canonicalModuleCodeForEnrollment(row.module?.code);
+        if (!code) continue;
+        const k = `${code}::${row.semester_id}`;
+        enrolledByCodeAndSemester.set(k, (enrolledByCodeAndSemester.get(k) ?? 0) + 1);
+    }
+
     // 5. Build Available Modules grouped by Semester Number
     const semestersData = semesters.map(sem => {
         // Find modules belonging to this semester number (heuristic: labels like "Semester 1")
         const semNum = sem.label.includes('1') ? 1 : 2;
         
         const semStructures = structures.filter(s => s.semester_number === semNum);
+        const semStructureByCanonicalCode = new Map<string, (typeof semStructures)[number]>();
+        for (const s of semStructures) {
+            const canonicalCode = canonicalModuleCodeForEnrollment(s.module?.code);
+            if (!canonicalCode) continue;
+            const existing = semStructureByCanonicalCode.get(canonicalCode);
+            if (!existing) {
+                semStructureByCanonicalCode.set(canonicalCode, s);
+                continue;
+            }
+
+            const existingCode = String(existing.module?.code ?? '').trim().toUpperCase();
+            const currentCode = String(s.module?.code ?? '').trim().toUpperCase();
+            const existingIsVariant = /[0-9]{5}[A-Z]$/.test(existingCode);
+            const currentIsVariant = /[0-9]{5}[A-Z]$/.test(currentCode);
+
+            // Prefer base (non-suffixed) code over variant code where both exist.
+            if (existingIsVariant && !currentIsVariant) {
+                semStructureByCanonicalCode.set(canonicalCode, s);
+            }
+        }
+        const dedupedSemStructures = [...semStructureByCanonicalCode.values()];
         
         return {
             semesterId: sem.semester_id,
             label: sem.label,
             semesterNumber: semNum,
             rule: creditRules.find(r => r.semester_number === semNum) || { min_credits: 12, max_credits: 24 },
-            modules: semStructures.map(s => ({
+            modules: dedupedSemStructures.map(s => ({
                 id: s.module.module_id,
                 code: s.module.code,
                 title: s.module.name,
@@ -305,8 +420,11 @@ export async function getModuleRegistrationData() {
                 prerequisites: s.module.Module_A.map((p: any) => p.code),
                 academicYear: s.academic_level,
                 semester: sem.label,
-                capacity: 60,
-                enrolled: s.module.module_registrations.filter((r: any) => r.semester_id === sem.semester_id && r.status !== 'DROPPED').length,
+                capacity: moduleCapacity,
+                enrolled:
+                    enrolledByCodeAndSemester.get(
+                        `${canonicalModuleCodeForEnrollment(s.module.code)}::${sem.semester_id}`
+                    ) ?? 0,
                 isCompulsory: !!(s.module_type === 'CORE')
             }))
         };
@@ -583,7 +701,7 @@ export async function getStudentSchedule() {
             module_registrations: {
                 where: {
                     semester_id: semester.semester_id,
-                    status: 'REGISTERED'
+                    status: { in: ['REGISTERED', 'ENROLLED'] }
                 },
                 include: { module: true }
             } as any
@@ -594,6 +712,7 @@ export async function getStudentSchedule() {
     const record = studentRecord as any;
 
     const moduleIds = record.module_registrations.map((mr: any) => mr.module_id);
+    if (moduleIds.length === 0) return [];
 
     // Fetch schedules
     // If LectureSchedule is empty in seed, this returns empty.
@@ -607,14 +726,21 @@ export async function getStudentSchedule() {
         }
     });
 
+    const formatScheduleClock = (value: Date) => {
+        // Keep timetable clock stable (HH:mm) without local timezone shifting.
+        const h = String(value.getUTCHours()).padStart(2, '0');
+        const m = String(value.getUTCMinutes()).padStart(2, '0');
+        return `${h}:${m}`;
+    };
+
     return schedules.map((s: any) => ({
         id: s.schedule_id,
         moduleCode: s.module.code,
         moduleName: s.module.name,
         type: s.type, // LECTURE, LAB, etc.
         day: s.day_of_week,
-        startTime: s.start_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), // Date to HH:mm
-        endTime: s.end_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        startTime: formatScheduleClock(s.start_time),
+        endTime: formatScheduleClock(s.end_time),
         room: s.classroom,
         lecturer: s.staff ? `${s.staff.user.firstName} ${s.staff.user.lastName}` : 'TBD',
         isAcademic: true,

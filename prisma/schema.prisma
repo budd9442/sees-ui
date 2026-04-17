@@ -74,6 +74,7 @@ model Student {
   grades                  Grade[]
   internships             Internship[]
   module_registrations    ModuleRegistration[]
+  lms_import_sessions    LmsImportSession[]
   rankings                Ranking[]
   advisor                 Advisor?             @relation(fields: [advisor_id], references: [advisor_id])
   degree_path             DegreeProgram        @relation(fields: [degree_path_id], references: [program_id])
@@ -337,6 +338,22 @@ model Grade {
   student             Student            @relation(fields: [student_id], references: [student_id])
 
   @@index([released_at])
+}
+
+model LmsImportSession {
+  session_id    String   @id @default(uuid())
+  student_id    String
+  status        String   @default("RUNNING")
+  stage         String   @default("LOGIN")
+  progress_pct  Int      @default(0)
+  preview_json  Json?
+  error_message String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  student Student @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+
+  @@index([student_id, created_at])
 }
 
 model GradingScheme {

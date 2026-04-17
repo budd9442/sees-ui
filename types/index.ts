@@ -28,6 +28,7 @@ export interface User {
   lastName: string;
   name: string; // Computed from firstName + lastName
   role: UserRole;
+  currentLevel?: string;
   degreeProgram?: DegreeProgram;
   specialization?: Specialization;
   avatar?: string;

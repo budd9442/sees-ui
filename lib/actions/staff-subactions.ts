@@ -90,6 +90,29 @@ export async function getStaffAnalytics(filters?: StaffAnalyticsFilters) {
             },
         });
 
+        // Deduplicate per student for this module. Code-based matching can include
+        // multiple year rows for the same student/module code.
+        const regByStudent = new Map<string, (typeof regs)[number]>();
+        for (const reg of regs) {
+            const existing = regByStudent.get(reg.student_id);
+            if (!existing) {
+                regByStudent.set(reg.student_id, reg);
+                continue;
+            }
+            const existingExactModule = existing.module_id === mod.module_id;
+            const currentExactModule = reg.module_id === mod.module_id;
+            if (currentExactModule && !existingExactModule) {
+                regByStudent.set(reg.student_id, reg);
+                continue;
+            }
+            if (currentExactModule === existingExactModule) {
+                const existingTs = existing.registration_date?.getTime?.() ?? 0;
+                const currentTs = reg.registration_date?.getTime?.() ?? 0;
+                if (currentTs > existingTs) regByStudent.set(reg.student_id, reg);
+            }
+        }
+        const dedupedRegs = [...regByStudent.values()];
+
         let regsFiltered = regs;
         if (filters?.academicYearId) {
             regsFiltered = regsFiltered.filter(
@@ -113,12 +136,12 @@ export async function getStaffAnalytics(filters?: StaffAnalyticsFilters) {
                     points: r.grade!.grade_point,
                     letterGrade: r.grade!.letter_grade,
                     studentPathway: r.student.degree_path.name,
-                    studentYear: r.student.current_level || 'L1',
+                    studentYear: r.student.current_level || 'Level 1',
                 })),
             registrations: regsFiltered.map((r) => ({
                 studentId: r.student_id,
                 studentPathway: r.student.degree_path.name,
-                studentYear: r.student.current_level || 'L1',
+                studentYear: r.student.current_level || 'Level 1',
             })),
         });
     }
@@ -198,7 +221,7 @@ export async function getStaffModuleRoster(moduleId: string) {
                 id: reg.student.student_id,
                 name: `${reg.student.user.firstName} ${reg.student.user.lastName}`,
                 email: reg.student.user.email,
-                academicYear: reg.student.current_level || 'L1',
+                academicYear: reg.student.current_level || 'Level 1',
                 specialization: reg.student.specialization?.name || reg.student.degree_path.name,
                 grade: gradeRecord
                     ? {
@@ -397,6 +420,29 @@ export async function getStaffGradesData() {
             },
         });
 
+        // Deduplicate per student for this module. Code-based matching can include
+        // multiple rows for the same student/module code across years.
+        const regByStudent = new Map<string, (typeof regs)[number]>();
+        for (const reg of regs) {
+            const existing = regByStudent.get(reg.student_id);
+            if (!existing) {
+                regByStudent.set(reg.student_id, reg);
+                continue;
+            }
+            const existingExactModule = existing.module_id === mod.module_id;
+            const currentExactModule = reg.module_id === mod.module_id;
+            if (currentExactModule && !existingExactModule) {
+                regByStudent.set(reg.student_id, reg);
+                continue;
+            }
+            if (currentExactModule === existingExactModule) {
+                const existingTs = existing.registration_date?.getTime?.() ?? 0;
+                const currentTs = reg.registration_date?.getTime?.() ?? 0;
+                if (currentTs > existingTs) regByStudent.set(reg.student_id, reg);
+            }
+        }
+        const dedupedRegs = [...regByStudent.values()];
+
         if (!modules.has(mod.module_id)) {
             modules.set(mod.module_id, {
                 id: mod.module_id,
@@ -404,11 +450,11 @@ export async function getStaffGradesData() {
                 code: mod.code,
                 credits: mod.credits,
                 academicYear: mod.level || 'L1',
-                semester: regs[0]?.semester?.label || 'S1',
+                semester: dedupedRegs[0]?.semester?.label || regs[0]?.semester?.label || 'S1',
             });
         }
 
-        for (const reg of regs) {
+        for (const reg of dedupedRegs) {
             if (!studentsMap.has(reg.student_id)) {
                 studentsMap.set(reg.student_id, {
                     id: reg.student_id,

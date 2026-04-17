@@ -23,6 +23,14 @@ export default async function DashboardPage() {
         redirect('/dashboard/staff');
     }
 
+    if (role === 'advisor') {
+        redirect('/dashboard/advisor');
+    }
+
+    if (role === 'hod') {
+        redirect('/dashboard/hod');
+    }
+
     if (role === 'student') {
         redirect('/dashboard/student');
     }
@@ -31,6 +39,6 @@ export default async function DashboardPage() {
     if (email.includes('admin')) redirect('/dashboard/admin');
     if (email.includes('staff') || email.includes('lecturer')) redirect('/dashboard/staff');
 
-    // Ultimate fallback
-    redirect('/dashboard/student');
+    // Ultimate fallback for unknown-but-authenticated users.
+    redirect('/dashboard/staff');
 }

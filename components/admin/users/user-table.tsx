@@ -103,10 +103,24 @@ export function UserTable({ initialUsers, totalPages, degreePrograms, role, curr
             const params = new URLSearchParams(window.location.search);
             if (term) params.set('query', term);
             else params.delete('query');
+            params.set('page', '1');
             router.push(`?${params.toString()}`);
         }, 500);
         return () => clearTimeout(timer);
     };
+
+    const handlePageChange = (page: number) => {
+        const params = new URLSearchParams(window.location.search);
+        if (page <= 1) {
+            params.delete('page');
+        } else {
+            params.set('page', String(page));
+        }
+        if (role) params.set('tab', role === 'admin' ? 'admins' : role === 'staff' ? 'staff' : 'students');
+        router.push(`?${params.toString()}`);
+    };
+
+    const currentPage = Math.max(1, Number(new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('page')) || 1);
 
     const handleToggleStatus = async (user: UserData) => {
         try {
@@ -305,6 +319,32 @@ export function UserTable({ initialUsers, totalPages, degreePrograms, role, curr
                     </TableBody>
                 </Table>
             </div>
+
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm text-muted-foreground">
+                        Page {currentPage} of {totalPages}
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage <= 1}
+                            onClick={() => handlePageChange(currentPage - 1)}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage >= totalPages}
+                            onClick={() => handlePageChange(currentPage + 1)}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <UserDialog
                 open={dialogOpen}

@@ -470,28 +470,28 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
             <div id="hod-pending-approvals" className="scroll-mt-24 space-y-4">
             {/* KPI Strip */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="border-0 bg-gradient-to-br from-purple-50 to-purple-100/50">
+                <Card>
                     <CardContent className="p-4">
-                        <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Total Rounds</p>
-                        <p className="text-3xl font-black mt-1">{allRounds.length}</p>
+                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Total Rounds</p>
+                        <p className="text-3xl font-black mt-1 text-foreground">{allRounds.length}</p>
                     </CardContent>
                 </Card>
-                <Card className="border-0 bg-gradient-to-br from-green-50 to-green-100/50">
+                <Card>
                     <CardContent className="p-4">
-                        <p className="text-xs text-green-600 font-semibold uppercase tracking-wide">Active</p>
-                        <p className="text-3xl font-black mt-1">{totalActive}</p>
+                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Active</p>
+                        <p className="text-3xl font-black mt-1 text-foreground">{totalActive}</p>
                     </CardContent>
                 </Card>
-                <Card className="border-0 bg-gradient-to-br from-blue-50 to-blue-100/50">
+                <Card>
                     <CardContent className="p-4">
-                        <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Approved</p>
-                        <p className="text-3xl font-black mt-1">{totalApproved}</p>
+                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Approved</p>
+                        <p className="text-3xl font-black mt-1 text-foreground">{totalApproved}</p>
                     </CardContent>
                 </Card>
-                <Card className="border-0 bg-gradient-to-br from-amber-50 to-amber-100/50">
+                <Card>
                     <CardContent className="p-4">
-                        <p className="text-xs text-amber-600 font-semibold uppercase tracking-wide">Awaiting Review</p>
-                        <p className="text-3xl font-black mt-1">{allRounds.filter((r: any) => r.status === 'CLOSED').length}</p>
+                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Awaiting Review</p>
+                        <p className="text-3xl font-black mt-1 text-foreground">{allRounds.filter((r: any) => r.status === 'CLOSED').length}</p>
                     </CardContent>
                 </Card>
             </div>

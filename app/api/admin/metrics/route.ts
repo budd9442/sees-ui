@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { collectSystemMetricSample } from '@/lib/monitoring/system-metrics';
 
 export const dynamic = 'force-dynamic';
+
+const SAMPLE_INTERVAL_MS = 60_000;
 
 /**
  * Returns historical system metrics from database
@@ -9,6 +12,17 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
     try {
+        // Fallback sampler: when cron is not running, create one sample per minute
+        // during dashboard activity so the chart still accumulates history.
+        const latest = await prisma.systemMetric.findFirst({
+            orderBy: { timestamp: 'desc' },
+            select: { timestamp: true },
+        });
+        const latestAgeMs = latest ? Date.now() - latest.timestamp.getTime() : Number.POSITIVE_INFINITY;
+        if (latestAgeMs >= SAMPLE_INTERVAL_MS) {
+            await collectSystemMetricSample();
+        }
+
         // Get last 60 minutes of metrics (60 records at 1-minute intervals)
         const metrics = await prisma.systemMetric.findMany({
             orderBy: { timestamp: 'desc' },

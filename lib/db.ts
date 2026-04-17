@@ -22,4 +22,10 @@ if (process.env.NODE_ENV !== 'production') {
             console.error('[QUEUE] Failed to auto-start worker:', err);
         });
     });
+
+    import('@/lib/queue/lms-import-worker').then(worker => {
+        worker.startLmsImportWorker().catch(err => {
+            console.error('[QUEUE] Failed to auto-start LMS import worker:', err);
+        });
+    });
 }

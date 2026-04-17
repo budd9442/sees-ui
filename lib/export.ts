@@ -4,6 +4,8 @@ export interface ExportOptions {
   filename?: string;
   includeHeaders?: boolean;
   dateFormat?: string;
+  // Used by PDF exports (kept here to satisfy callers passing `title` through exportTabularData()).
+  title?: string;
 }
 
 export interface CSVExportOptions extends ExportOptions {

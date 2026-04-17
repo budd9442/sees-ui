@@ -19,7 +19,7 @@ export default async function HodBatchManagementPage() {
     return (
         <BatchManagementClient
             initialOverview={overviewRes.success && overviewRes.data ? overviewRes.data : []}
-            initialDetail={detailRes.success && detailRes.data ? detailRes.data : null}
+            initialDetail={detailRes.success && detailRes.data ? (detailRes.data as any) : null}
         />
     );
 }

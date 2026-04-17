@@ -328,7 +328,7 @@ export function ModuleRegistrationRoundsClient({
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
-                                <Label>Opens (optional)</Label>
+                                <Label>Opens</Label>
                                 <Input
                                     type="datetime-local"
                                     value={form.opens_at}
@@ -336,7 +336,7 @@ export function ModuleRegistrationRoundsClient({
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Closes (optional)</Label>
+                                <Label>Closes</Label>
                                 <Input
                                     type="datetime-local"
                                     value={form.closes_at}

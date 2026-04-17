@@ -79,20 +79,22 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                         console.error("Failed to update last login:", e);
                     }
 
-                    // Determine role based on relations
-                    let role = 'student';
+                    // Determine role (prefer persisted User.role, then infer from relations)
+                    let role: string = (user as any).role ?? 'student';
                     const staff = (user as any).staff;
-                    
-                    if (staff?.staff_type === 'ADMIN' || staff?.staff_type === 'REGISTRAR') {
-                        role = 'admin';
-                    } else if (staff?.hod) {
-                        role = 'hod';
-                    } else if (staff?.advisor) {
-                        role = 'advisor';
-                    } else if (staff) {
-                        role = 'staff';
-                    } else if ((user as any).student) {
-                        role = 'student';
+
+                    if (role !== 'admin') {
+                        if (staff?.staff_type === 'ADMIN' || staff?.staff_type === 'REGISTRAR') {
+                            role = 'admin';
+                        } else if (staff?.hod) {
+                            role = 'hod';
+                        } else if (staff?.advisor) {
+                            role = 'advisor';
+                        } else if (staff) {
+                            role = 'staff';
+                        } else if ((user as any).student) {
+                            role = 'student';
+                        }
                     }
 
                     const firstName = user.firstName || 'User';

@@ -732,11 +732,17 @@ export function PathwaySelectionClient() {
                     </div>
 
                     <Card className="bg-primary/5 border-primary/20">
-                        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <p className="text-sm">
-                                1st: <strong>{pref1 ? slots.find(s => s.id === pref1)?.code : '—'}</strong>
-                                {needsSecondChoice && <> · 2nd: <strong>{pref2 ? slots.find(s => s.id === pref2)?.code : '—'}</strong></>}
-                            </p>
+                        <CardContent className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="secondary" className="font-semibold">
+                                    First Preference: {pref1 ? slots.find(s => s.id === pref1)?.code : '—'}
+                                </Badge>
+                                {needsSecondChoice && (
+                                    <Badge variant="outline" className="font-semibold">
+                                        Second Preference: {pref2 ? slots.find(s => s.id === pref2)?.code : '—'}
+                                    </Badge>
+                                )}
+                            </div>
                             <div className="flex items-center gap-2">
                                 <Button variant="outline" asChild>
                                     <a href="/dashboard/student">Back</a>

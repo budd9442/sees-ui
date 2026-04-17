@@ -67,9 +67,12 @@ export async function countRegistrationsForStaffAssignment(opts: {
     moduleCode: string;
     academicYearIds: string[];
 }) {
-    return prisma.moduleRegistration.count({
+    const rows = await prisma.moduleRegistration.findMany({
         where: whereRegistrationsForStaffAssignment(opts),
+        select: { student_id: true },
+        distinct: ['student_id'],
     });
+    return rows.length;
 }
 
 export async function countGradesForStaffAssignment(opts: {
@@ -87,7 +90,7 @@ export async function countGradesForStaffAssignment(opts: {
     ).map((s) => s.semester_id);
     if (semesterIds.length === 0) return 0;
 
-    return prisma.grade.count({
+    const rows = await prisma.grade.findMany({
         where: {
             semester_id: { in: semesterIds },
             OR: [
@@ -97,5 +100,8 @@ export async function countGradesForStaffAssignment(opts: {
                     : []),
             ],
         },
+        select: { student_id: true },
+        distinct: ['student_id'],
     });
+    return rows.length;
 }

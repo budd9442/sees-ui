@@ -27,7 +27,6 @@ export default async function StaffDashboardPage() {
           upcomingClasses={data.upcomingClasses}
           gradeDistribution={data.gradeDistribution}
           moduleWorkload={data.moduleWorkload}
-          performanceData={data.performanceData}
           recentActivities={data.recentActivities}
           upcomingDeadlines={data.upcomingDeadlines}
         />

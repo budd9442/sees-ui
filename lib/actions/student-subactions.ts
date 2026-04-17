@@ -347,7 +347,7 @@ export async function getPathwayData() {
     return {
         currentStudent: {
             studentId: studentRecord.student_id,
-            academicYear: studentRecord.current_level === 'Level 1' ? 'L1' : studentRecord.current_level,
+            academicYear: studentRecord.current_level || 'Level 1',
             degreeProgram: studentRecord.degree_path.code, // E.g., MIT, IT
             pathwayLocked: studentRecord.pathway_locked,
             currentGPA: studentRecord.current_gpa,
@@ -843,7 +843,7 @@ export async function getRankingsData() {
             id: student.student_id,
             studentId: student.student_id,
             studentName: `${student.user.firstName} ${student.user.lastName}`,
-            academicYear: student.current_level || 'L1',
+            academicYear: student.current_level || 'Level 1',
             pathway: student.degree_path.name,
             specialization: student.specialization?.name || null,
             gpa: gpa,

@@ -17,6 +17,24 @@ const LEGAL_TRANSITIONS: Record<string, string> = {
 
 type BatchLevel = (typeof BATCH_LEVELS)[number];
 
+const BATCH_LEVEL_TO_DB: Record<BatchLevel, string> = {
+    L1: 'Level 1',
+    L2: 'Level 2',
+    L3: 'Level 3',
+    L4: 'Level 4',
+    GRADUATED: 'GRADUATED',
+};
+
+function dbLevelToBatchLevel(currentLevel: string | null): BatchLevel | null {
+    if (!currentLevel) return null;
+    if (currentLevel === 'Level 1') return 'L1';
+    if (currentLevel === 'Level 2') return 'L2';
+    if (currentLevel === 'Level 3') return 'L3';
+    if (currentLevel === 'Level 4') return 'L4';
+    if (currentLevel.toUpperCase() === 'GRADUATED') return 'GRADUATED';
+    return null;
+}
+
 async function requireBatchOperator() {
     const session = await auth();
     const role = (session?.user as { role?: string } | undefined)?.role;
@@ -44,9 +62,20 @@ export async function getBatchOverviewForOperator() {
             }
         });
 
-        const formatted = BATCH_LEVELS.map(lvl => ({
+        const counts: Record<BatchLevel, number> = {
+            L1: 0,
+            L2: 0,
+            L3: 0,
+            L4: 0,
+            GRADUATED: 0,
+        };
+        for (const row of stats) {
+            const mapped = dbLevelToBatchLevel(row.current_level);
+            if (mapped) counts[mapped] += row._count.student_id;
+        }
+        const formatted = BATCH_LEVELS.map((lvl) => ({
             level: lvl,
-            count: stats.find(s => s.current_level === lvl)?._count.student_id || 0
+            count: counts[lvl],
         }));
 
         return { success: true, data: formatted };
@@ -79,7 +108,10 @@ export async function getBatchDetailsForOperator(level: string) {
             throw new Error('Invalid batch level specified.');
         }
 
-        const where = { current_level: level };
+        const where =
+            level === 'GRADUATED'
+                ? { OR: [{ current_level: BATCH_LEVEL_TO_DB.GRADUATED }, { graduation_status: 'GRADUATED' }] }
+                : { current_level: BATCH_LEVEL_TO_DB[level as BatchLevel] };
         const [students, enrollmentBuckets] = await Promise.all([
             prisma.student.findMany({
                 where,
@@ -163,8 +195,11 @@ export async function executeBatchTransition(sourceLevel: string, targetLevel: s
             throw new Error(`Illegal transition. Allowed transition is ${sourceLevel} -> ${LEGAL_TRANSITIONS[sourceLevel] ?? 'N/A'}.`);
         }
 
+        const sourceDbLevel = BATCH_LEVEL_TO_DB[sourceLevel as BatchLevel];
+        const targetDbLevel = BATCH_LEVEL_TO_DB[targetLevel as BatchLevel];
+
         const studentsToPromote = await prisma.student.findMany({
-            where: { current_level: sourceLevel, enrollment_status: 'ENROLLED' },
+            where: { current_level: sourceDbLevel, enrollment_status: 'ENROLLED' },
             include: { user: { select: { email: true, firstName: true, lastName: true } } },
         });
 
@@ -175,11 +210,11 @@ export async function executeBatchTransition(sourceLevel: string, targetLevel: s
         const result = await prisma.$transaction(async (tx) => {
             const updateCount = await tx.student.updateMany({
                 where: {
-                    current_level: sourceLevel,
+                    current_level: sourceDbLevel,
                     enrollment_status: 'ENROLLED'
                 },
                 data: {
-                    current_level: targetLevel,
+                    current_level: targetDbLevel,
                     ...(targetLevel === 'GRADUATED'
                         ? {
                             graduation_status: 'GRADUATED',

@@ -78,9 +78,27 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
         participation: 0.1,
     });
 
-    const batchOptions = Array.from(new Set(students.map((student: any) => String(student.admissionYear)).filter(Boolean))).sort();
-    const pathwayOptions = Array.from(new Set(students.map((student: any) => student.specialization).filter(Boolean))).sort();
-    const specializationOptions = Array.from(new Set(students.map((student: any) => student.academicYear).filter(Boolean))).sort();
+    const batchOptions = Array.from(
+        new Set<string>(
+            students
+                .map((student: any) => String(student.admissionYear))
+                .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+        )
+    ).sort();
+    const pathwayOptions = Array.from(
+        new Set<string>(
+            students
+                .map((student: any) => student.specialization)
+                .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+        )
+    ).sort();
+    const specializationOptions = Array.from(
+        new Set<string>(
+            students
+                .map((student: any) => student.academicYear)
+                .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+        )
+    ).sort();
 
     const calculateRankings = () => {
         const rankings: RankingEntry[] = students

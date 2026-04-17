@@ -223,7 +223,8 @@ export async function syncGuideBookPrerequisites() {
     });
 
     revalidatePath('/dashboard/admin/modules');
-    return { success: true, updatedModules: updated };
+    // Server Actions used directly as a <form action>, so they must return void.
+    return;
 }
 
 export async function toggleModuleStatus(moduleId: string) {

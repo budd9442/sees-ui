@@ -112,24 +112,66 @@ export default function AnalyticsClient({
 
         const moduleGrades = currentModule.grades;
         const enrolledStudents = currentModule.registrations;
-
-        const gradedStudents = moduleGrades;
+        const normalizeLetter = (raw: unknown) => String(raw ?? '').trim().toUpperCase();
+        const toGradeBucket = (raw: unknown): 'A' | 'B' | 'C' | 'D' | 'F' | 'OTHER' => {
+            const letter = normalizeLetter(raw);
+            if (!letter) return 'OTHER';
+            const lead = letter[0];
+            if (lead === 'A') return 'A';
+            if (lead === 'B') return 'B';
+            if (lead === 'C') return 'C';
+            if (lead === 'D') return 'D';
+            if (lead === 'F') return 'F';
+            return 'OTHER';
+        };
+        const gradedStudents = moduleGrades.filter((g) => {
+            const points = Number(g.points);
+            const letter = normalizeLetter(g.letterGrade);
+            const hasRealLetter = !!letter && letter !== 'PENDING' && letter !== '—';
+            const hasNumericPoints = Number.isFinite(points);
+            // Treat as graded if either a real letter exists or numeric points exist.
+            // This keeps valid grades visible even when grade_point is 0 (e.g. F) or missing in some imports.
+            return hasRealLetter || hasNumericPoints;
+        });
         const totalStudents = enrolledStudents.length;
+        const populationCount = Math.max(totalStudents, gradedStudents.length);
         const avgGrade = gradedStudents.length > 0
-            ? gradedStudents.reduce((sum, g) => sum + g.points, 0) / gradedStudents.length
+            ? gradedStudents.reduce((sum, g) => sum + (Number(g.points) || 0), 0) / gradedStudents.length
             : 0;
 
         const passRate = gradedStudents.length > 0
             ? (gradedStudents.filter(g => g.points >= 2.0).length / gradedStudents.length) * 100
             : 0;
 
-        const gradeDistribution = ['A', 'B', 'C', 'D', 'F'].map(grade => ({
+        const ungradedCount = Math.max(populationCount - gradedStudents.length, 0);
+        const gradeBuckets = ['A', 'B', 'C', 'D', 'F', 'OTHER', 'UNGRADED'] as const;
+        const gradeDistribution = gradeBuckets.map(grade => ({
             grade,
-            count: gradedStudents.filter(g => g.letterGrade === grade).length,
-            percentage: gradedStudents.length > 0
-                ? (gradedStudents.filter(g => g.letterGrade === grade).length / gradedStudents.length) * 100
+            count: gradedStudents.filter((g) => {
+                if (grade === 'UNGRADED') return false;
+                return toGradeBucket(g.letterGrade) === grade;
+            }).length,
+            percentage: populationCount > 0
+                ? (grade === 'UNGRADED'
+                    ? (ungradedCount / populationCount) * 100
+                    : (gradedStudents.filter((g) => toGradeBucket(g.letterGrade) === grade).length / populationCount) * 100)
                 : 0,
-        }));
+        })).map((row) =>
+            row.grade === 'UNGRADED'
+                ? { ...row, count: ungradedCount }
+                : row
+        ).filter((row) => row.count > 0);
+
+        const gradingCoverage = [
+            {
+                label: 'Graded',
+                count: gradedStudents.length,
+            },
+            {
+                label: 'Pending',
+                count: ungradedCount,
+            },
+        ];
 
         const pathwayPerformance = moduleGrades.reduce((acc, grade) => {
             const specialization = grade.studentPathway || 'Unknown';
@@ -171,6 +213,7 @@ export default function AnalyticsClient({
             avgGrade,
             passRate,
             gradeDistribution,
+            gradingCoverage,
             pathwayData,
             yearData,
         };
@@ -350,28 +393,26 @@ export default function AnalyticsClient({
                         </Card>
                     </div>
 
-                    <Tabs defaultValue="overview" className="space-y-4">
+                    <Tabs defaultValue="distribution" className="space-y-4">
                         <TabsList>
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
                             <TabsTrigger value="distribution">Grade Distribution</TabsTrigger>
                             <TabsTrigger value="pathway">By Pathway</TabsTrigger>
-                            <TabsTrigger value="year">By Academic Year</TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="overview" className="space-y-4">
+                        <TabsContent value="distribution" className="space-y-4">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Grade Distribution</CardTitle>
+                                        <CardTitle>Grading Coverage</CardTitle>
                                         <CardDescription>
-                                            Distribution of grades across all students
+                                            Graded vs pending students in this module
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <ResponsiveContainer width="100%" height={300}>
-                                            <BarChart data={analyticsData.gradeDistribution}>
+                                            <BarChart data={analyticsData.gradingCoverage}>
                                                 <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis dataKey="grade" />
+                                                <XAxis dataKey="label" />
                                                 <YAxis />
                                                 <Tooltip />
                                                 <Bar dataKey="count" fill="#8884d8" />
@@ -388,31 +429,35 @@ export default function AnalyticsClient({
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <ResponsiveContainer width="100%" height={300}>
-                                            <PieChart>
-                                                <Pie
-                                                    data={analyticsData.gradeDistribution}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    labelLine={false}
-                                                    label={({ grade, percentage }) => `${grade}: ${(percentage as number).toFixed(1)}%`}
-                                                    outerRadius={80}
-                                                    fill="#8884d8"
-                                                    dataKey="count"
-                                                >
-                                                    {analyticsData.gradeDistribution.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip />
-                                            </PieChart>
-                                        </ResponsiveContainer>
+                                        {analyticsData.gradeDistribution.length === 0 ? (
+                                            <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+                                                No released grades available yet.
+                                            </div>
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height={300}>
+                                                <PieChart>
+                                                    <Pie
+                                                        data={analyticsData.gradeDistribution}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        labelLine={false}
+                                                        label={({ grade, percentage }) => `${grade}: ${(percentage as number).toFixed(1)}%`}
+                                                        outerRadius={80}
+                                                        fill="#8884d8"
+                                                        dataKey="count"
+                                                    >
+                                                        {analyticsData.gradeDistribution.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </div>
-                        </TabsContent>
 
-                        <TabsContent value="distribution" className="space-y-4">
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Detailed Grade Distribution</CardTitle>
@@ -425,7 +470,7 @@ export default function AnalyticsClient({
                                         {analyticsData.gradeDistribution.map((item) => (
                                             <div key={item.grade} className="space-y-2">
                                                 <div className="flex justify-between text-sm">
-                                                    <span>Grade {item.grade}</span>
+                                                    <span>{item.grade === 'UNGRADED' ? 'Ungraded' : `Grade ${item.grade}`}</span>
                                                     <span>{item.count} students ({item.percentage.toFixed(1)}%)</span>
                                                 </div>
                                                 <div className="w-full bg-gray-200 rounded-full h-2">
@@ -463,27 +508,6 @@ export default function AnalyticsClient({
                             </Card>
                         </TabsContent>
 
-                        <TabsContent value="year" className="space-y-4">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Performance by Academic Year</CardTitle>
-                                    <CardDescription>
-                                        Average grades across different academic years
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <AreaChart data={analyticsData.yearData}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="year" />
-                                            <YAxis />
-                                            <Tooltip />
-                                            <Area type="monotone" dataKey="average" stroke="#8884d8" fill="#8884d8" />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
                     </Tabs>
                 </>
             )}

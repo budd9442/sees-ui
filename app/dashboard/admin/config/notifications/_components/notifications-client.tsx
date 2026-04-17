@@ -394,6 +394,49 @@ export default function NotificationsClient({ initialData }: { initialData: Noti
                 </Dialog>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium">Total Templates</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{notificationTemplates.length}</div>
+                        <p className="text-xs text-muted-foreground">All templates</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium">Active Templates</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">
+                            {notificationTemplates.filter((t) => t.isActive).length}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Currently active</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium">Grade Templates</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-blue-600">
+                            {notificationTemplates.filter((t) => t.category === 'grade_release').length}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Grade-related</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium">Triggers On</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-orange-600">{triggers.filter((t) => t.enabled).length}</div>
+                        <p className="text-xs text-muted-foreground">Enabled events</p>
+                    </CardContent>
+                </Card>
+            </div>
+
             <Card>
                 <CardHeader>
                     <CardTitle>Email triggers</CardTitle>
@@ -512,49 +555,6 @@ export default function NotificationsClient({ initialData }: { initialData: Noti
                     )}
                 </CardContent>
             </Card>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">Total Templates</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{notificationTemplates.length}</div>
-                        <p className="text-xs text-muted-foreground">All templates</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">Active Templates</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">
-                            {notificationTemplates.filter((t) => t.isActive).length}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Currently active</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">Grade Templates</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">
-                            {notificationTemplates.filter((t) => t.category === 'grade_release').length}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Grade-related</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">Triggers On</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-orange-600">{triggers.filter((t) => t.enabled).length}</div>
-                        <p className="text-xs text-muted-foreground">Enabled events</p>
-                    </CardContent>
-                </Card>
-            </div>
 
             <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">

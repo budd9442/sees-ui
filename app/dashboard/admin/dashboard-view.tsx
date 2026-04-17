@@ -17,6 +17,8 @@ import {
     Cpu,
     Clock,
     AlertTriangle,
+    Mail,
+    FileUp,
 } from 'lucide-react';
 import {
     LineChart,
@@ -69,6 +71,16 @@ export function AdminDashboardView({
     const dbConn = systemMetrics?.dbConnections;
     const dbMax = systemMetrics?.dbConnectionsMax ?? 100;
     const connProgress = systemMetrics?.connProgress ?? 0;
+    const emailSvc = systemMetrics?.serviceStatus?.email;
+    const importSvc = systemMetrics?.serviceStatus?.import;
+    const serviceBadgeClass = (statusText?: string) =>
+        statusText === 'Healthy'
+            ? 'bg-green-100 text-green-800'
+            : statusText === 'Processing'
+              ? 'bg-blue-100 text-blue-800'
+              : statusText === 'Degraded'
+                ? 'bg-amber-100 text-amber-800'
+                : 'bg-gray-100 text-gray-700';
 
     return (
         <div className="space-y-6">
@@ -248,6 +260,54 @@ export function AdminDashboardView({
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Mail className="h-5 w-5" />
+                                    Email Service
+                                </CardTitle>
+                                <CardDescription>Dispatch pipeline status and recent delivery reliability</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Status</span>
+                                    <Badge className={serviceBadgeClass(emailSvc?.status)}>{emailSvc?.status ?? 'Unknown'}</Badge>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Dispatches (1h)</span>
+                                    <span className="font-medium">{emailSvc?.dispatches1h ?? 0}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Success Rate (24h)</span>
+                                    <span className="font-medium">{emailSvc?.successRate ?? '—'}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <FileUp className="h-5 w-5" />
+                                    LMS Import Service
+                                </CardTitle>
+                                <CardDescription>Background import queue health and throughput</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Status</span>
+                                    <Badge className={serviceBadgeClass(importSvc?.status)}>{importSvc?.status ?? 'Unknown'}</Badge>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Running Imports</span>
+                                    <span className="font-medium">{importSvc?.running ?? 0}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Completed / Failed (24h)</span>
+                                    <span className="font-medium">{importSvc?.ready24h ?? 0} / {importSvc?.failed24h ?? 0}</span>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>

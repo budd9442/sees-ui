@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, LogOut, Settings, User, CalendarDays } from 'lucide-react';
+import { Bell, LogOut, Settings, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,13 +10,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,7 +23,7 @@ import { getAcademicYears } from '@/lib/actions/academic-years';
 import { useEffect, useState } from 'react';
 
 export function Navbar() {
-  const { user, logout, selectedYearId, setSelectedYearId, activeRole, setActiveRole } = useAuthStore();
+  const { user, logout, activeRole, setActiveRole } = useAuthStore();
   const [systemInfo, setSystemInfo] = useState({ institutionName: 'SEES Platform', maintenanceMode: false });
   const [academicYears, setAcademicYears] = useState<any[]>([]);
   const notifications: any[] = [];
@@ -38,26 +31,16 @@ export function Navbar() {
 
   useEffect(() => {
     getPublicSystemInfo().then(setSystemInfo);
-    
-    // Fetch academic years for non-student roles
-    if (user && user.role !== 'student') {
-        getAcademicYears().then(res => {
-            if (res.success && res.data) {
-                setAcademicYears(res.data);
-                
-                // Auto-initialize selectedYearId to the active one if currently null
-                if (!selectedYearId) {
-                    const activeYear = res.data.find((y: any) => y.isActive);
-                    if (activeYear) {
-                        setSelectedYearId(activeYear.id);
-                    } else if (res.data.length > 0) {
-                        setSelectedYearId(res.data[0].id);
-                    }
-                }
-            }
-        });
+
+    // Fetch academic years for lightweight header context.
+    if (user) {
+      getAcademicYears().then(res => {
+        if (res.success && res.data) {
+          setAcademicYears(res.data);
+        }
+      });
     }
-  }, [user, selectedYearId, setSelectedYearId]);
+  }, [user]);
 
   if (!user) return null;
 
@@ -70,47 +53,31 @@ export function Navbar() {
   };
 
   const isStaffOrAdmin = user.role !== 'student';
+  const activeAcademicYearLabel =
+    academicYears.find((y: any) => y.isActive)?.label ||
+    academicYears[0]?.label ||
+    'Academic Year';
 
   return (
-    <nav className="fixed top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-1">
+    <nav className="fixed top-0 z-50 w-full border-b border-primary/20 bg-gradient-to-r from-background via-background to-primary/5 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/90">
       <div className="px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
               <div>
-                <h1 className="text-lg font-black tracking-tight text-primary">{systemInfo.institutionName}</h1>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">
+                <h1 className="text-xl font-extrabold tracking-tight text-foreground">{systemInfo.institutionName}</h1>
+                <p className="text-xs text-muted-foreground uppercase tracking-[0.16em] font-semibold">
                   Academic Intelligence
                 </p>
               </div>
             </div>
 
-            {/* Academic Year Selector for Staff/Admin */}
-            {isStaffOrAdmin && academicYears.length > 0 && (
-                <div className="hidden lg:flex items-center gap-3 pl-8 border-l border-muted-foreground/10">
-                    <CalendarDays className="h-4 w-4 text-blue-500" />
-                    <Select value={selectedYearId || ""} onValueChange={setSelectedYearId}>
-                        <SelectTrigger className="w-[200px] h-9 bg-muted/30 border-none font-bold text-xs rounded-xl focus:ring-1">
-                            <SelectValue placeholder="Select Year" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-muted-foreground/10 shadow-xl">
-                            {academicYears.map((year) => (
-                                <SelectItem key={year.id} value={year.id} className="text-xs font-medium py-2.5">
-                                    <div className="flex items-center justify-between w-full gap-2">
-                                        <span>{year.label}</span>
-                                        {year.isActive && (
-                                            <Badge className="text-[8px] h-3 px-1 bg-green-500 hover:bg-green-500 border-none uppercase">Active</Badge>
-                                        )}
-                                    </div>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            )}
             {/* HOD Perspective Toggle - Premium Pill Design */}
             {user.isHOD && (
-                <div className="hidden xl:flex items-center ml-4 relative bg-muted/20 backdrop-blur-md p-0.5 rounded-full border border-white/10 shadow-inner">
+                <div className="hidden xl:flex items-center ml-4 relative bg-muted/50 p-1 rounded-full border border-border shadow-sm">
                     <div className="relative flex">
                         <button
                             onClick={() => {
@@ -118,7 +85,7 @@ export function Navbar() {
                                 router.push('/dashboard/staff');
                             }}
                             className={cn(
-                                "relative z-10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors duration-300 flex items-center gap-2",
+                                "relative z-10 px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors duration-300 flex items-center gap-2",
                                 activeRole === 'staff' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                             )}
                         >
@@ -131,7 +98,7 @@ export function Navbar() {
                                 router.push('/dashboard/hod');
                             }}
                             className={cn(
-                                "relative z-10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors duration-300 flex items-center gap-2",
+                                "relative z-10 px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors duration-300 flex items-center gap-2",
                                 activeRole === 'hod' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                             )}
                         >
@@ -142,10 +109,7 @@ export function Navbar() {
                         <AnimatePresence>
                             <motion.div
                                 layoutId="perspective-indicator"
-                                className={cn(
-                                    "absolute inset-y-0 rounded-full shadow-lg",
-                                    activeRole === 'hod' ? "bg-amber-500 shadow-amber-500/30" : "bg-primary shadow-primary/30"
-                                )}
+                                className="absolute inset-y-0 rounded-full shadow-md bg-primary shadow-primary/30"
                                 initial={false}
                                 animate={{
                                     x: activeRole === 'hod' ? '100%' : '0%',
@@ -162,16 +126,16 @@ export function Navbar() {
           <div className="flex items-center gap-4">
             {/* Desktop Quick Indicator for Students */}
             {!isStaffOrAdmin && (
-                <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-full border border-dashed text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full border text-xs font-semibold uppercase tracking-wide text-foreground/80">
                     <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                    Active Academic Cycle
+                    {activeAcademicYearLabel}
                 </div>
             )}
 
             {/* Notifications */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative h-10 w-10 hover:bg-muted/50 rounded-full transition-colors">
+                <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full border border-transparent hover:border-border hover:bg-muted/70 transition-colors">
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
                     <Badge
@@ -223,19 +187,16 @@ export function Navbar() {
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-3 h-12 pr-4 pl-1 hover:bg-muted/50 rounded-full transition-colors">
-                  <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                <Button variant="ghost" className="gap-3 h-12 pr-4 pl-1 rounded-full border border-transparent hover:border-border hover:bg-muted/70 transition-colors">
+                  <Avatar className="h-10 w-10 border border-border shadow-sm">
                     <AvatarImage src={user.avatar || undefined} />
-                    <AvatarFallback className="bg-primary/5 text-primary">
+                    <AvatarFallback className="bg-primary/10 text-primary">
                       <User className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden md:block text-left">
-                    <p className="text-xs font-black tracking-tight leading-none mb-1 capitalize">
+                    <p className="text-sm font-semibold tracking-tight leading-none mb-1 capitalize">
                       {user.firstName} {user.lastName}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter opacity-70">
-                      {user.role} Context
                     </p>
                   </div>
                 </Button>

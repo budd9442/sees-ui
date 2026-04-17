@@ -123,8 +123,12 @@ export async function getAdminDashboardData() {
         return null;
     }
 
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
 
+    const prismaAny = prisma as any;
     const [
         totalUsers,
         activeSessions,
@@ -134,7 +138,12 @@ export async function getAdminDashboardData() {
         latestMetric,
         metricSeries,
         failedDispatches24h,
+        dispatches24h,
         failedLogins24h,
+        dispatches1h,
+        runningImports,
+        importFailed24h,
+        importReady24h,
     ] = await Promise.all([
         prisma.user.count(),
         prisma.user.count({
@@ -152,8 +161,23 @@ export async function getAdminDashboardData() {
         prisma.notificationDispatchLog.count({
             where: { status: 'FAILED', created_at: { gte: twentyFourHoursAgo } },
         }),
+        prisma.notificationDispatchLog.count({
+            where: { created_at: { gte: twentyFourHoursAgo } },
+        }),
         prisma.auditLog.count({
             where: { action: 'AUTH_LOGIN_FAILED', timestamp: { gte: twentyFourHoursAgo } },
+        }),
+        prisma.notificationDispatchLog.count({
+            where: { created_at: { gte: oneHourAgo } },
+        }),
+        prismaAny.lmsImportSession.count({
+            where: { status: 'RUNNING', updated_at: { gte: fifteenMinutesAgo } },
+        }),
+        prismaAny.lmsImportSession.count({
+            where: { status: 'FAILED', updated_at: { gte: twentyFourHoursAgo } },
+        }),
+        prismaAny.lmsImportSession.count({
+            where: { status: 'PREVIEW_READY', updated_at: { gte: twentyFourHoursAgo } },
         }),
     ]);
 
@@ -243,6 +267,21 @@ export async function getAdminDashboardData() {
     }));
 
     const systemErrors = failedDispatches24h + failedLogins24h;
+    const emailFailureRate = dispatches24h > 0 ? failedDispatches24h / dispatches24h : 0;
+    const emailServiceStatus =
+        dispatches24h === 0
+            ? 'Idle'
+            : emailFailureRate > 0.2
+              ? 'Degraded'
+              : 'Healthy';
+    const importServiceStatus =
+        runningImports > 0
+            ? 'Processing'
+            : importFailed24h > importReady24h && importFailed24h > 0
+              ? 'Degraded'
+              : importReady24h > 0
+                ? 'Healthy'
+                : 'Idle';
 
     return {
         admin: {
@@ -264,6 +303,24 @@ export async function getAdminDashboardData() {
             lastBackup: lastBackupLabel,
             healthScore,
             serverStatusLabel,
+            serviceStatus: {
+                email: {
+                    status: emailServiceStatus,
+                    dispatches1h,
+                    dispatches24h,
+                    failed24h: failedDispatches24h,
+                    successRate:
+                        dispatches24h > 0
+                            ? `${(((dispatches24h - failedDispatches24h) / dispatches24h) * 100).toFixed(1)}%`
+                            : '—',
+                },
+                import: {
+                    status: importServiceStatus,
+                    running: runningImports,
+                    ready24h: importReady24h,
+                    failed24h: importFailed24h,
+                },
+            },
         },
         performanceData,
         recentLogs,
@@ -606,8 +663,8 @@ function sampleVarsForEventKey(eventKey: string): Record<string, string> {
         moduleName: 'Data Structures',
         moduleCode: 'CS201',
         letterGrade: 'A-',
-        previousLevel: 'L1',
-        newLevel: 'L2',
+        previousLevel: 'Level 1',
+        newLevel: 'Level 2',
         username: 'jane.student',
         tempPassword: 'TempP@ss123',
         loginUrl: 'https://sees.budd.codes/login',

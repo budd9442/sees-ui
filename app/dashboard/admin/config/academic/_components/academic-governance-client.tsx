@@ -481,21 +481,6 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                 </TabsContent>
             </Tabs>
 
-            <div className="p-8 rounded-3xl bg-zinc-900 text-white space-y-4 shadow-2xl relative overflow-hidden">
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <Layers className="h-5 w-5 text-primary" />
-                            <h3 className="text-xl font-black italic">Academic Session Management</h3>
-                        </div>
-                        <p className="text-sm text-zinc-400 max-w-xl font-medium">
-                            Manage your institution's academic timeline. Use the cycles tab to control active sessions and the transitions tab to handle student promotions.
-                        </p>
-                    </div>
-                </div>
-                {/* Decorative Pattern */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] pointer-events-none" />
-            </div>
 
             {/* Edit Dialog */}
             <Dialog open={!!editingYear} onOpenChange={(open) => !open && setEditingYear(null)}>

@@ -38,6 +38,7 @@ export async function resolveHodDepartmentScope(staffUserId: string): Promise<Ho
   });
 
   const deptModuleIds = new Set<string>();
+  const deptModuleCodes = new Set<string>();
   const departmentStudentIds = new Set<string>();
 
   for (const s of deptStaff) {
@@ -45,9 +46,27 @@ export async function resolveHodDepartmentScope(staffUserId: string): Promise<Ho
       const mod = a.module;
       if (!mod) continue;
       deptModuleIds.add(mod.module_id);
+      if (mod.code?.trim()) deptModuleCodes.add(mod.code.trim().toUpperCase());
       for (const r of mod.module_registrations) {
         departmentStudentIds.add(r.student_id);
       }
+    }
+  }
+
+  // Some cohorts are registered against same module code but different module_id
+  // (for example after academic-year module duplication). Include those students too.
+  if (deptModuleCodes.size > 0) {
+    const codeOr = [...deptModuleCodes].map((code) => ({
+      module: { code: { equals: code, mode: 'insensitive' as const } },
+    }));
+    const codeBasedRegs = await prisma.moduleRegistration.findMany({
+      where: {
+        OR: codeOr,
+      },
+      select: { student_id: true },
+    });
+    for (const reg of codeBasedRegs) {
+      departmentStudentIds.add(reg.student_id);
     }
   }
 

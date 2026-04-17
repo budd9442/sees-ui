@@ -54,7 +54,7 @@ export async function getAdviseesData() {
             firstName: student.user.firstName,
             lastName: student.user.lastName,
             email: student.user.email,
-            academicYear: student.current_level || "L1", // Real level
+            academicYear: student.current_level || "Level 1", // Real level
             specialization: student.specialization?.name || "Undeclared",
             currentGPA: currentGPA || student.current_gpa || 0.0, // Real GPA
             totalCredits,

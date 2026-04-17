@@ -38,8 +38,8 @@ export default function DashboardContent({
     <div className="min-h-screen bg-background">
       <Navbar />
       <Sidebar featureFlags={featureFlags} />
-      <main className="pl-64 pt-16">
-        <div className="container mx-auto p-8">{children}</div>
+      <main className="pl-72 pt-16">
+        <div className="container mx-auto p-8 lg:p-10">{children}</div>
       </main>
     </div>
   );

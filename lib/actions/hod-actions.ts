@@ -177,6 +177,16 @@ function monthKey(d: Date) {
     return `${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
 }
 
+function normalizeLevelFilter(level?: string | null) {
+    const raw = String(level ?? '').trim().toUpperCase();
+    if (!raw || raw === 'ALL') return undefined;
+    if (raw === 'L1' || raw === 'LEVEL 1') return 'Level 1';
+    if (raw === 'L2' || raw === 'LEVEL 2') return 'Level 2';
+    if (raw === 'L3' || raw === 'LEVEL 3') return 'Level 3';
+    if (raw === 'L4' || raw === 'LEVEL 4') return 'Level 4';
+    return level ?? undefined;
+}
+
 export async function getHODAnalyticsData(filters?: HODAnalyticsFilters) {
     const userId = await resolveHodUserId();
     const scope = await resolveHodDepartmentScope(userId);
@@ -250,8 +260,9 @@ export async function getHODAnalyticsData(filters?: HODAnalyticsFilters) {
     if (filters?.pathway && filters.pathway !== 'all') {
         students = students.filter((s) => s.specialization === filters.pathway);
     }
-    if (filters?.level && filters.level !== 'all') {
-        students = students.filter((s) => s.academicYear === filters.level);
+    const normalizedLevel = normalizeLevelFilter(filters?.level);
+    if (normalizedLevel) {
+        students = students.filter((s) => s.academicYear === normalizedLevel);
     }
     if (filters?.metadataKey && filters.metadataValue) {
         const key = filters.metadataKey;

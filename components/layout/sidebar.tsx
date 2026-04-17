@@ -359,6 +359,8 @@ export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolea
 
   const filteredItems = navigationItems.filter((item) => {
     const currentPerspective = activeRole || user.role;
+    const normalizedLevel = String(user.currentLevel ?? '').trim().toUpperCase().replace(/\s+/g, '');
+    const isLevel1Student = normalizedLevel === 'L1' || normalizedLevel === 'LEVEL1';
 
     // 1. Perspective/Role Check
     if (item.roles && !item.roles.includes(currentPerspective)) return false;
@@ -386,7 +388,7 @@ export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolea
     if (
       currentPerspective === 'student' &&
       item.href === '/dashboard/student/specialization' &&
-      user.degreeProgram === 'IT'
+      (user.degreeProgram === 'IT' || isLevel1Student)
     ) {
       return false;
     }
@@ -394,10 +396,18 @@ export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolea
     return true;
   });
 
+  const currentPerspective = (activeRole || user.role || 'student').toUpperCase();
+
   return (
-    <aside className="fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 border-r bg-background">
-      <ScrollArea className="h-full py-6">
-        <nav className="space-y-1 px-3">
+    <aside className="fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-72 border-r border-primary/15 bg-gradient-to-b from-muted/40 to-background shadow-sm">
+      <ScrollArea className="h-full py-5">
+        <div className="px-3 pb-3">
+          <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Active Workspace</p>
+            <p className="text-sm font-bold text-foreground">{currentPerspective}</p>
+          </div>
+        </div>
+        <nav className="space-y-1.5 px-3">
           {filteredItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -407,13 +417,18 @@ export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolea
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-foreground/80 hover:bg-background hover:text-foreground'
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon
+                  className={cn(
+                    'h-4.5 w-4.5 shrink-0 transition-colors',
+                    isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                  )}
+                />
                 {item.title}
               </Link>
             );
