@@ -153,10 +153,10 @@ export function SpecializationClient({ initialData }: SpecializationClientProps)
                 router.push(`/dashboard/student/specialization-preferences?next=${returnTo}`);
             } else if (advice.isEligible) {
                 setAIAdvice(advice);
-                if (advice.decision_source === 'GEMINI') {
-                    toast.success("Specialization Guide analysis complete (Gemini).");
+                if (advice.decision_source === 'GROK') {
+                    toast.success("Specialization Guide analysis complete (Grok).");
                 } else {
-                    toast.warning("Analysis completed using fallback logic. Gemini response was unavailable.");
+                    toast.warning("Analysis completed using fallback logic.");
                 }
             } else {
                 toast.error(advice.message);

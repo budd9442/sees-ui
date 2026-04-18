@@ -335,13 +335,13 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
                                 <TableHead className="w-[40%]">Module</TableHead>
                                 <TableHead>Credits</TableHead>
                                 <TableHead>Academic Term</TableHead>
-                                <TableHead className="text-right pr-8">Grade / Simulation</TableHead>
+                                <TableHead className="text-right pr-8">Grade</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {/* Add Planned Module Row */}
                             {isPlanningMode && (
-                                <TableRow 
+                                <TableRow
                                     className="cursor-pointer bg-primary/5 hover:bg-primary/10 border-b-2 border-primary/20 transition-colors"
                                     onClick={handleAddPlanned}
                                 >
@@ -360,16 +360,16 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
                                     <TableCell>
                                         <div className="flex gap-2">
                                             <button onClick={() => removePlanned(m.id)} className="text-destructive p-1 hover:bg-destructive/10 rounded"><Trash2 className="h-4 w-4" /></button>
-                                            <Input 
-                                                value={m.moduleName} 
+                                            <Input
+                                                value={m.moduleName}
                                                 onChange={e => updatePlanned(m.id, { moduleName: e.target.value })}
                                                 className="h-8 text-sm font-medium bg-transparent border-none focus-visible:ring-0 p-0"
                                             />
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Select 
-                                            value={m.credits.toString()} 
+                                        <Select
+                                            value={m.credits.toString()}
                                             onValueChange={v => updatePlanned(m.id, { credits: parseInt(v) })}
                                         >
                                             <SelectTrigger className="h-8 w-20 bg-background font-mono text-xs">
@@ -384,8 +384,8 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
                                         <Badge variant="secondary" className="opacity-70">Simulation</Badge>
                                     </TableCell>
                                     <TableCell className="text-right pr-8">
-                                        <Select 
-                                            value={m.gradePoint.toString()} 
+                                        <Select
+                                            value={m.gradePoint.toString()}
                                             onValueChange={v => updatePlanned(m.id, { gradePoint: parseFloat(v) })}
                                         >
                                             <SelectTrigger className="h-8 w-24 bg-background font-bold ml-auto border-green-500/50">
@@ -424,7 +424,7 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
                                             {isPlanningMode ? (
                                                 <div className="flex items-center justify-end gap-2">
                                                     {isOverridden && (
-                                                        <button 
+                                                        <button
                                                             onClick={() => {
                                                                 const next = { ...overriddenGrades };
                                                                 delete next[grade.id];

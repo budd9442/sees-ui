@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { assistantResponseSchema } from '@/lib/analytics/schema';
-import { isAnalyticsGeminiEnabled } from '@/lib/analytics/feature-env';
+import { isAnalyticsAssistantEnabled } from '@/lib/analytics/feature-env';
 import { DATASET_DESCRIPTIONS } from '@/lib/analytics/catalog';
 
 export const runtime = 'nodejs';
 
-const SYSTEM = `You are an AI Analytics Expert for the university SEES platform.
-Your task is to help users visualize institutional data. Respond ONLY with valid JSON.
+const SYSTEM = `You are the Official AI Analytics Expert for the Department of Industrial Management (DIM), SEES platform.
+Your task is to help staff and HODs (Head of Department) visualize institutional academic data for Level 1-4 students across MIT and IT programs.
+Respond ONLY with valid JSON.
 Output Schema: { "narrative"?: string, "patch"?: { "updateTitle"?: string, "addVisuals"?: Visual[], "removeVisualIds"?: string[] } }
 
 Available Datasets (datasetId):
@@ -24,8 +25,8 @@ Available Datasets (datasetId):
 - admin_internship_stats: Career data [company, intern_count, hired_count]
 - admin_academic_goals: Goal progress [goal_type, met_count, unmet_count]
 - admin_gpa_by_admission_year: Cohort GPA [admission_year, avg_gpa, student_count]
-- admin_at_risk_students: Probations [name, gpa, level]
-- admin_ranking_trends: Leaderboards [rank, gpa, weighted_average, level, program]
+- admin_at_risk_students: DIM Probations [name, gpa, level]
+- admin_ranking_trends: DIM Leaderboards [rank, gpa, weighted_average, level, program]
 - admin_module_yearly_trend: History [academic_year, graded_count, avg_grade_point, pass_rate]
 
 Visual Types: kpi, bar, line, area, pie, donut, table, scatter, gauge, radar, matrix.
@@ -33,10 +34,10 @@ Layout: x (0-11), y, w (1-12), h.
 Encodings: Use field names from the dataset. For KPI/Gauge, use 'metric'. For charts, use 'x', 'y' or 'category', 'value'.
 Filters: academicYearId, semesterId, programId, level, moduleId, gpaAbove, gpaBelow, minCredits, maxCredits, enrollmentStatus.
 
-Keep patches helpful and concise. If adding visuals, ensure they fit neatly.`;
+Keep patches helpful and concise. Ensure narratives reflect Department of Industrial Management institutional standards. If adding visuals, ensure they fit neatly.`;
 
 export async function POST(req: Request) {
-    if (!isAnalyticsGeminiEnabled()) {
+    if (!isAnalyticsAssistantEnabled()) {
         return NextResponse.json({ error: 'Assistant disabled' }, { status: 403 });
     }
 

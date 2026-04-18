@@ -180,7 +180,7 @@ export async function getSpecializationPreferences() {
 }
 
 /**
- * Get deterministic + Gemini-enhanced specialization guidance.
+ * Get deterministic + Grok-enhanced specialization guidance.
  */
 export async function getSpecializationGuidance() {
     const session = await auth();

@@ -312,8 +312,8 @@ export function PathwaySelectionClient() {
             }
             if (advice.isEligible) {
                 setAIAdvice(advice);
-                if (advice.decision_source === 'GEMINI') {
-                    toast.success('Pathway guidance complete (Gemini).');
+                if (advice.decision_source === 'GROK') {
+                    toast.success('Pathway guidance complete (Grok).');
                 } else {
                     toast.warning('Guidance completed using fallback logic.');
                 }

@@ -536,7 +536,7 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
                                         <Settings className="h-3 w-3 mr-1" />
                                         Visual
                                     </TabsTrigger>
-                                    <TabsTrigger value="gemini" className="flex-1 text-[10px] h-6 data-[state=active]:bg-background">
+                                    <TabsTrigger value="assistant" className="flex-1 text-[10px] h-6 data-[state=active]:bg-background">
                                         ✨ AI Assistant
                                     </TabsTrigger>
                                 </TabsList>
@@ -582,7 +582,7 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
                                 )}
                             </TabsContent>
 
-                            <TabsContent value="gemini" className="flex-1 overflow-hidden m-0 p-0 h-full">
+                            <TabsContent value="assistant" className="flex-1 overflow-hidden m-0 p-0 h-full">
                                 <AnalyticsAssistantPanel aggregatesSummary={aggregatesSummary} onApplyPatch={applyFromAssistant} />
                             </TabsContent>
                         </Tabs>

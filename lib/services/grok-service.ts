@@ -79,18 +79,21 @@ export class GrokService {
                 }));
 
             const prompt = `
-                Acting as an expert academic advisor for a SEES IT program, analyze the following student transcript:
+                Act as the Senior Academic Advisor at the Department of Industrial Management (DIM). 
+                Analyze the following student transcript for transitioning from Level 1 to Level 2 in the B.Sc. Honours in MIT/IT program:
                 ${JSON.stringify(transcript, null, 2)}
                 
-                Choose between:
-                1. MIT (Management & Information Technology)
-                2. IT (Pure Information Technology)
+                Advise between:
+                1. MIT (Management & Information Technology): Stronger affinity for business logic, management, and optimization modules (MGTE).
+                2. IT (Pure Information Technology): Stronger affinity for technical architecture, engineering, and programming modules (INTE).
+                
+                Consider their performance in L1 core modules like INTE 11223 (Programming Concepts) vs MGTE 11243 (Principles of Management).
                 
                 Return a JSON object:
                 {
                     "primary_recommendation": "MIT" | "IT",
                     "fit_score": 0-100,
-                    "insight": "Succinct advisor's insight mentioning specific modules.",
+                    "insight": "Succinct DIM-specific advisor's insight mentioning specific modules performance.",
                     "supporting_reasons": ["Reason 1", "Reason 2"]
                 }
             `;
@@ -136,8 +139,12 @@ export class GrokService {
 
         try {
             const prompt = `
-You are an academic advisor for L1 pathway selection.
-Choose one pathway: MIT or IT using student preferences, transcript, and deterministic evidence.
+You are the Lead Academic Counselor for the Department of Industrial Management. 
+Choose one pathway: MIT or IT for an L1 student transitioning to Level 2 (SLQF Level 6 Honours).
+
+L1 Core Performance Markers:
+- IT Affinity: High marks in INTE 11223 (Programming), INTE 12213 (OOP), INTE 12243 (Networking).
+- MIT Affinity: High marks in MGTE 11233 (Statistics/Economics), MGTE 11243 (Management), MGTE 12263 (Optimization).
 
 Current GPA: ${input.currentGpa}
 Student profile/preferences: ${JSON.stringify(input.preferences)}
@@ -149,7 +156,7 @@ Return strict JSON:
   "primary_recommendation": "MIT" | "IT",
   "fit_score": 0-100,
   "skill_vector": { "Technical": 0-100, "Strategic": 0-100, "Operations": 0-100 },
-  "supporting_reasons": ["reason 1", "reason 2", "reason 3"]
+  "supporting_reasons": ["DIM-specific reason citing modules", "reason 2", "reason 3"]
 }
 `;
             const raw = await this.callGrok(prompt, 0.2);
@@ -227,16 +234,22 @@ Return JSON:
                 .map(mr => ({ code: mr.module.code, name: mr.module.name, grade: mr.grade?.letter_grade }));
 
             const prompt = `
-                Suggest best specialization (BSE, OSCM, or IS) for this MIT student:
+                Suggest the optimal specialization (BSE, OSCM, or IS) for this MIT student at the Department of Industrial Management.
+                
+                Focus Tracks:
+                - BSE (Business Systems Engineering): Focus on Industrial Engineering, CIM (MGTE 31293), and BPE (MGTE 41333).
+                - OSCM (Operations and Supply Chain Management): Focus on Logistics, Warehouse Management (MGTE 31413), and Strategic Quality (MGTE 42323).
+                - IS (Information Systems): Focus on Data Analytics (INTE 31413), Info Security (INTE 31393), and Enterprise Systems (MGTE 41303).
+
                 TRANSCRIPT: ${JSON.stringify(transcript)}
                 
                 Return JSON:
                 {
                     "recommended_specialization": "BSE" | "OSCM" | "IS",
                     "fit_score": 0-100,
-                    "insight": "advice text",
+                    "insight": "High-level advisor text referencing their aptitude for specific track-specific modules.",
                     "skill_vector": { "Technical": 0, "Strategic": 0, "Operations": 0 },
-                    "reasons": ["reason 1", "reason 2"]
+                    "reasons": ["DIM-aligned reason 1", "reason 2"]
                 }
             `;
             const raw = await this.callGrok(prompt);
@@ -249,11 +262,29 @@ Return JSON:
     static async generatePersonalizedFeedback(context: Record<string, unknown>) {
         try {
             const prompt = `
-            Analyze the student context and return feedback JSON.
-            CONTEXT: ${JSON.stringify(context)}
-            
-            Format:
-            { "overallAssessment": "string", "strengths": [], "riskAreas": [], "goalGuidance": [], "recommendedActions": [], "next30DayPlan": [], "advisorEscalationSignals": [], "confidenceNotes": { "modelUsed": true, "summary": "" } }
+                You are the DIM Supportive Academic Success Coach. 
+                Analyze the following student context and provide personalized, encouraging feedback.
+                
+                CONTEXT: ${JSON.stringify(context)}
+                
+                Guidelines for your feedback:
+                1. Use a conversational, friendly, and supportive tone.
+                2. Avoid being overly technical with SLQF levels or raw course codes. 
+                3. Use descriptive module names (e.g., "Programming" instead of just "INTE 11223").
+                4. Focus on clear, small, actionable steps in the 'next30DayPlan'.
+                5. Keep the 'overallAssessment' encouraging and balanced.
+                
+                Format your response as strict JSON:
+                { 
+                  "overallAssessment": "String (warm and professional summary)", 
+                  "strengths": ["User-friendly strength 1", ...], 
+                  "riskAreas": ["Gentle area for improvement 1", ...], 
+                  "goalGuidance": ["Advice on their specific academic goals"], 
+                  "recommendedActions": ["Actionable step 1", ...], 
+                  "next30DayPlan": ["Comfortable task 1", ...], 
+                  "advisorEscalationSignals": [], 
+                  "confidenceNotes": { "modelUsed": true, "summary": "Short internal summary" } 
+                }
             `;
             const raw = await this.callGrok(prompt, 0.2);
             return JSON.parse(raw);
@@ -271,9 +302,21 @@ Return JSON:
             if (!student) throw new Error("Student not found.");
 
             const prompt = `
-                Academic recovery coach: student had GPA dip of ${dipAmount.toFixed(2)}.
+                You are the DIM Academic Recovery Coach. A student had a noticeable GPA dip of ${dipAmount.toFixed(2)}. 
+                
+                Guidelines:
+                1. Provide a warm, empathetic message. Don't lead with cold statistics.
+                2. Gently remind them that for the B.Sc. Honours degree, they need to aim for 'C' grades or better to stay on track for their class award.
+                3. Focus on recovery and support rather than just warnings.
+                
                 Return JSON:
-                { "message": "Empathetic message", "recovery_actions": [], "advisor_outreach_subject": "", "advisor_outreach_body": "", "support_resources": [] }
+                { 
+                  "message": "Warm, encouraging message", 
+                  "recovery_actions": ["Practical, non-intimidating step 1", ...], 
+                  "advisor_outreach_subject": "Quick chat about your progress", 
+                  "advisor_outreach_body": "Friendly outreach template", 
+                  "support_resources": ["DIM Student Support", "Peer Mentoring Group"] 
+                }
             `;
             const raw = await this.callGrok(prompt);
             return JSON.parse(raw);
