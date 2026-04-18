@@ -1,4 +1,4 @@
-import { prisma } from '/Users/budd/dev/sees-ui/lib/db';
+import { prisma } from '@/lib/db';
 import { hash } from 'bcryptjs';
 
 async function main() {
