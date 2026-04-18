@@ -52,7 +52,18 @@ resource "aws_iam_role_policy" "ecs_secrets_access" {
       Resource = [
         var.database_url_secret_arn,
         var.mq_url_secret_arn,
-        var.nextauth_secret_arn
+        var.nextauth_secret_arn,
+        var.brevo_api_key_arn,
+        var.brevo_sender_email_arn,
+        var.brevo_sender_name_arn,
+        var.xai_api_key_arn,
+        var.xai_model_arn,
+        var.pusher_app_id_arn,
+        var.pusher_key_arn,
+        var.pusher_secret_arn,
+        var.pusher_cluster_arn,
+        var.next_public_pusher_key_arn,
+        var.next_public_pusher_cluster_arn
       ]
     }]
   })
@@ -252,7 +263,18 @@ resource "aws_ecs_task_definition" "app" {
     secrets = [
       { name = "DATABASE_URL", valueFrom = var.database_url_secret_arn },
       { name = "RABBITMQ_URL", valueFrom = var.mq_url_secret_arn },
-      { name = "NEXTAUTH_SECRET", valueFrom = var.nextauth_secret_arn }
+      { name = "NEXTAUTH_SECRET", valueFrom = var.nextauth_secret_arn },
+      { name = "BREVO_API_KEY", valueFrom = var.brevo_api_key_arn },
+      { name = "BREVO_SENDER_EMAIL", valueFrom = var.brevo_sender_email_arn },
+      { name = "BREVO_SENDER_NAME", valueFrom = var.brevo_sender_name_arn },
+      { name = "XAI_API_KEY", valueFrom = var.xai_api_key_arn },
+      { name = "XAI_MODEL", valueFrom = var.xai_model_arn },
+      { name = "PUSHER_APP_ID", valueFrom = var.pusher_app_id_arn },
+      { name = "PUSHER_KEY", valueFrom = var.pusher_key_arn },
+      { name = "PUSHER_SECRET", valueFrom = var.pusher_secret_arn },
+      { name = "PUSHER_CLUSTER", valueFrom = var.pusher_cluster_arn },
+      { name = "NEXT_PUBLIC_PUSHER_KEY", valueFrom = var.next_public_pusher_key_arn },
+      { name = "NEXT_PUBLIC_PUSHER_CLUSTER", valueFrom = var.next_public_pusher_cluster_arn }
     ]
     logConfiguration = {
       logDriver = "awslogs"

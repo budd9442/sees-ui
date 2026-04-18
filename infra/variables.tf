@@ -38,3 +38,55 @@ variable "domain_name" {
   description = "Domain name for the platform"
   type        = string
 }
+
+# Application Secrets
+variable "xai_api_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "xai_model" {
+  type    = string
+  default = "grok-beta"
+}
+
+variable "brevo_api_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "brevo_sender_email" {
+  type = string
+}
+
+variable "brevo_sender_name" {
+  type    = string
+  default = "SEES Platform"
+}
+
+variable "pusher_app_id" {
+  type = string
+}
+
+variable "pusher_key" {
+  type = string
+}
+
+variable "pusher_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "pusher_cluster" {
+  type    = string
+  default = "ap2"
+}
+
+variable "next_public_pusher_key" {
+  type = string
+}
+
+variable "next_public_pusher_cluster" {
+  type    = string
+  default = "ap2"
+}
