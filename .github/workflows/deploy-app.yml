@@ -54,13 +54,23 @@ jobs:
         echo "Found Subnet: $PRIVATE_SUBNET_ID"
         echo "Found SG: $ECS_SG_ID"
 
-        aws ecs run-task \
+        TASK_ARN=$(aws ecs run-task \
           --cluster $ECS_CLUSTER \
           --task-definition $ECS_TASK_DEFINITION \
           --overrides '{"containerOverrides": [{"name": "app", "command": ["npx", "prisma", "migrate", "deploy"]}]}' \
           --launch-type FARGATE \
           --network-configuration "{\"awsvpcConfiguration\": {\"subnets\": [\"$PRIVATE_SUBNET_ID\"], \"securityGroups\": [\"$ECS_SG_ID\"]}}" \
-          --wait
+          --query 'tasks[0].taskArn' --output text)
+
+        echo "Started migration task: $TASK_ARN"
+        aws ecs wait tasks-stopped --cluster $ECS_CLUSTER --tasks $TASK_ARN
+        
+        # Check task exit code
+        EXIT_CODE=$(aws ecs describe-tasks --cluster $ECS_CLUSTER --tasks $TASK_ARN --query 'tasks[0].containers[0].exitCode' --output text)
+        if [ "$EXIT_CODE" != "0" ]; then
+          echo "Migration task failed with exit code $EXIT_CODE"
+          exit 1
+        fi
 
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
