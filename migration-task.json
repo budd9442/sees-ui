@@ -1,0 +1,25 @@
+{
+  "family": "sees-platform-migration",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::169976490032:role/sees-platform-ecs-task-execution-role",
+  "containerDefinitions": [
+    {
+      "name": "migration",
+      "image": "postgres:16",
+      "command": [
+        "sh", "-c", "apt-get update && apt-get install -y curl && curl -L 'https://sees-platform-migration-1776517674.s3.us-east-1.amazonaws.com/db_dump.sql?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASPE3DNAYAR7RK5GN%2F20260418%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260418T130812Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=16b803cb09a95232f25b5610cd80096cfa94a04f4677038c4d19c504d8cc195e' > dump.sql && PGPASSWORD='m7Iut4BrzYAbuiJF' psql -h sees-platform-db.cczgy0qouayn.us-east-1.rds.amazonaws.com -U sees_admin -d sees_db -f dump.sql"
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/sees-platform-app",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "migration"
+        }
+      }
+    }
+  ]
+}
