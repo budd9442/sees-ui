@@ -290,9 +290,9 @@ export async function getSpecializationGuidance() {
 
     const decision = await GrokService.generateSpecializationDecision({
         currentGpa: gpa,
+        pathway: student.degree_path.code,
         preferences: prefs,
-        transcript: transcriptPayload,
-        deterministicBreakdown: specializationScores,
+        grades: transcriptPayload,
     });
 
     const recommended =
@@ -300,13 +300,10 @@ export async function getSpecializationGuidance() {
         specializationScores[0];
 
     const ai = await GrokService.generateSpecializationGuidanceExplanation({
-        studentId: student.student_id,
         currentGpa: gpa,
-        recommendedSpecialization: recommended.code,
-        score: decision.fit_score,
-        scoreBreakdown: recommended.breakdown,
+        recommendedSpec: recommended.code,
+        score: decision.confidence,
         preferences: prefs,
-        transcript: transcriptPayload,
     });
 
     const deterministicSkillVector = {

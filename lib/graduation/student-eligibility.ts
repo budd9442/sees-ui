@@ -65,6 +65,12 @@ export async function evaluateStudentEligibility(studentId: string): Promise<Eli
 
     if (!student) {
         return {
+            isEligible: false,
+            creditDetail: {
+                completed: 0,
+                required: 132,
+                remaining: 132,
+            },
             gpa: 0,
             totalGpaCredits: 0,
             matchedDivisionId: null,
@@ -110,6 +116,12 @@ export async function evaluateStudentEligibility(studentId: string): Promise<Eli
 
     if (grades.length === 0) {
         return {
+            isEligible: false,
+            creditDetail: {
+                completed: 0,
+                required: 132,
+                remaining: 132,
+            },
             gpa: 0,
             totalGpaCredits: 0,
             matchedDivisionId: null,

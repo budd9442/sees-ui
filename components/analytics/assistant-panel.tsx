@@ -101,7 +101,7 @@ export function AnalyticsAssistantPanel({ aggregatesSummary, onApplyPatch, curre
                 <div className="pt-3 pb-1 mt-auto border-t shrink-0">
                     <Button 
                         type="button" 
-                        variant="glow"
+                        variant="outline"
                         onClick={() => onApplyPatch(lastPatch)}
                         className="w-full h-9 text-xs font-semibold"
                     >

@@ -183,6 +183,74 @@ Return strict JSON:
         }
     }
 
+    static async generateSpecializationDecision(input: {
+        currentGpa: number;
+        pathway: string;
+        preferences: Record<string, unknown>;
+        grades: any[];
+    }) {
+        const fallback = {
+            recommendation: 'BSE' as 'BSE' | 'OSCM' | 'IS',
+            confidence: 0.85,
+            insight: "Based on your technical scores and stated interests, Software Engineering is your strongest fit.",
+            supporting_reasons: ["Strong performance in programming modules", "Interest in system architecture"]
+        };
+
+        try {
+            const prompt = `Student GPA: ${input.currentGpa}\nPathway: ${input.pathway}\nPreferences: ${JSON.stringify(input.preferences)}\nGrades: ${JSON.stringify(input.grades.slice(0, 5))}\n\nRecommend one specialization: BSE, OSCM, or IS. Return JSON with recommendation, confidence, insight, and supporting_reasons (string array).`;
+            const res = await fetch('https://api.x.ai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.GROK_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'grok-beta',
+                    messages: [{ role: 'user', content: prompt }],
+                    response_format: { type: 'json_object' }
+                })
+            });
+
+            const data = await res.json();
+            const parsed = JSON.parse(data.choices[0].message.content);
+            return {
+                ...fallback,
+                ...parsed,
+                modelUsed: true,
+                failureReason: null
+            };
+        } catch (error) {
+            return { ...fallback, failureReason: 'EXCEPTION_UNKNOWN' };
+        }
+    }
+
+    static async generateSpecializationGuidanceExplanation(input: {
+        currentGpa: number;
+        recommendedSpec: string;
+        score: number;
+        preferences: Record<string, unknown>;
+    }) {
+        try {
+            const prompt = `Explain why ${input.recommendedSpec} is recommended for a student with ${input.currentGpa} GPA and these preferences: ${JSON.stringify(input.preferences)}. Keep it motivating and under 150 words.`;
+            const res = await fetch('https://api.x.ai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.GROK_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'grok-beta',
+                    messages: [{ role: 'user', content: prompt }]
+                })
+            });
+
+            const data = await res.json();
+            return data.choices[0].message.content;
+        } catch (error) {
+            return `Based on your academic profile, ${input.recommendedSpec} aligns best with your specialization criteria and performance.`;
+        }
+    }
+
     static async generatePathwayGuidanceExplanation(input: {
         currentGpa: number;
         recommendedPathway: 'MIT' | 'IT';

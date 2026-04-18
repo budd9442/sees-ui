@@ -125,7 +125,7 @@ const TEMPLATES: Template[] = [
                 id: 'main', title: 'Probation Tracking',
                 visuals: [
                     { id: 'v1', type: 'kpi', title: 'Students < 2.0 GPA', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 6, h: 4 }, groupBy: 'none', filters: { gpaMax: 2.0 }, encodings: { metric: 'student_id', kpiAggregation: 'count' } },
-                    { id: 'v2', type: 'bar', title: 'GPA Distribution (Low Range)', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 6, y: 0, w: 6, h: 4 }, groupBy: 'gpa_bucket', filters: { gpaMax: 2.5 }, encodings: { x: 'gpa_bucket', y: 'student_count', colorScheme: 'red' } },
+                    { id: 'v2', type: 'bar', title: 'GPA Distribution (Low Range)', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 6, y: 0, w: 6, h: 4 }, groupBy: 'gpa_bucket', filters: { gpaMax: 2.5 }, encodings: { x: 'gpa_bucket', y: 'student_count', colorScheme: "warm" } },
                     { id: 'v3', type: 'table', title: 'At-Risk List', datasetId: 'core_student_metrics', layout: { i: 'v3', x: 0, y: 4, w: 12, h: 8 }, groupBy: 'none', filters: { gpaMax: 2.0 }, encodings: { sortOrder: 'asc' } },
                 ],
             }],
@@ -160,7 +160,7 @@ const TEMPLATES: Template[] = [
             pages: [{
                 id: 'main', title: 'Career Outcomes',
                 visuals: [
-                    { id: 'v1', type: 'donut', title: 'Internship Status', datasetId: 'core_career_goals', layout: { i: 'v1', x: 0, y: 0, w: 4, h: 6 }, groupBy: 'status', filters: { goal_type: 'INTERNSHIP' }, encodings: { category: 'status', value: 'count' } },
+                    { id: 'v1', type: 'donut', title: 'Internship Status', datasetId: 'core_career_goals', layout: { i: 'v1', x: 0, y: 0, w: 4, h: 6 }, groupBy: 'status', filters: { goalType: 'INTERNSHIP' }, encodings: { category: 'status', value: 'count' } },
                     { id: 'v2', type: 'bar', title: 'Top Hiring Companies', datasetId: 'core_career_goals', layout: { i: 'v2', x: 4, y: 0, w: 8, h: 6 }, groupBy: 'company', encodings: { x: 'company', y: 'count', colorScheme: 'cool', sortOrder: 'desc' } },
                     { id: 'v3', type: 'kpi', title: 'Goal Achievement Rate', datasetId: 'core_career_goals', layout: { i: 'v3', x: 0, y: 6, w: 12, h: 4 }, groupBy: 'none', encodings: { metric: 'achievement_rate', kpiAggregation: 'avg' } },
                 ],
@@ -197,7 +197,7 @@ const TEMPLATES: Template[] = [
                 id: 'main', title: 'High Performers',
                 visuals: [
                     { id: 'v1', type: 'kpi', title: 'Students GPA > 3.7', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 6, h: 4 }, groupBy: 'none', filters: { gpaMin: 3.7 }, encodings: { metric: 'student_id', kpiAggregation: 'count' } },
-                    { id: 'v2', type: 'bar', title: 'GPA Leaders by Cohort', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 6, y: 0, w: 6, h: 4 }, groupBy: 'admission_year', filters: { gpaMin: 3.5 }, encodings: { x: 'admission_year', y: 'avg_gpa', colorScheme: 'gold' } },
+                    { id: 'v2', type: 'bar', title: 'GPA Leaders by Cohort', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 6, y: 0, w: 6, h: 4 }, groupBy: 'admission_year', filters: { gpaMin: 3.5 }, encodings: { x: 'admission_year', y: 'avg_gpa', colorScheme: "warm" } },
                     { id: 'v3', type: 'table', title: 'Potential Honours Roll', datasetId: 'core_student_metrics', layout: { i: 'v3', x: 0, y: 4, w: 12, h: 8 }, groupBy: 'none', filters: { gpaMin: 3.7 }, encodings: { sortOrder: 'desc' } },
                 ],
             }],
@@ -231,7 +231,7 @@ const TEMPLATES: Template[] = [
             pages: [{
                 id: 'main', title: 'Survival Analysis',
                 visuals: [
-                    { id: 'v1', type: 'bar', title: 'Withdrawn/Inactive by Year', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 6 }, groupBy: 'admission_year', filters: { enrollment_status: 'WITHDRAWN' }, encodings: { x: 'admission_year', y: 'student_count', colorScheme: 'red' } },
+                    { id: 'v1', type: 'bar', title: 'Withdrawn/Inactive by Year', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 6 }, groupBy: 'admission_year', filters: { enrollmentStatus: 'WITHDRAWN' }, encodings: { x: 'admission_year', y: 'student_count', colorScheme: "warm" } },
                     { id: 'v2', type: 'pie', title: 'Graduated vs Active', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 0, y: 6, w: 12, h: 6 }, groupBy: 'enrollment_status' },
                 ],
             }],
@@ -299,7 +299,7 @@ const TEMPLATES: Template[] = [
             pages: [{
                 id: 'main', title: 'Failure Analysis',
                 visuals: [
-                    { id: 'v1', type: 'bar', title: 'Modules with > 15% Failure Rate', datasetId: 'core_module_metrics', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 6 }, groupBy: 'none', filters: { failRateMin: 15 }, encodings: { x: 'module_code', y: 'fail_rate', colorScheme: 'red', sortOrder: 'desc' } },
+                    { id: 'v1', type: 'bar', title: 'Modules with > 15% Failure Rate', datasetId: 'core_module_metrics', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 6 }, groupBy: 'none', filters: { failRateMin: 15 }, encodings: { x: 'module_code', y: 'fail_rate', colorScheme: "warm", sortOrder: 'desc' } },
                     { id: 'v2', type: 'table', title: 'Failing Students Concentration', datasetId: 'core_module_metrics', layout: { i: 'v2', x: 0, y: 6, w: 12, h: 6 }, groupBy: 'none', filters: { failRateMin: 15 } },
                 ],
             }],
@@ -333,7 +333,7 @@ const TEMPLATES: Template[] = [
             pages: [{
                 id: 'main', title: 'Graduation Watch',
                 visuals: [
-                    { id: 'v1', type: 'kpi', title: 'Eligible for Graduation', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 4, h: 4 }, groupBy: 'none', filters: { gpaMin: 2.0, enrollment_status: 'ENROLLED' }, encodings: { metric: 'student_id', kpiAggregation: 'count' } },
+                    { id: 'v1', type: 'kpi', title: 'Eligible for Graduation', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 4, h: 4 }, groupBy: 'none', filters: { gpaMin: 2.0, enrollmentStatus: 'ENROLLED' }, encodings: { metric: 'student_id', kpiAggregation: 'count' } },
                     { id: 'v2', type: 'bar', title: 'Credits earned by L3/L4 cohort', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 4, y: 0, w: 8, h: 4 }, groupBy: 'admission_year', filters: { level: 'L3' }, encodings: { x: 'admission_year', y: 'credits_earned', colorScheme: 'blue' } },
                     { id: 'v3', type: 'table', title: 'Final Year Student List', datasetId: 'core_student_metrics', layout: { i: 'v3', x: 0, y: 4, w: 12, h: 8 }, groupBy: 'none', filters: { level: 'L3' } },
                 ],

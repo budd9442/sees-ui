@@ -430,7 +430,7 @@ export function VisualEncodingInspector({ selected, updateSelected, allowedDatas
                 {openSections.filters && (
                     <div className="space-y-2 pl-1">
                         {/* Metadata filters */}
-                        {(selected.datasetId === 'hod_student_summary' || selected.datasetId === 'admin_student_metadata') && (
+                        {selected.datasetId === 'core_student_metrics' && (
                             <>
                                 <div className="space-y-1">
                                     <Label className="text-xs">Metadata key</Label>
@@ -501,7 +501,7 @@ export function VisualEncodingInspector({ selected, updateSelected, allowedDatas
                         )}
 
                         {/* Enrollment status */}
-                        {(selected.datasetId === 'admin_enrollment_trends' || selected.datasetId === 'admin_at_risk_students') && (
+                        {selected.datasetId === 'core_student_metrics' && (
                             <div className="space-y-1">
                                 <Label className="text-xs">Enrollment status</Label>
                                 <Select

@@ -99,8 +99,8 @@ export async function getStaffAnalytics(filters?: StaffAnalyticsFilters) {
                 regByStudent.set(reg.student_id, reg);
                 continue;
             }
-            const existingExactModule = existing.module_id === mod.module_id;
-            const currentExactModule = reg.module_id === mod.module_id;
+            const existingExactModule = existing.module_id === m.module_id;
+            const currentExactModule = reg.module_id === m.module_id;
             if (currentExactModule && !existingExactModule) {
                 regByStudent.set(reg.student_id, reg);
                 continue;

@@ -10,14 +10,15 @@ export const dynamic = 'force-dynamic';
 export default async function MessagesPage({
   searchParams,
 }: {
-  searchParams?: { openAdvisorModal?: string };
+  searchParams: Promise<{ openAdvisorModal?: string }>;
 }) {
+  const params = await searchParams;
   const session = await auth();
   if (!session?.user?.id) {
     redirect('/login');
   }
 
-  const initialOpenAdvisorModal = searchParams?.openAdvisorModal === '1';
+  const initialOpenAdvisorModal = params.openAdvisorModal === '1';
   const { messages, nextCursor } = await getMyMessages({ limit: 100 });
 
   return (

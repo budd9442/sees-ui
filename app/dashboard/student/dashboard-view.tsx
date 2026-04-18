@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/common/stat-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,12 +26,14 @@ import { AcademicRecoveryCard } from '@/components/student/academic-recovery-car
 interface DashboardViewProps {
     student: Student;
     notifications: any[];
+    schedules: any[];
     pathwayDemand: any;
     gpaHistory: { semester: string; gpa: number }[];
     goalsSummary: StudentGoalsSummary;
 }
 
-export function DashboardView({ student, notifications, pathwayDemand, gpaHistory, goalsSummary }: DashboardViewProps) {
+export function DashboardView({ student, notifications, schedules, pathwayDemand, gpaHistory, goalsSummary }: DashboardViewProps) {
+    const router = useRouter();
     // Use real semester-wise cumulative GPA history
     const gpaData = gpaHistory;
 
@@ -94,7 +97,7 @@ export function DashboardView({ student, notifications, pathwayDemand, gpaHistor
             </div>
 
             {/* Pathway Warning if applicable */}
-            {student.academicYear === 'Level 1' &&
+            {student.academicYear === "L1" &&
                 !student.pathwayLocked &&
                 pathwayDemand.thresholdReached && (
                     <Alert className="mb-6 border-orange-500 bg-orange-50">

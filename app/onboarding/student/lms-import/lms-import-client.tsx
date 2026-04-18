@@ -280,7 +280,7 @@ export default function LmsImportClient() {
                                     <div className="rounded-md border p-3">
                                         <div className="text-xs text-muted-foreground">Imported modules by year</div>
                                         <div className="mt-2 space-y-2">
-                                            {Object.entries(previewSummary.years ?? {}).map(([year, y]) => (
+                                            {Object.entries(previewSummary.years ?? {}).map(([year, y]: [string, any]) => (
                                                 <div key={year} className="space-y-2 rounded-md border p-2">
                                                     <div className="flex items-center justify-between text-sm">
                                                         <div>

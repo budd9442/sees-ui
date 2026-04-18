@@ -237,7 +237,7 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
             ...rows,
         ];
         const csvContent = csvRows
-            .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+            .map((row) => row.map((cell: any) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
             .join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);

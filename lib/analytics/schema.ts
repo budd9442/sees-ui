@@ -21,6 +21,8 @@ export const analyticsQueryFiltersSchema = z.object({
     admissionYear: z.coerce.number().optional(),
     enrollmentStatus: z.string().optional(),
     graduationStatus: z.string().optional(),
+    failRateMin: z.coerce.number().optional(),
+    goalType: z.string().optional(),
     // Grade scope
     moduleId: z.string().optional(),
     gpaMin: z.coerce.number().min(0).max(4).optional(),
@@ -108,6 +110,7 @@ export const visualEncodingsSchema = z.object({
     calculatedMeasure: z.string().optional(),
     // Radar / multi-series
     radarMetrics: z.array(z.string()).optional(),
+    color: z.string().optional(),
 });
 
 export type VisualEncodings = z.infer<typeof visualEncodingsSchema>;

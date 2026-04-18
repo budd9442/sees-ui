@@ -3,6 +3,7 @@ export type UserWithRelations = {
   firstName: string | null;
   lastName: string | null;
   status: string;
+  email: string;
   student: unknown | null;
   staff: {
     staff_type: string;
