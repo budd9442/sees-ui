@@ -15,7 +15,7 @@ resource "aws_secretsmanager_secret" "mq_url" {
 
 resource "aws_secretsmanager_secret_version" "mq_url" {
   secret_id     = aws_secretsmanager_secret.mq_url.id
-  secret_string = var.mq_url
+  secret_string = "amqp://${var.mq_username}:${var.mq_password}@rabbitmq.${var.project_name}.local:5672"
 }
 
 resource "aws_secretsmanager_secret" "nextauth_secret" {

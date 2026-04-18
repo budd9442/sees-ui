@@ -66,10 +66,13 @@ resource "aws_security_group" "nat" {
   }
 }
 
+data "aws_ssm_parameter" "al2023_ami" {
+  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+}
+
 resource "aws_instance" "nat" {
-  ami                         = "ami-04a8139599557fc9d" # Amazon Linux 2023 x86_64 in us-east-1 (Should be ARM for t4g)
-  # Dynamic lookup for ARM AL2023 is better.
-  instance_type               = "t4g.nano"
+  ami                         = data.aws_ssm_parameter.al2023_ami.value
+  instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.public[0].id
   vpc_security_group_ids      = [aws_security_group.nat.id]
   source_dest_check           = false # Crucial for NAT
@@ -110,8 +113,8 @@ resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block  = "0.0.0.0/0"
-    instance_id = aws_instance.nat.id
+    cidr_block           = "0.0.0.0/0"
+    network_interface_id = aws_instance.nat.primary_network_interface_id
   }
 
   tags = {
@@ -123,4 +126,10 @@ resource "aws_route_table_association" "private" {
   count          = 2
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private.id
+}
+
+resource "aws_service_discovery_private_dns_namespace" "main" {
+  name        = "${var.project_name}.local"
+  description = "Private DNS for ${var.project_name} services"
+  vpc         = aws_vpc.main.id
 }

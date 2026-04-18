@@ -32,14 +32,6 @@ module "rds" {
   db_password     = random_password.db_password.result
 }
 
-module "mq" {
-  source          = "./modules/mq"
-  project_name    = var.project_name
-  vpc_id          = module.vpc.vpc_id
-  private_subnets = module.vpc.private_subnets
-  mq_username     = var.mq_username
-  mq_password     = random_password.mq_password.result
-}
 
 module "dns" {
   source       = "./modules/dns"
@@ -52,7 +44,8 @@ module "secrets" {
   source       = "./modules/secrets"
   project_name = var.project_name
   database_url = module.rds.database_url
-  mq_url       = module.mq.mq_url
+  mq_username  = var.mq_username
+  mq_password  = random_password.mq_password.result
   nextauth_secret = random_password.nextauth_secret.result
 }
 
@@ -65,6 +58,10 @@ module "ecs" {
   domain_name     = var.domain_name
   certificate_arn = module.dns.certificate_arn
   zone_id         = module.dns.zone_id
+  
+  service_discovery_namespace_id = module.vpc.service_discovery_namespace_id
+  mq_username                    = var.mq_username
+  mq_password                    = random_password.mq_password.result
   
   # Inject Secrets Manager ARNs instead of raw variables
   database_url_secret_arn = module.secrets.database_url_secret_arn

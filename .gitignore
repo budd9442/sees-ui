@@ -43,3 +43,8 @@ next-env.d.ts
 
 # analysis
 
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl

@@ -8,3 +8,6 @@ variable "nextauth_secret_arn" { type = string }
 variable "certificate_arn" { type = string }
 variable "zone_id" { type = string }
 variable "domain_name" { type = string }
+variable "service_discovery_namespace_id" { type = string }
+variable "mq_username" { type = string }
+variable "mq_password" { type = string }

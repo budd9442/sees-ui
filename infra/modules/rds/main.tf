@@ -33,7 +33,7 @@ resource "aws_db_instance" "main" {
   storage_type         = "gp3"
   engine               = "postgres"
   engine_version       = "16"
-  instance_class       = "db.t4g.micro"
+  instance_class       = "db.t3.micro"
   db_name              = var.db_name
   username             = var.db_username
   password             = var.db_password
@@ -44,7 +44,7 @@ resource "aws_db_instance" "main" {
 
   performance_insights_enabled          = true
   performance_insights_retention_period = 7
-  backup_retention_period              = 7
+  backup_retention_period              = 1
 
   tags = {
     Name = "${var.project_name}-db"

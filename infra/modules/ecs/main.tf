@@ -139,13 +139,98 @@ resource "aws_route53_record" "app" {
   }
 }
 
+# ECR Repository
+resource "aws_ecr_repository" "app" {
+  name                 = var.project_name
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "app" {
+  repository = aws_ecr_repository.app.name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep last 3 images"
+      selection = {
+        tagStatus     = "any"
+        countType     = "imageCountMoreThan"
+        countNumber   = 3
+      }
+      action = {
+        type = "expire"
+      }
+    }]
+  })
+}
+
 # CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/ecs/${var.project_name}-app"
   retention_in_days = 7
 }
 
-# Task Definition
+resource "aws_cloudwatch_log_group" "rabbitmq" {
+  name              = "/ecs/${var.project_name}-rabbitmq"
+  retention_in_days = 7
+}
+
+# Service Discovery
+resource "aws_service_discovery_service" "rabbitmq" {
+  name = "rabbitmq"
+
+  dns_config {
+    namespace_id = var.service_discovery_namespace_id
+
+    dns_records {
+      ttl  = 60
+      type = "A"
+    }
+
+    routing_policy = "MULTIVALUE"
+  }
+
+  health_check_custom_config {
+    failure_threshold = 1
+  }
+}
+
+resource "aws_ecs_task_definition" "rabbitmq" {
+  family                   = "${var.project_name}-rabbitmq"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+
+  container_definitions = jsonencode([{
+    name  = "rabbitmq"
+    image = "rabbitmq:3-management"
+    portMappings = [
+      { containerPort = 5672, hostPort = 5672 },
+      { containerPort = 15672, hostPort = 15672 }
+    ]
+    environment = [
+      { name = "RABBITMQ_DEFAULT_USER", value = var.mq_username },
+      { name = "RABBITMQ_DEFAULT_PASS", value = var.mq_password }
+    ]
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.rabbitmq.name
+        "awslogs-region"        = "us-east-1"
+        "awslogs-stream-prefix" = "ecs"
+      }
+    }
+  }])
+}
+
+# Task Definition for the App
 resource "aws_ecs_task_definition" "app" {
   family                   = "${var.project_name}-app"
   network_mode             = "awsvpc"
@@ -180,7 +265,28 @@ resource "aws_ecs_task_definition" "app" {
   }])
 }
 
-# Service
+resource "aws_ecs_service" "rabbitmq" {
+  name            = "${var.project_name}-rabbitmq"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.rabbitmq.arn
+  desired_count   = 1
+  
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 100
+  }
+
+  network_configuration {
+    subnets          = var.private_subnets
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = false
+  }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.rabbitmq.arn
+  }
+}
+
 resource "aws_ecs_service" "app" {
   name            = "${var.project_name}-service"
   cluster         = aws_ecs_cluster.main.id
@@ -204,7 +310,7 @@ resource "aws_ecs_service" "app" {
     container_port   = 3000
   }
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [aws_lb_listener.http, aws_lb_listener.https, aws_ecs_service.rabbitmq]
 }
 
 resource "aws_security_group" "ecs_tasks" {
@@ -216,6 +322,20 @@ resource "aws_security_group" "ecs_tasks" {
     from_port       = 3000
     to_port         = 3000
     security_groups = [aws_security_group.alb.id]
+  }
+
+  ingress {
+    protocol  = "tcp"
+    from_port = 5672
+    to_port   = 5672
+    self      = true
+  }
+
+  ingress {
+    protocol  = "tcp"
+    from_port = 15672
+    to_port   = 15672
+    self      = true
   }
 
   egress {
