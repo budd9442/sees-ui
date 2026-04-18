@@ -81,34 +81,28 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
     const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const [emailTemplate, setEmailTemplate] = useState('');
 
-    const getStudentAcademicClass = (student: any) => {
-        if (student.academicClass) return student.academicClass;
-        const studentGrades = grades.filter((g: any) => g.studentId === student.id && g.isReleased);
-        const totalPoints = studentGrades.reduce((sum: number, grade: any) => sum + (grade.points * grade.credits), 0);
-        const totalCredits = studentGrades.reduce((sum: number, grade: any) => sum + grade.credits, 0);
-        const gpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
-        if (gpa >= 3.7) return 'First Class';
-        if (gpa >= 3.3) return 'Second Upper';
-        if (gpa >= 3.0) return 'Second Lower';
-        if (gpa >= 2.5) return 'Third/Pass';
-        return 'Pass';
-    };
-
     const getStudentsByClass = () => {
         const classGroups = {
             'First Class': [] as any[],
             'Second Upper': [] as any[],
             'Second Lower': [] as any[],
             'Third/Pass': [] as any[],
+            'In-Progress': [] as any[],
         };
 
         students.forEach((student: any) => {
-            const academicClass = getStudentAcademicClass(student);
-            const key =
-                academicClass in classGroups
-                    ? (academicClass as keyof typeof classGroups)
-                    : 'Third/Pass';
-            classGroups[key].push(student);
+            const academicClass = student.evaluation?.academicClass || 'Unassigned';
+            
+            // Explicit routing based on rules
+            if (academicClass === 'First Class') classGroups['First Class'].push(student);
+            else if (academicClass === 'Second Upper') classGroups['Second Upper'].push(student);
+            else if (academicClass === 'Second Lower') classGroups['Second Lower'].push(student);
+            else if (academicClass === 'Third/Pass' || (student.evaluation?.isEligible && academicClass === 'Pass')) {
+                classGroups['Third/Pass'].push(student);
+            } else {
+                // Inprogress, Unassigned, or Incomplete graduates-to-be
+                classGroups['In-Progress'].push(student);
+            }
         });
 
         return classGroups;
@@ -119,10 +113,19 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
     const pathwayOptions = Array.from(
         new Set<string>(
             students
-                .map((s: any) => s.specialization)
+                .map((s: any) => s.pathway)
                 .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
         )
     ).sort();
+
+    const specializationOptions = Array.from(
+        new Set<string>(
+            students
+                .map((s: any) => s.specialization)
+                .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0 && value !== 'None')
+        )
+    ).sort();
+    
     const yearOptions = Array.from(
         new Set<string>(
             students
@@ -133,33 +136,11 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
 
     const filterStudents = (studentList: any[]) => {
         return studentList.filter(student => {
-            const matchesPathway = filterPathway === 'all' || student.specialization === filterPathway;
+            const matchesPathway = filterPathway === 'all' || student.pathway === filterPathway;
             const matchesYear = filterYear === 'all' || student.academicYear === filterYear;
             const matchesSpecialization = filterSpecialization === 'all' || student.specialization === filterSpecialization;
             return matchesPathway && matchesYear && matchesSpecialization;
         });
-    };
-
-    const getGraduationEligibility = (student: any) => {
-        const studentGrades = grades.filter((g: any) => g.studentId === student.id && g.isReleased);
-        const totalCredits = studentGrades.reduce((sum: number, grade: any) => sum + grade.credits, 0);
-        const studentPoints = studentGrades.reduce((sum: number, grade: any) => sum + (grade.points * grade.credits), 0);
-        const gpa = totalCredits > 0 ? studentPoints / totalCredits : 0;
-
-        const creditsRequired = 120;
-        const gpaRequired = 2.0;
-
-        const isEligible = totalCredits >= creditsRequired && gpa >= gpaRequired;
-        const creditsRemaining = Math.max(0, creditsRequired - totalCredits);
-
-        return {
-            isEligible,
-            creditsCompleted: totalCredits,
-            creditsRequired,
-            creditsRemaining,
-            gpa,
-            gpaRequired,
-        };
     };
 
     const getClassStatistics = () => {
@@ -168,6 +149,7 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
             'Second Upper': { total: 0, eligible: 0, gpa: 0 },
             'Second Lower': { total: 0, eligible: 0, gpa: 0 },
             'Third/Pass': { total: 0, eligible: 0, gpa: 0 },
+            'In-Progress': { total: 0, eligible: 0, gpa: 0 },
         };
 
         Object.entries(studentsByClass).forEach(([academicClass, students]) => {
@@ -178,9 +160,9 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
             let totalGpa = 0;
 
             filteredStudents.forEach(student => {
-                const eligibility = getGraduationEligibility(student);
-                if (eligibility.isEligible) eligibleCount++;
-                totalGpa += eligibility.gpa;
+                const evalResult = student.evaluation;
+                if (evalResult?.isEligible) eligibleCount++;
+                totalGpa += evalResult?.gpa || 0;
             });
 
             stats[academicClass as keyof typeof stats].eligible = eligibleCount;
@@ -198,6 +180,7 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
             case 'Second Upper': return 'text-blue-600 bg-blue-50';
             case 'Second Lower': return 'text-green-600 bg-green-50';
             case 'Third/Pass': return 'text-gray-600 bg-gray-50';
+            case 'In-Progress': return 'text-orange-600 bg-orange-50';
             default: return 'text-gray-600 bg-gray-50';
         }
     };
@@ -212,15 +195,16 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
                 ? students
                 : studentsByClass[academicClass as keyof typeof studentsByClass] || [];
             const rows = filterStudents(source).map((student: any) => {
-                const eligibility = getGraduationEligibility(student);
+                const evalResult = student.evaluation;
                 return {
                     studentId: student.id,
                     name: student.name || `${student.firstName} ${student.lastName}`,
                     academicYear: student.academicYear,
-                    pathway: student.specialization,
-                    gpa: eligibility.gpa.toFixed(2),
-                    creditsCompleted: eligibility.creditsCompleted,
-                    eligibility: eligibility.isEligible ? 'Eligible' : 'Not Eligible',
+                    pathway: student.pathway,
+                    specialization: student.specialization,
+                    gpa: (evalResult?.gpa || 0).toFixed(2),
+                    creditsCompleted: evalResult?.creditDetail?.completed || 0,
+                    eligibility: evalResult?.isEligible ? 'Eligible' : 'Not Eligible',
                 };
             });
             await exportTabularData(rows, format, { filename: `eligible-${academicClass}-${Date.now()}` });
@@ -282,7 +266,7 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="specialization-filter">Specialization</Label>
-                            <Select value={filterSpecialization} onValueChange={setFilterSpecialization}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Specializations</SelectItem>{pathwayOptions.map((pathway) => (<SelectItem key={`spec-${pathway}`} value={pathway}>{pathway}</SelectItem>))}</SelectContent></Select>
+                            <Select value={filterSpecialization} onValueChange={setFilterSpecialization}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Specializations</SelectItem>{specializationOptions.map((spec) => (<SelectItem key={`spec-${spec}`} value={spec}>{spec}</SelectItem>))}</SelectContent></Select>
                         </div>
                     </div>
                 </CardContent>
@@ -292,22 +276,25 @@ export default function EligibleClient({ initialData }: { initialData: any }) {
                 <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">First Class</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-yellow-600">{classStats['First Class'].total}</div><p className="text-xs text-muted-foreground">{classStats['First Class'].eligible} eligible for graduation</p></CardContent></Card>
                 <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Second Upper</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{classStats['Second Upper'].total}</div><p className="text-xs text-muted-foreground">{classStats['Second Upper'].eligible} eligible for graduation</p></CardContent></Card>
                 <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Second Lower</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{classStats['Second Lower'].total}</div><p className="text-xs text-muted-foreground">{classStats['Second Lower'].eligible} eligible for graduation</p></CardContent></Card>
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Third/Pass</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-gray-600">{classStats['Third/Pass'].total}</div><p className="text-xs text-muted-foreground">{classStats['Third/Pass'].eligible} eligible for graduation</p></CardContent></Card>
+                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">In-Progress</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-orange-600">{classStats['In-Progress'].total}</div><p className="text-xs text-muted-foreground">Students completing requirements</p></CardContent></Card>
             </div>
 
             <Tabs defaultValue="first-class" className="space-y-4">
-                <TabsList><TabsTrigger value="first-class">First Class</TabsTrigger><TabsTrigger value="second-upper">Second Upper</TabsTrigger><TabsTrigger value="second-lower">Second Lower</TabsTrigger><TabsTrigger value="third-pass">Third/Pass</TabsTrigger><TabsTrigger value="overview">Overview</TabsTrigger></TabsList>
+                <TabsList><TabsTrigger value="first-class">First Class</TabsTrigger><TabsTrigger value="second-upper">Second Upper</TabsTrigger><TabsTrigger value="second-lower">Second Lower</TabsTrigger><TabsTrigger value="third-pass">Third/Pass</TabsTrigger><TabsTrigger value="in-progress">In-Progress</TabsTrigger><TabsTrigger value="overview">Overview</TabsTrigger></TabsList>
                 <TabsContent value="first-class" className="space-y-4">
-                    <Card><CardHeader><div className="flex items-center justify-between"><div><CardTitle className="flex items-center gap-2"><Star className="h-5 w-5 text-yellow-600" /> First Class Students</CardTitle><CardDescription>Students with GPA ≥ 3.7</CardDescription></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => selectAllStudents('First Class')}>Select All</Button><Button variant="outline" size="sm" onClick={() => exportStudents('First Class', 'pdf')}><Download className="h-4 w-4" /></Button></div></div></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Select</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway</TableHead><TableHead>GPA</TableHead><TableHead>Credits</TableHead><TableHead>Eligibility</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filterStudents(studentsByClass['First Class']).map((student) => { const eligibility = getGraduationEligibility(student); return (<TableRow key={student.id}><TableCell><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudentSelection(student.id)} /></TableCell><TableCell><div><div className="font-medium">{student.name || `${student.firstName} ${student.lastName}`}</div><div className="text-sm text-muted-foreground">{student.id}</div></div></TableCell><TableCell><Badge variant="outline">{student.academicYear}</Badge></TableCell><TableCell><Badge variant="secondary">{student.specialization}</Badge></TableCell><TableCell><div className="font-medium">{eligibility.gpa.toFixed(2)}</div></TableCell><TableCell><div className="font-medium">{eligibility.creditsCompleted}</div><div className="text-xs text-muted-foreground">{eligibility.creditsRemaining > 0 ? `${eligibility.creditsRemaining} remaining` : 'Complete'}</div></TableCell><TableCell><Badge className={getEligibilityColor(eligibility.isEligible)}>{eligibility.isEligible ? 'Eligible' : 'Not Eligible'}</Badge></TableCell><TableCell><Button variant="outline" size="sm"><Mail className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
+                    <Card><CardHeader><div className="flex items-center justify-between"><div><CardTitle className="flex items-center gap-2"><Star className="h-5 w-5 text-yellow-600" /> First Class Students</CardTitle><CardDescription>Students meeting First Class Honours criteria</CardDescription></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => selectAllStudents('First Class')}>Select All</Button><Button variant="outline" size="sm" onClick={() => exportStudents('First Class', 'pdf')}><Download className="h-4 w-4" /></Button></div></div></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Select</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway & Spec</TableHead><TableHead>GPA</TableHead><TableHead>Credits</TableHead><TableHead>Eligibility</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filterStudents(studentsByClass['First Class']).map((student) => { const ev = student.evaluation; return (<TableRow key={student.id}><TableCell><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudentSelection(student.id)} /></TableCell><TableCell><div><div className="font-medium">{student.name || `${student.firstName} ${student.lastName}`}</div><div className="text-sm text-muted-foreground">{student.id}</div></div></TableCell><TableCell><Badge variant="outline">{student.academicYear}</Badge></TableCell><TableCell><div className="flex flex-col gap-1"><Badge variant="secondary" className="w-fit">{student.pathway}</Badge>{student.specialization !== 'None' && <Badge variant="outline" className="w-fit">{student.specialization}</Badge>}</div></TableCell><TableCell><div className="font-medium">{(ev?.gpa || 0).toFixed(2)}</div></TableCell><TableCell><div className="font-medium">{ev?.creditDetail?.completed || 0}</div><div className="text-xs text-muted-foreground">{(ev?.creditDetail?.remaining || 0) > 0 ? `${ev.creditDetail.remaining} remaining` : 'Complete'}</div></TableCell><TableCell><Badge className={getEligibilityColor(ev?.isEligible)}>{ev?.isEligible ? 'Eligible' : 'Not Eligible'}</Badge></TableCell><TableCell><Button variant="outline" size="sm"><Mail className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
                 </TabsContent>
                 <TabsContent value="second-upper" className="space-y-4">
-                    <Card><CardHeader><div className="flex items-center justify-between"><div><CardTitle className="flex items-center gap-2"><Award className="h-5 w-5 text-blue-600" /> Second Upper Students</CardTitle><CardDescription>Students with GPA 3.0 - 3.69</CardDescription></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => selectAllStudents('Second Upper')}>Select All</Button><Button variant="outline" size="sm" onClick={() => exportStudents('Second Upper', 'pdf')}><Download className="h-4 w-4" /></Button></div></div></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Select</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway</TableHead><TableHead>GPA</TableHead><TableHead>Credits</TableHead><TableHead>Eligibility</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filterStudents(studentsByClass['Second Upper']).map((student) => { const eligibility = getGraduationEligibility(student); return (<TableRow key={student.id}><TableCell><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudentSelection(student.id)} /></TableCell><TableCell><div><div className="font-medium">{student.name || `${student.firstName} ${student.lastName}`}</div><div className="text-sm text-muted-foreground">{student.id}</div></div></TableCell><TableCell><Badge variant="outline">{student.academicYear}</Badge></TableCell><TableCell><Badge variant="secondary">{student.specialization}</Badge></TableCell><TableCell><div className="font-medium">{eligibility.gpa.toFixed(2)}</div></TableCell><TableCell><div className="font-medium">{eligibility.creditsCompleted}</div><div className="text-xs text-muted-foreground">{eligibility.creditsRemaining > 0 ? `${eligibility.creditsRemaining} remaining` : 'Complete'}</div></TableCell><TableCell><Badge className={getEligibilityColor(eligibility.isEligible)}>{eligibility.isEligible ? 'Eligible' : 'Not Eligible'}</Badge></TableCell><TableCell><Button variant="outline" size="sm"><Mail className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
+                    <Card><CardHeader><div className="flex items-center justify-between"><div><CardTitle className="flex items-center gap-2"><Award className="h-5 w-5 text-blue-600" /> Second Upper Students</CardTitle><CardDescription>Students meeting Second Class Upper criteria</CardDescription></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => selectAllStudents('Second Upper')}>Select All</Button><Button variant="outline" size="sm" onClick={() => exportStudents('Second Upper', 'pdf')}><Download className="h-4 w-4" /></Button></div></div></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Select</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway & Spec</TableHead><TableHead>GPA</TableHead><TableHead>Credits</TableHead><TableHead>Eligibility</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filterStudents(studentsByClass['Second Upper']).map((student) => { const ev = student.evaluation; return (<TableRow key={student.id}><TableCell><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudentSelection(student.id)} /></TableCell><TableCell><div><div className="font-medium">{student.name || `${student.firstName} ${student.lastName}`}</div><div className="text-sm text-muted-foreground">{student.id}</div></div></TableCell><TableCell><Badge variant="outline">{student.academicYear}</Badge></TableCell><TableCell><div className="flex flex-col gap-1"><Badge variant="secondary" className="w-fit">{student.pathway}</Badge>{student.specialization !== 'None' && <Badge variant="outline" className="w-fit">{student.specialization}</Badge>}</div></TableCell><TableCell><div className="font-medium">{(ev?.gpa || 0).toFixed(2)}</div></TableCell><TableCell><div className="font-medium">{ev?.creditDetail?.completed || 0}</div><div className="text-xs text-muted-foreground">{(ev?.creditDetail?.remaining || 0) > 0 ? `${ev.creditDetail.remaining} remaining` : 'Complete'}</div></TableCell><TableCell><Badge className={getEligibilityColor(ev?.isEligible)}>{ev?.isEligible ? 'Eligible' : 'Not Eligible'}</Badge></TableCell><TableCell><Button variant="outline" size="sm"><Mail className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
                 </TabsContent>
                 <TabsContent value="second-lower" className="space-y-4">
-                    <Card><CardHeader><div className="flex items-center justify-between"><div><CardTitle className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-green-600" /> Second Lower Students</CardTitle><CardDescription>Students with GPA 2.5 - 2.99</CardDescription></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => selectAllStudents('Second Lower')}>Select All</Button><Button variant="outline" size="sm" onClick={() => exportStudents('Second Lower', 'pdf')}><Download className="h-4 w-4" /></Button></div></div></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Select</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway</TableHead><TableHead>GPA</TableHead><TableHead>Credits</TableHead><TableHead>Eligibility</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filterStudents(studentsByClass['Second Lower']).map((student) => { const eligibility = getGraduationEligibility(student); return (<TableRow key={student.id}><TableCell><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudentSelection(student.id)} /></TableCell><TableCell><div><div className="font-medium">{student.name || `${student.firstName} ${student.lastName}`}</div><div className="text-sm text-muted-foreground">{student.id}</div></div></TableCell><TableCell><Badge variant="outline">{student.academicYear}</Badge></TableCell><TableCell><Badge variant="secondary">{student.specialization}</Badge></TableCell><TableCell><div className="font-medium">{eligibility.gpa.toFixed(2)}</div></TableCell><TableCell><div className="font-medium">{eligibility.creditsCompleted}</div><div className="text-xs text-muted-foreground">{eligibility.creditsRemaining > 0 ? `${eligibility.creditsRemaining} remaining` : 'Complete'}</div></TableCell><TableCell><Badge className={getEligibilityColor(eligibility.isEligible)}>{eligibility.isEligible ? 'Eligible' : 'Not Eligible'}</Badge></TableCell><TableCell><Button variant="outline" size="sm"><Mail className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
+                    <Card><CardHeader><div className="flex items-center justify-between"><div><CardTitle className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-green-600" /> Second Lower Students</CardTitle><CardDescription>Students meeting Second Class Lower criteria</CardDescription></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => selectAllStudents('Second Lower')}>Select All</Button><Button variant="outline" size="sm" onClick={() => exportStudents('Second Lower', 'pdf')}><Download className="h-4 w-4" /></Button></div></div></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Select</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway & Spec</TableHead><TableHead>GPA</TableHead><TableHead>Credits</TableHead><TableHead>Eligibility</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filterStudents(studentsByClass['Second Lower']).map((student) => { const ev = student.evaluation; return (<TableRow key={student.id}><TableCell><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudentSelection(student.id)} /></TableCell><TableCell><div><div className="font-medium">{student.name || `${student.firstName} ${student.lastName}`}</div><div className="text-sm text-muted-foreground">{student.id}</div></div></TableCell><TableCell><Badge variant="outline">{student.academicYear}</Badge></TableCell><TableCell><div className="flex flex-col gap-1"><Badge variant="secondary" className="w-fit">{student.pathway}</Badge>{student.specialization !== 'None' && <Badge variant="outline" className="w-fit">{student.specialization}</Badge>}</div></TableCell><TableCell><div className="font-medium">{(ev?.gpa || 0).toFixed(2)}</div></TableCell><TableCell><div className="font-medium">{ev?.creditDetail?.completed || 0}</div><div className="text-xs text-muted-foreground">{(ev?.creditDetail?.remaining || 0) > 0 ? `${ev.creditDetail.remaining} remaining` : 'Complete'}</div></TableCell><TableCell><Badge className={getEligibilityColor(ev?.isEligible)}>{ev?.isEligible ? 'Eligible' : 'Not Eligible'}</Badge></TableCell><TableCell><Button variant="outline" size="sm"><Mail className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
                 </TabsContent>
                 <TabsContent value="third-pass" className="space-y-4">
-                    <Card><CardHeader><div className="flex items-center justify-between"><div><CardTitle className="flex items-center gap-2"><GraduationCap className="h-5 w-5 text-gray-600" /> Third/Pass Students</CardTitle><CardDescription>Students with GPA &lt; 2.5</CardDescription></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => selectAllStudents('Third/Pass')}>Select All</Button><Button variant="outline" size="sm" onClick={() => exportStudents('Third/Pass', 'pdf')}><Download className="h-4 w-4" /></Button></div></div></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Select</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway</TableHead><TableHead>GPA</TableHead><TableHead>Credits</TableHead><TableHead>Eligibility</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filterStudents(studentsByClass['Third/Pass']).map((student) => { const eligibility = getGraduationEligibility(student); return (<TableRow key={student.id}><TableCell><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudentSelection(student.id)} /></TableCell><TableCell><div><div className="font-medium">{student.name || `${student.firstName} ${student.lastName}`}</div><div className="text-sm text-muted-foreground">{student.id}</div></div></TableCell><TableCell><Badge variant="outline">{student.academicYear}</Badge></TableCell><TableCell><Badge variant="secondary">{student.specialization}</Badge></TableCell><TableCell><div className="font-medium">{eligibility.gpa.toFixed(2)}</div></TableCell><TableCell><div className="font-medium">{eligibility.creditsCompleted}</div><div className="text-xs text-muted-foreground">{eligibility.creditsRemaining > 0 ? `${eligibility.creditsRemaining} remaining` : 'Complete'}</div></TableCell><TableCell><Badge className={getEligibilityColor(eligibility.isEligible)}>{eligibility.isEligible ? 'Eligible' : 'Not Eligible'}</Badge></TableCell><TableCell><Button variant="outline" size="sm"><Mail className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
+                    <Card><CardHeader><div className="flex items-center justify-between"><div><CardTitle className="flex items-center gap-2"><GraduationCap className="h-5 w-5 text-gray-600" /> Third/Pass Students</CardTitle><CardDescription>Students meeting Third Class or Pass criteria</CardDescription></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => selectAllStudents('Third/Pass')}>Select All</Button><Button variant="outline" size="sm" onClick={() => exportStudents('Third/Pass', 'pdf')}><Download className="h-4 w-4" /></Button></div></div></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Select</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway & Spec</TableHead><TableHead>GPA</TableHead><TableHead>Credits</TableHead><TableHead>Eligibility</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filterStudents(studentsByClass['Third/Pass']).map((student) => { const ev = student.evaluation; return (<TableRow key={student.id}><TableCell><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudentSelection(student.id)} /></TableCell><TableCell><div><div className="font-medium">{student.name || `${student.firstName} ${student.lastName}`}</div><div className="text-sm text-muted-foreground">{student.id}</div></div></TableCell><TableCell><Badge variant="outline">{student.academicYear}</Badge></TableCell><TableCell><div className="flex flex-col gap-1"><Badge variant="secondary" className="w-fit">{student.pathway}</Badge>{student.specialization !== 'None' && <Badge variant="outline" className="w-fit">{student.specialization}</Badge>}</div></TableCell><TableCell><div className="font-medium">{(ev?.gpa || 0).toFixed(2)}</div></TableCell><TableCell><div className="font-medium">{ev?.creditDetail?.completed || 0}</div><div className="text-xs text-muted-foreground">{(ev?.creditDetail?.remaining || 0) > 0 ? `${ev.creditDetail.remaining} remaining` : 'Complete'}</div></TableCell><TableCell><Badge className={getEligibilityColor(ev?.isEligible)}>{ev?.isEligible ? 'Eligible' : 'Not Eligible'}</Badge></TableCell><TableCell><Button variant="outline" size="sm"><Mail className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
+                </TabsContent>
+                <TabsContent value="in-progress" className="space-y-4">
+                    <Card><CardHeader><div className="flex items-center justify-between"><div><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-orange-600" /> In-Progress Students</CardTitle><CardDescription>Students currently completing their degree requirements</CardDescription></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => selectAllStudents('In-Progress')}>Select All</Button><Button variant="outline" size="sm" onClick={() => exportStudents('In-Progress', 'pdf')}><Download className="h-4 w-4" /></Button></div></div></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Select</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway & Spec</TableHead><TableHead>GPA</TableHead><TableHead>Credits</TableHead><TableHead>Eligibility</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filterStudents(studentsByClass['In-Progress']).map((student) => { const ev = student.evaluation; return (<TableRow key={student.id}><TableCell><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudentSelection(student.id)} /></TableCell><TableCell><div><div className="font-medium">{student.name || `${student.firstName} ${student.lastName}`}</div><div className="text-sm text-muted-foreground">{student.id}</div></div></TableCell><TableCell><Badge variant="outline">{student.academicYear}</Badge></TableCell><TableCell><div className="flex flex-col gap-1"><Badge variant="secondary" className="w-fit">{student.pathway}</Badge>{student.specialization !== 'None' && <Badge variant="outline" className="w-fit">{student.specialization}</Badge>}</div></TableCell><TableCell><div className="font-medium">{(ev?.gpa || 0).toFixed(2)}</div></TableCell><TableCell><div className="font-medium">{ev?.creditDetail?.completed || 0}</div><div className="text-xs text-muted-foreground">{(ev?.creditDetail?.remaining || 0) > 0 ? `${ev.creditDetail.remaining} remaining` : 'Complete'}</div></TableCell><TableCell><Badge className={getEligibilityColor(ev?.isEligible)}>{ev?.isEligible ? 'Eligible' : 'Not Eligible'}</Badge></TableCell><TableCell><Button variant="outline" size="sm"><Mail className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
                 </TabsContent>
                 <TabsContent value="overview" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2">

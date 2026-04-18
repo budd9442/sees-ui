@@ -12,9 +12,10 @@ type Props = {
     aggregatesSummary?: string;
     /** Merge a validated model patch into the open report (and optional title). */
     onApplyPatch?: (patch: ReportDefinitionPatch) => void;
+    currentVisualIds?: string[];
 };
 
-export function AnalyticsAssistantPanel({ aggregatesSummary, onApplyPatch }: Props) {
+export function AnalyticsAssistantPanel({ aggregatesSummary, onApplyPatch, currentVisualIds = [] }: Props) {
     const [prompt, setPrompt] = useState('');
     const [narrative, setNarrative] = useState<string | null>(null);
     const [patchJson, setPatchJson] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export function AnalyticsAssistantPanel({ aggregatesSummary, onApplyPatch }: Pro
             const res = await fetch('/api/analytics/assistant', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt, aggregatesSummary }),
+                body: JSON.stringify({ prompt, aggregatesSummary, currentVisualIds }),
             });
             const data = await res.json();
             if (!res.ok) {
@@ -53,8 +54,8 @@ export function AnalyticsAssistantPanel({ aggregatesSummary, onApplyPatch }: Pro
     };
 
     return (
-        <Card className="border-none shadow-none bg-transparent">
-            <CardHeader className="px-0 pt-0">
+        <Card className="border-none shadow-none bg-transparent flex flex-col h-full overflow-hidden">
+            <CardHeader className="px-0 pt-0 shrink-0">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     ✨ Grok Analyst
                 </CardTitle>
@@ -63,7 +64,7 @@ export function AnalyticsAssistantPanel({ aggregatesSummary, onApplyPatch }: Pro
                     add new visualizations, or restructure your report.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 px-0">
+            <CardContent className="space-y-4 px-0 flex-1 overflow-y-auto min-h-0 pr-1 pb-2">
                 <Textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
@@ -95,8 +96,9 @@ export function AnalyticsAssistantPanel({ aggregatesSummary, onApplyPatch }: Pro
                         </pre>
                     </div>
                 )}
-                
-                {lastPatch && onApplyPatch && (
+            </CardContent>
+            {lastPatch && onApplyPatch && (
+                <div className="pt-3 pb-1 mt-auto border-t shrink-0">
                     <Button 
                         type="button" 
                         variant="glow"
@@ -105,8 +107,8 @@ export function AnalyticsAssistantPanel({ aggregatesSummary, onApplyPatch }: Pro
                     >
                         Apply Changes to Report
                     </Button>
-                )}
-            </CardContent>
+                </div>
+            )}
         </Card>
     );
 }

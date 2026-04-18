@@ -22,6 +22,12 @@ export type EligibilityEvaluationResult = {
     matchedLabel: string;
     /** Human-readable class aligned with existing dashboards */
     academicClass: string;
+    isEligible: boolean;
+    creditDetail: {
+        completed: number;
+        required: number;
+        remaining: number;
+    };
     divisionEvaluations: DivisionEvaluation[];
 };
 
@@ -37,6 +43,7 @@ type StructureRow = {
     module_id: string;
     module_type: string;
     specialization_id: string | null;
+    credits: number | null;
 };
 
 function isCoreForStudent(row: StructureRow, studentSpecId: string | null): boolean {
@@ -314,8 +321,14 @@ export function evaluateGraduationRules(
     for (const divisionId of rules.evaluationOrder) {
         const div = rules.divisions[divisionId];
         if (!div) continue;
+
         const conditions: ConditionResult[] = div.conditions.map((c) => evaluateCondition(c, ctx));
-        const passed = conditions.every((r) => r.passed);
+
+        // CRITICAL FIX: Ensure a division with NO conditions doesn't pass by default.
+        // Also avoid passing divisions if GPA is 0 and no grades exist (Incomplete).
+        const hasReleasedGrades = ctx.best.size > 0;
+        let passed = conditions.length > 0 && conditions.every((r) => r.passed) && hasReleasedGrades;
+
         divisionEvaluations.push({
             divisionId,
             label: div.label,
@@ -324,10 +337,42 @@ export function evaluateGraduationRules(
         });
     }
 
+    // DYNAMIC Credit tracking logic: Sum the total structured credits for this student's specific pathway
+    const structuredForThisPathway = input.programStructure.filter(s => isStructuredForStudent(s, input.studentSpecializationId));
+    const totalStructuredCredits = structuredForThisPathway.reduce((sum, s) => sum + (s.credits || 0), 0);
+    const completedCredits = input.grades.reduce((sum, g) => sum + g.module.credits, 0);
+
+    const baseEval = divisionEvaluations.find((d) => d.divisionId === 'BASE_DEGREE');
+    const degreeReq = baseEval || divisionEvaluations.find(d => d.divisionId === 'THIRD_PASS');
+    const creditCond = degreeReq?.conditions.find(c => c.condition.type === 'min_credits_at_min_grade_point' || c.condition.type === 'min_total_credits_attempted');
+
+    // Extracted purely for Dashboard aesthetic tracking. Never silently blocks eligibility.
+    const requiredCredits = (creditCond?.condition as any)?.minCredits || (totalStructuredCredits > 0 ? totalStructuredCredits : 132);
+
+    // Final Eligibility determination: PURE CONFIGURATION DRIVEN
+    // A student is eligible if they pass the BASE_DEGREE configuration (if it exists).
+    // If it doesn't exist, they are eligible if they pass ANY defined configuration!
+    const isEligible = baseEval 
+        ? baseEval.passed 
+        : divisionEvaluations.some(d => d.passed);
+
+    // If BASE_DEGREE is defined and the student failed it, 
+    // invalidate honors categories (they can't be First Class if they failed graduation).
+    if (baseEval && !isEligible) {
+        for (const evalResult of divisionEvaluations) {
+            if (evalResult.divisionId !== 'BASE_DEGREE') {
+                evalResult.passed = false;
+            }
+        }
+    }
+
     const winner = divisionEvaluations.find((d) => d.passed);
+
     const matchedDivisionId = winner?.divisionId ?? null;
-    const matchedLabel = winner?.label ?? 'Pass';
-    const academicClass = academicClassFromDivision(matchedDivisionId, matchedLabel);
+    const matchedLabel = winner?.label ?? (ctx.best.size > 0 ? 'Pass' : 'Incomplete');
+    const academicClass = matchedDivisionId
+        ? academicClassFromDivision(matchedDivisionId, matchedLabel)
+        : (isEligible ? (matchedLabel || 'Pass') : (ctx.best.size > 0 ? 'Inprogress' : 'Unassigned'));
 
     return {
         gpa: parseFloat(gpa.toFixed(2)),
@@ -335,6 +380,12 @@ export function evaluateGraduationRules(
         matchedDivisionId,
         matchedLabel,
         academicClass,
+        isEligible,
+        creditDetail: {
+            completed: completedCredits,
+            required: requiredCredits,
+            remaining: Math.max(0, requiredCredits - completedCredits)
+        },
         divisionEvaluations,
     };
 }
@@ -344,12 +395,18 @@ export function ephemeralRulesFromThresholds(first: number, upper: number, lower
     return {
         schemaVersion: 1,
         version: 1,
-        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS'],
+        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS', 'BASE_DEGREE'],
         divisions: {
             FIRST_CLASS: { label: 'First Class', conditions: [{ type: 'min_gpa', minGpa: first }] },
             SECOND_UPPER: { label: 'Second Class Upper', conditions: [{ type: 'min_gpa', minGpa: upper }] },
             SECOND_LOWER: { label: 'Second Class Lower', conditions: [{ type: 'min_gpa', minGpa: lower }] },
             THIRD_PASS: { label: 'Third Class', conditions: [{ type: 'min_gpa', minGpa: third }] },
+            BASE_DEGREE: {
+                label: 'Degree Eligible',
+                conditions: [
+                    { type: 'min_gpa', minGpa: 2.0 },
+                ]
+            }
         },
     };
 }

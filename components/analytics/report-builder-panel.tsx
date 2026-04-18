@@ -50,7 +50,8 @@ import {
     Plus, Trash2, Copy, Save, RotateCcw, ChevronDown,
     LayoutTemplate, Layers, Database, Settings, FolderOpen,
     BarChart2, TrendingUp, Users, AlertTriangle, Target,
-    PanelLeft, PanelRight,
+    PanelLeft, PanelRight, Eraser, Briefcase, GraduationCap,
+    Award, Activity, BookOpen, Sigma, PieChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -76,110 +77,265 @@ type Template = {
 
 const TEMPLATES: Template[] = [
     {
-        id: 'tpl_at_risk',
-        label: 'At-Risk Student Dashboard',
-        description: 'Students below 2.0 GPA with table view + GPA distribution chart.',
-        icon: AlertTriangle,
+        id: 'tpl_exec_summary',
+        label: 'Department Executive Overview',
+        description: 'High-level KPIs: Enrollment, Avg GPA, and Pass Rate at a glance.',
+        icon: Sigma,
         roles: ['admin', 'hod'],
         definition: {
             version: 1,
             pages: [{
-                id: 'main', title: 'At-Risk Students',
+                id: 'main', title: 'Executive Overview',
                 visuals: [
-                    { id: 'v1', type: 'kpi', title: 'At-Risk Count', datasetId: 'admin_at_risk_students', layout: { i: 'v1', x: 0, y: 0, w: 3, h: 4 }, groupBy: 'none', encodings: { metric: 'gpa', kpiAggregation: 'count' } },
-                    { id: 'v2', type: 'kpi', title: 'Avg GPA (At-Risk)', datasetId: 'admin_at_risk_students', layout: { i: 'v2', x: 3, y: 0, w: 3, h: 4 }, groupBy: 'none', encodings: { metric: 'gpa', kpiAggregation: 'avg' } },
-                    { id: 'v3', type: 'bar', title: 'GPA Distribution', datasetId: 'admin_gpa_distribution', layout: { i: 'v3', x: 6, y: 0, w: 6, h: 5 }, groupBy: 'none', encodings: { x: 'gpa_range', y: 'student_count', colorScheme: 'traffic_light' } },
-                    { id: 'v4', type: 'table', title: 'At-Risk Students', datasetId: 'admin_at_risk_students', layout: { i: 'v4', x: 0, y: 5, w: 12, h: 7 }, groupBy: 'none', encodings: { sortOrder: 'asc' } },
+                    { id: 'v1', type: 'kpi', title: 'Total Students', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 3, h: 4 }, groupBy: 'none', encodings: { metric: 'student_id', kpiAggregation: 'count' } },
+                    { id: 'v2', type: 'kpi', title: 'Department Avg GPA', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 3, y: 0, w: 3, h: 4 }, groupBy: 'none', encodings: { metric: 'gpa', kpiAggregation: 'avg' } },
+                    { id: 'v3', type: 'kpi', title: 'Overall Pass Rate', datasetId: 'core_module_metrics', layout: { i: 'v3', x: 6, y: 0, w: 3, h: 4 }, groupBy: 'none', encodings: { metric: 'pass_rate', kpiAggregation: 'avg' } },
+                    { id: 'v4', type: 'bar', title: 'Avg GPA by Pathway', datasetId: 'core_student_metrics', layout: { i: 'v4', x: 0, y: 4, w: 12, h: 6 }, groupBy: 'pathway', encodings: { x: 'pathway', y: 'avg_gpa', colorScheme: 'cool', sortOrder: 'desc' } },
                 ],
             }],
         },
     },
     {
-        id: 'tpl_module_perf',
-        label: 'Module Performance Report',
-        description: 'Pass rates, average grade points, and grade heatmap across all modules.',
-        icon: BarChart2,
+        id: 'tpl_retention',
+        label: 'Retention & Cohort Leakage',
+        description: 'Student status breakdown across different admission cohorts.',
+        icon: Activity,
+        roles: ['admin', 'hod'],
+        definition: {
+            version: 1,
+            pages: [{
+                id: 'main', title: 'Retention Analysis',
+                visuals: [
+                    { id: 'v1', type: 'bar', title: 'Status by Admission Year', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 8, h: 6 }, groupBy: 'admission_year', encodings: { x: 'admission_year', y: 'student_count', colorScheme: 'blue' } },
+                    { id: 'v2', type: 'donut', title: 'Enrollment Status', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 8, y: 0, w: 4, h: 6 }, groupBy: 'enrollment_status', encodings: { category: 'enrollment_status', value: 'student_count' } },
+                    { id: 'v3', type: 'table', title: 'Cohort List', datasetId: 'core_student_metrics', layout: { i: 'v3', x: 0, y: 6, w: 12, h: 6 }, groupBy: 'none' },
+                ],
+            }],
+        },
+    },
+    {
+        id: 'tpl_at_risk_scoreboard',
+        label: 'At-Risk Scoreboard',
+        description: 'Detailed view of students falling below GPA thresholds.',
+        icon: AlertTriangle,
+        roles: ['admin', 'hod', 'staff'],
+        definition: {
+            version: 1,
+            pages: [{
+                id: 'main', title: 'Probation Tracking',
+                visuals: [
+                    { id: 'v1', type: 'kpi', title: 'Students < 2.0 GPA', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 6, h: 4 }, groupBy: 'none', filters: { gpaMax: 2.0 }, encodings: { metric: 'student_id', kpiAggregation: 'count' } },
+                    { id: 'v2', type: 'bar', title: 'GPA Distribution (Low Range)', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 6, y: 0, w: 6, h: 4 }, groupBy: 'gpa_bucket', filters: { gpaMax: 2.5 }, encodings: { x: 'gpa_bucket', y: 'student_count', colorScheme: 'red' } },
+                    { id: 'v3', type: 'table', title: 'At-Risk List', datasetId: 'core_student_metrics', layout: { i: 'v3', x: 0, y: 4, w: 12, h: 8 }, groupBy: 'none', filters: { gpaMax: 2.0 }, encodings: { sortOrder: 'asc' } },
+                ],
+            }],
+        },
+    },
+    {
+        id: 'tpl_module_qa',
+        label: 'Module Quality Assurance',
+        description: 'Comparative performance of all active modules.',
+        icon: BookOpen,
         roles: ['admin', 'hod', 'staff'],
         definition: {
             version: 1,
             pages: [{
                 id: 'main', title: 'Module Performance',
                 visuals: [
-                    { id: 'v1', type: 'bar', title: 'Avg Grade Point by Module', datasetId: 'admin_module_performance', layout: { i: 'v1', x: 0, y: 0, w: 7, h: 6 }, groupBy: 'none', encodings: { x: 'module_code', y: 'avg_grade_point', colorScheme: 'blue', sortOrder: 'desc' } },
-                    { id: 'v2', type: 'bar', title: 'Pass Rate by Module (%)', datasetId: 'admin_module_performance', layout: { i: 'v2', x: 7, y: 0, w: 5, h: 6 }, groupBy: 'none', encodings: { x: 'module_code', y: 'pass_rate', colorScheme: 'green' } },
-                    { id: 'v3', type: 'table', title: 'Module Detail', datasetId: 'admin_module_performance', layout: { i: 'v3', x: 0, y: 6, w: 12, h: 6 }, groupBy: 'none', encodings: { sortOrder: 'desc' } },
+                    { id: 'v1', type: 'bar', title: 'Pass Rate (%) by Module', datasetId: 'core_module_metrics', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 6 }, groupBy: 'none', encodings: { x: 'module_code', y: 'pass_rate', colorScheme: 'green', sortOrder: 'asc' } },
+                    { id: 'v2', type: 'bar', title: 'Avg Grade Point by Module', datasetId: 'core_module_metrics', layout: { i: 'v2', x: 0, y: 6, w: 8, h: 6 }, groupBy: 'none', encodings: { x: 'module_code', y: 'avg_grade_point', colorScheme: 'blue' } },
+                    { id: 'v3', type: 'table', title: 'Module Stats', datasetId: 'core_module_metrics', layout: { i: 'v3', x: 8, y: 6, w: 4, h: 6 }, groupBy: 'none' },
                 ],
             }],
         },
     },
     {
-        id: 'tpl_cohort',
-        label: 'Cohort GPA Analysis',
-        description: 'GPA trends by admission year — see how each cohort is performing.',
-        icon: TrendingUp,
+        id: 'tpl_career_tracker',
+        label: 'Career & Internship Hub',
+        description: 'Tracking internship placement diversity and career goal status.',
+        icon: Briefcase,
         roles: ['admin', 'hod'],
         definition: {
             version: 1,
             pages: [{
-                id: 'main', title: 'Cohort Analysis',
+                id: 'main', title: 'Career Outcomes',
                 visuals: [
-                    { id: 'v1', type: 'line', title: 'Avg GPA by Admission Year', datasetId: 'admin_gpa_by_admission_year', layout: { i: 'v1', x: 0, y: 0, w: 8, h: 5 }, groupBy: 'none', encodings: { x: 'admission_year', y: 'avg_gpa', colorScheme: 'purple' } },
-                    { id: 'v2', type: 'bar', title: 'Enrollment per Cohort', datasetId: 'admin_gpa_by_admission_year', layout: { i: 'v2', x: 8, y: 0, w: 4, h: 5 }, groupBy: 'none', encodings: { x: 'admission_year', y: 'student_count', colorScheme: 'cool' } },
-                    { id: 'v3', type: 'bar', title: 'Pass/Fail by Program', datasetId: 'admin_pass_fail_by_program', layout: { i: 'v3', x: 0, y: 5, w: 12, h: 6 }, groupBy: 'none', encodings: { x: 'program_code', y: 'pass_rate', colorScheme: 'green', sortOrder: 'desc' } },
+                    { id: 'v1', type: 'donut', title: 'Internship Status', datasetId: 'core_career_goals', layout: { i: 'v1', x: 0, y: 0, w: 4, h: 6 }, groupBy: 'status', filters: { goal_type: 'INTERNSHIP' }, encodings: { category: 'status', value: 'count' } },
+                    { id: 'v2', type: 'bar', title: 'Top Hiring Companies', datasetId: 'core_career_goals', layout: { i: 'v2', x: 4, y: 0, w: 8, h: 6 }, groupBy: 'company', encodings: { x: 'company', y: 'count', colorScheme: 'cool', sortOrder: 'desc' } },
+                    { id: 'v3', type: 'kpi', title: 'Goal Achievement Rate', datasetId: 'core_career_goals', layout: { i: 'v3', x: 0, y: 6, w: 12, h: 4 }, groupBy: 'none', encodings: { metric: 'achievement_rate', kpiAggregation: 'avg' } },
                 ],
             }],
         },
     },
     {
-        id: 'tpl_enrollment',
-        label: 'Enrollment Overview',
-        description: 'Student enrollment trends by year, level, and status.',
-        icon: Users,
-        roles: ['admin', 'hod'],
-        definition: {
-            version: 1,
-            pages: [{
-                id: 'main', title: 'Enrollment Overview',
-                visuals: [
-                    { id: 'v1', type: 'bar', title: 'Students by Admission Year', datasetId: 'admin_enrollment_trends', layout: { i: 'v1', x: 0, y: 0, w: 6, h: 5 }, groupBy: 'none', encodings: { x: 'admission_year', y: 'student_count', colorScheme: 'blue' } },
-                    { id: 'v2', type: 'pie', title: 'Distribution by Level', datasetId: 'admin_enrollment_trends', layout: { i: 'v2', x: 6, y: 0, w: 3, h: 5 }, groupBy: 'level', encodings: { category: 'level', value: 'student_count' } },
-                    { id: 'v3', type: 'donut', title: 'By Enrollment Status', datasetId: 'admin_enrollment_trends', layout: { i: 'v3', x: 9, y: 0, w: 3, h: 5 }, groupBy: 'enrollment_status', encodings: { category: 'enrollment_status', value: 'student_count' } },
-                ],
-            }],
-        },
-    },
-    {
-        id: 'tpl_metadata',
-        label: 'Metadata Intelligence',
-        description: 'Analyse student demographics from onboarding answers.',
+        id: 'tpl_grade_matrix',
+        label: 'Global Grade Matrix',
+        description: 'Letter grade frequency distribution across the entire department.',
         icon: Database,
         roles: ['admin', 'hod'],
         definition: {
             version: 1,
             pages: [{
-                id: 'main', title: 'Metadata Analytics',
+                id: 'main', title: 'Grade Matrix',
                 visuals: [
-                    { id: 'v1', type: 'bar', title: 'Avg GPA by Metadata Segment', datasetId: 'admin_student_metadata', layout: { i: 'v1', x: 0, y: 0, w: 6, h: 5 }, groupBy: 'metadata', filters: { metadataKey: '' }, encodings: { x: 'metadata_value', y: 'avg_gpa', colorScheme: 'cool', sortOrder: 'desc' } },
-                    { id: 'v2', type: 'bar', title: 'Students by Metadata Segment', datasetId: 'admin_student_metadata', layout: { i: 'v2', x: 6, y: 0, w: 6, h: 5 }, groupBy: 'metadata', filters: { metadataKey: '' }, encodings: { x: 'metadata_value', y: 'student_count', colorScheme: 'purple' } },
+                    { id: 'v1', type: 'bar', title: 'Letter Grade Frequency', datasetId: 'core_grade_distribution', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 6 }, groupBy: 'letter_grade', encodings: { x: 'letter_grade', y: 'count', colorScheme: 'purple' } },
+                    { id: 'v2', type: 'pie', title: 'Grades by Level', datasetId: 'core_grade_distribution', layout: { i: 'v2', x: 0, y: 6, w: 6, h: 6 }, groupBy: 'level', encodings: { category: 'level', value: 'count' } },
+                    { id: 'v3', type: 'donut', title: 'Grades by Pathway', datasetId: 'core_grade_distribution', layout: { i: 'v3', x: 6, y: 6, w: 6, h: 6 }, groupBy: 'pathway', encodings: { category: 'pathway', value: 'count' } },
                 ],
             }],
         },
     },
     {
-        id: 'tpl_goals',
-        label: 'Goals & Internships',
-        description: 'Academic goal achievement rates and internship partnership diversity.',
+        id: 'tpl_scholarship',
+        label: 'Scholarship & High Performers',
+        description: 'Identifying students eligible for honours and Dean\'s lists.',
+        icon: Award,
+        roles: ['admin', 'hod'],
+        definition: {
+            version: 1,
+            pages: [{
+                id: 'main', title: 'High Performers',
+                visuals: [
+                    { id: 'v1', type: 'kpi', title: 'Students GPA > 3.7', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 6, h: 4 }, groupBy: 'none', filters: { gpaMin: 3.7 }, encodings: { metric: 'student_id', kpiAggregation: 'count' } },
+                    { id: 'v2', type: 'bar', title: 'GPA Leaders by Cohort', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 6, y: 0, w: 6, h: 4 }, groupBy: 'admission_year', filters: { gpaMin: 3.5 }, encodings: { x: 'admission_year', y: 'avg_gpa', colorScheme: 'gold' } },
+                    { id: 'v3', type: 'table', title: 'Potential Honours Roll', datasetId: 'core_student_metrics', layout: { i: 'v3', x: 0, y: 4, w: 12, h: 8 }, groupBy: 'none', filters: { gpaMin: 3.7 }, encodings: { sortOrder: 'desc' } },
+                ],
+            }],
+        },
+    },
+    {
+        id: 'tpl_metadata_intel',
+        label: 'Student Demographic Intelligence',
+        description: 'Analyzing performance through the lens of onboarding questions.',
+        icon: Users,
+        roles: ['admin', 'hod'],
+        definition: {
+            version: 1,
+            pages: [{
+                id: 'main', title: 'Demographic Insights',
+                visuals: [
+                    { id: 'v1', type: 'bar', title: 'Avg GPA by Metadata Segment', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 6, h: 6 }, groupBy: 'metadata', filters: { metadataKey: 'first_generation' }, encodings: { x: 'metadata_value', y: 'avg_gpa', colorScheme: 'cool' } },
+                    { id: 'v2', type: 'bar', title: 'Enrollment by Metadata Segment', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 6, y: 0, w: 6, h: 6 }, groupBy: 'metadata', filters: { metadataKey: 'first_generation' }, encodings: { x: 'metadata_value', y: 'student_count', colorScheme: 'purple' } },
+                ],
+            }],
+        },
+    },
+    {
+        id: 'tpl_cohort_leakage',
+        label: 'Cohort Survival Analysis',
+        description: 'Detailed view of student drop-off and status across years.',
+        icon: TrendingUp,
+        roles: ['admin'],
+        definition: {
+            version: 1,
+            pages: [{
+                id: 'main', title: 'Survival Analysis',
+                visuals: [
+                    { id: 'v1', type: 'bar', title: 'Withdrawn/Inactive by Year', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 6 }, groupBy: 'admission_year', filters: { enrollment_status: 'WITHDRAWN' }, encodings: { x: 'admission_year', y: 'student_count', colorScheme: 'red' } },
+                    { id: 'v2', type: 'pie', title: 'Graduated vs Active', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 0, y: 6, w: 12, h: 6 }, groupBy: 'enrollment_status' },
+                ],
+            }],
+        },
+    },
+    {
+        id: 'tpl_pathway_heat',
+        label: 'Pathway Enrollment Heatmap',
+        description: 'Visualizing concentration of students across programs and levels.',
+        icon: LayoutTemplate,
+        roles: ['admin', 'hod'],
+        definition: {
+            version: 1,
+            pages: [{
+                id: 'main', title: 'Enrollment Density',
+                visuals: [
+                    { id: 'v1', type: 'matrix', title: 'Pathway x Level Matrix', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 7 }, groupBy: 'pathway', encodings: { x: 'level', y: 'pathway', color: 'student_count' } },
+                    { id: 'v2', type: 'bar', title: 'Program Size Benchmarking', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 0, y: 7, w: 12, h: 5 }, groupBy: 'pathway', encodings: { x: 'pathway', y: 'student_count', colorScheme: 'blue' } },
+                ],
+            }],
+        },
+    },
+    {
+        id: 'tpl_credit_velocity',
+        label: 'Credit Accumulation Velocity',
+        description: 'Monitoring how fast cohorts are earning degree credits.',
         icon: Target,
         roles: ['admin', 'hod'],
         definition: {
             version: 1,
             pages: [{
-                id: 'main', title: 'Engagement Analytics',
+                id: 'main', title: 'Credit Velocity',
                 visuals: [
-                    { id: 'v1', type: 'bar', title: 'Goal Achievement by Type', datasetId: 'admin_academic_goals', layout: { i: 'v1', x: 0, y: 0, w: 6, h: 5 }, groupBy: 'goal_type', encodings: { x: 'goal_type', y: 'achievement_rate', colorScheme: 'green' } },
-                    { id: 'v2', type: 'donut', title: 'Goal Status', datasetId: 'admin_academic_goals', layout: { i: 'v2', x: 6, y: 0, w: 3, h: 5 }, groupBy: 'none', encodings: { category: 'status', value: 'count' } },
-                    { id: 'v3', type: 'bar', title: 'Top Internship Companies', datasetId: 'admin_internship_stats', layout: { i: 'v3', x: 0, y: 5, w: 9, h: 5 }, groupBy: 'none', encodings: { x: 'company', y: 'student_count', colorScheme: 'blue' } },
-                    { id: 'v4', type: 'donut', title: 'Internship Status', datasetId: 'admin_internship_stats', layout: { i: 'v4', x: 9, y: 5, w: 3, h: 5 }, groupBy: 'internship_status', encodings: { category: 'status', value: 'count' } },
+                    { id: 'v1', type: 'line', title: 'Avg Credits Earned by Cohort', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 8, h: 6 }, groupBy: 'admission_year', encodings: { x: 'admission_year', y: 'credits_earned', colorScheme: 'green' } },
+                    { id: 'v2', type: 'bar', title: 'Avg Credit Load by Level', datasetId: 'core_module_metrics', layout: { i: 'v2', x: 8, y: 0, w: 4, h: 6 }, groupBy: 'level', encodings: { x: 'level', y: 'credits', colorScheme: 'blue' } },
+                ],
+            }],
+        },
+    },
+    {
+        id: 'tpl_ranking_trends',
+        label: 'Departmental Rankings Hub',
+        description: 'Analyzing leaderboards and student placement distribution.',
+        icon: PieChart,
+        roles: ['admin', 'hod'],
+        definition: {
+            version: 1,
+            pages: [{
+                id: 'main', title: 'Rankings Overviews',
+                visuals: [
+                    { id: 'v1', type: 'bar', title: 'Avg Rank by Admission Year', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 6 }, groupBy: 'admission_year', encodings: { x: 'admission_year', y: 'rank', colorScheme: 'cool', sortOrder: 'desc' } },
+                    { id: 'v2', type: 'table', title: 'Top 50 Students', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 0, y: 6, w: 12, h: 7 }, groupBy: 'none', encodings: { sortOrder: 'desc' } },
+                ],
+            }],
+        },
+    },
+    {
+        id: 'tpl_module_failure',
+        label: 'Module Failure Deep-Dive',
+        description: 'Focusing on educational bottlenecks and hurdle modules.',
+        icon: BookOpen,
+        roles: ['admin', 'hod'],
+        definition: {
+            version: 1,
+            pages: [{
+                id: 'main', title: 'Failure Analysis',
+                visuals: [
+                    { id: 'v1', type: 'bar', title: 'Modules with > 15% Failure Rate', datasetId: 'core_module_metrics', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 6 }, groupBy: 'none', filters: { failRateMin: 15 }, encodings: { x: 'module_code', y: 'fail_rate', colorScheme: 'red', sortOrder: 'desc' } },
+                    { id: 'v2', type: 'table', title: 'Failing Students Concentration', datasetId: 'core_module_metrics', layout: { i: 'v2', x: 0, y: 6, w: 12, h: 6 }, groupBy: 'none', filters: { failRateMin: 15 } },
+                ],
+            }],
+        },
+    },
+    {
+        id: 'tpl_goal_achievement',
+        label: 'Academic Goal Velocity',
+        description: 'Tracking how many students are meeting their own GPA targets.',
+        icon: Target,
+        roles: ['admin', 'hod'],
+        definition: {
+            version: 1,
+            pages: [{
+                id: 'main', title: 'Goal Analysis',
+                visuals: [
+                    { id: 'v1', type: 'donut', title: 'Goal Status breakdown', datasetId: 'core_career_goals', layout: { i: 'v1', x: 0, y: 0, w: 5, h: 6 }, groupBy: 'status', encodings: { category: 'status', value: 'count' } },
+                    { id: 'v2', type: 'bar', title: 'Achievement rate by goal type', datasetId: 'core_career_goals', layout: { i: 'v2', x: 5, y: 0, w: 7, h: 6 }, groupBy: 'goal_type', encodings: { x: 'goal_type', y: 'achievement_rate', colorScheme: 'green' } },
+                ],
+            }],
+        },
+    },
+    {
+        id: 'tpl_grad_readiness',
+        label: 'Graduation Readiness Monitor',
+        description: 'Ensuring students have enough credits and GPA for current cycle.',
+        icon: GraduationCap,
+        roles: ['admin', 'hod'],
+        definition: {
+            version: 1,
+            pages: [{
+                id: 'main', title: 'Graduation Watch',
+                visuals: [
+                    { id: 'v1', type: 'kpi', title: 'Eligible for Graduation', datasetId: 'core_student_metrics', layout: { i: 'v1', x: 0, y: 0, w: 4, h: 4 }, groupBy: 'none', filters: { gpaMin: 2.0, enrollment_status: 'ENROLLED' }, encodings: { metric: 'student_id', kpiAggregation: 'count' } },
+                    { id: 'v2', type: 'bar', title: 'Credits earned by L3/L4 cohort', datasetId: 'core_student_metrics', layout: { i: 'v2', x: 4, y: 0, w: 8, h: 4 }, groupBy: 'admission_year', filters: { level: 'L3' }, encodings: { x: 'admission_year', y: 'credits_earned', colorScheme: 'blue' } },
+                    { id: 'v3', type: 'table', title: 'Final Year Student List', datasetId: 'core_student_metrics', layout: { i: 'v3', x: 0, y: 4, w: 12, h: 8 }, groupBy: 'none', filters: { level: 'L3' } },
                 ],
             }],
         },
@@ -364,6 +520,15 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
         setSelectedId(newId);
     };
 
+    const clearCanvas = () => {
+        if (!confirm('Are you sure you want to clear all visuals from the current page?')) return;
+        setDefinition((d) => {
+            const pages = d.pages.map((p, pi) => pi === pageIndex ? { ...p, visuals: [] } : p);
+            return { ...d, pages };
+        });
+        setSelectedId(null);
+    };
+
     const removeVisual = () => {
         if (!selected) return;
         setDefinition((d) => removeVisualFromDefinition(d, pageIndex, selected.id));
@@ -433,6 +598,12 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
                             Templates
                         </Button>
                     )}
+
+                    {/* Clear canvas */}
+                    <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={clearCanvas}>
+                        <Eraser className="h-3.5 w-3.5" />
+                        Clear
+                    </Button>
 
                     <Separator orientation="vertical" className="h-6" />
 
@@ -583,7 +754,7 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
                             </TabsContent>
 
                             <TabsContent value="assistant" className="flex-1 overflow-hidden m-0 p-0 h-full">
-                                <AnalyticsAssistantPanel aggregatesSummary={aggregatesSummary} onApplyPatch={applyFromAssistant} />
+                                <AnalyticsAssistantPanel aggregatesSummary={aggregatesSummary} onApplyPatch={applyFromAssistant} currentVisualIds={definition.pages[0]?.visuals.map(v => v.id) || []} />
                             </TabsContent>
                         </Tabs>
                     </div>

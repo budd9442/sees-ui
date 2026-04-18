@@ -28,7 +28,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Save, Sparkles, Search, CheckCircle2, XCircle, GraduationCap, Plus, Trash2 } from 'lucide-react';
 import type { DivisionId, GraduationCondition, GraduationRulesDocument } from '@/lib/graduation/rule-schema';
-import { getPresetRules, legacyGpaThresholdPresetRules, type PresetId } from '@/lib/graduation/rule-presets';
+import { getPresetRules, gpaOnlyPresetRules, type PresetId } from '@/lib/graduation/rule-presets';
 import { describeCondition } from '@/lib/graduation/evaluate-eligibility';
 import {
     upsertGraduationEligibilityProfile,
@@ -48,7 +48,7 @@ type ProgramRow = {
 };
 
 const PRESETS: { id: PresetId; label: string; description: string }[] = [
-    { id: 'legacy_gpa', label: 'GPA thresholds only', description: 'First / 2:1 / 2:2 / Third by minimum GPA only (legacy).' },
+    { id: 'gpa_only', label: 'GPA thresholds only', description: 'First / 2:1 / 2:2 / Third by minimum GPA only.' },
     { id: 'honours_4yr_guide', label: 'Honours 4-year (guide)', description: 'Adds credit floors, GPA-module rules, and max years (4).' },
     { id: 'exit_bsc_3yr_guide', label: 'Exit BSc 3-year (guide)', description: 'Three-year exit pattern with stricter credit totals.' },
 ];
@@ -100,11 +100,11 @@ function cloneRules(r: GraduationRulesDocument): GraduationRulesDocument {
 }
 
 function rulesFromProgramRow(p: ProgramRow | undefined): GraduationRulesDocument {
-    if (!p) return legacyGpaThresholdPresetRules();
+    if (!p) return gpaOnlyPresetRules();
     if (p.rules && typeof p.rules === 'object' && 'evaluationOrder' in (p.rules as object)) {
         return cloneRules(p.rules as GraduationRulesDocument);
     }
-    return legacyGpaThresholdPresetRules();
+    return gpaOnlyPresetRules();
 }
 
 export default function GraduationRulesClient({ initialPrograms }: { initialPrograms: ProgramRow[] }) {

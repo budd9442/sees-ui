@@ -335,17 +335,18 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
                                 <TableHead className="w-[40%]">Module</TableHead>
                                 <TableHead>Credits</TableHead>
                                 <TableHead>Academic Term</TableHead>
-                                <TableHead className="text-right pr-8">Grade</TableHead>
+                                <TableHead className="text-right">Grade</TableHead>
+                                <TableHead className="text-right pr-8">Points</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {/* Add Planned Module Row */}
                             {isPlanningMode && (
                                 <TableRow
-                                    className="cursor-pointer bg-primary/5 hover:bg-primary/10 border-b-2 border-primary/20 transition-colors"
+                                    className="cursor-pointer bg-muted/20 hover:bg-muted/40 border-b transition-colors"
                                     onClick={handleAddPlanned}
                                 >
-                                    <TableCell colSpan={4} className="py-4 text-center text-primary text-sm font-bold">
+                                    <TableCell colSpan={5} className="py-4 text-center text-primary text-sm font-bold">
                                         <div className="flex items-center justify-center gap-2">
                                             <Plus className="h-4 w-4" />
                                             Add a simulated module
@@ -356,7 +357,7 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
 
                             {/* Planned Modules */}
                             {isPlanningMode && plannedModules.map(m => (
-                                <TableRow key={m.id} className="bg-green-50/30 dark:bg-green-950/10 border-l-4 border-l-green-500 animate-in fade-in slide-in-from-left-2 transition-all">
+                                <TableRow key={m.id} className="bg-muted/10 border-l-2 border-l-muted-foreground/30 animate-in fade-in slide-in-from-left-2 transition-all">
                                     <TableCell>
                                         <div className="flex gap-2">
                                             <button onClick={() => removePlanned(m.id)} className="text-destructive p-1 hover:bg-destructive/10 rounded"><Trash2 className="h-4 w-4" /></button>
@@ -383,20 +384,23 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
                                     <TableCell>
                                         <Badge variant="secondary" className="opacity-70">Simulation</Badge>
                                     </TableCell>
-                                    <TableCell className="text-right pr-8">
+                                    <TableCell className="text-right">
                                         <Select
                                             value={m.gradePoint.toString()}
                                             onValueChange={v => updatePlanned(m.id, { gradePoint: parseFloat(v) })}
                                         >
-                                            <SelectTrigger className="h-8 w-24 bg-background font-bold ml-auto border-green-500/50">
+                                            <SelectTrigger className="h-8 w-16 bg-background font-bold ml-auto">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {GRADE_OPTIONS.map(o => (
-                                                    <SelectItem key={o.val} value={o.val.toString()}>{o.label} ({o.val})</SelectItem>
+                                                    <SelectItem key={o.val} value={o.val.toString()}>{o.label}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                    </TableCell>
+                                    <TableCell className="text-right pr-8 font-mono text-sm">
+                                        {m.gradePoint.toFixed(1)}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -407,7 +411,7 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
                                 const currentGP = overriddenGrades[grade.id] ?? grade.gradePoint;
 
                                 return (
-                                    <TableRow key={grade.id} className={cn("transition-colors", isOverridden && "bg-primary/5 hover:bg-primary/10")}>
+                                    <TableRow key={grade.id} className={cn("transition-colors", isOverridden && "bg-muted/20 hover:bg-muted/30")}>
                                         <TableCell>
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-primary">{grade.moduleCode}</span>
@@ -420,7 +424,7 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
                                         <TableCell>
                                             <span className="text-sm text-muted-foreground">{grade.level} • {grade.semester}</span>
                                         </TableCell>
-                                        <TableCell className="text-right pr-8">
+                                        <TableCell className="text-right">
                                             {isPlanningMode ? (
                                                 <div className="flex items-center justify-end gap-2">
                                                     {isOverridden && (
@@ -439,21 +443,22 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
                                                         value={currentGP.toString()}
                                                         onValueChange={(val) => setOverriddenGrades(p => ({ ...p, [grade.id]: parseFloat(val) }))}
                                                     >
-                                                        <SelectTrigger className="h-8 w-24 bg-background font-bold">
+                                                        <SelectTrigger className="h-8 w-16 bg-background font-bold">
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             {GRADE_OPTIONS.map(o => (
-                                                                <SelectItem key={o.val} value={o.val.toString()}>{o.label} ({o.val})</SelectItem>
+                                                                <SelectItem key={o.val} value={o.val.toString()}>{o.label}</SelectItem>
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
                                             ) : (
-                                                <Badge variant={grade.gradePoint >= 2.0 ? 'default' : 'destructive'} className="font-bold px-3 py-1">
-                                                    {grade.grade} ({grade.gradePoint.toFixed(1)})
-                                                </Badge>
+                                                <span className="font-bold">{grade.grade}</span>
                                             )}
+                                        </TableCell>
+                                        <TableCell className="text-right pr-8 font-mono text-sm">
+                                            {currentGP.toFixed(1)}
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -461,7 +466,7 @@ export function GradesView({ initialGrades, initialOverallGpa }: GradesViewProps
 
                             {filteredGrades.length === 0 && !isPlanningMode && (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
+                                    <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                                         No grades found for this selection.
                                     </TableCell>
                                 </TableRow>

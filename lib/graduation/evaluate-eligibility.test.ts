@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { evaluateGraduationRules, ephemeralRulesFromThresholds } from './evaluate-eligibility';
-import { legacyGpaThresholdPresetRules } from './rule-presets';
+import { gpaOnlyPresetRules } from './rule-presets';
 
 const mkGrade = (
     module_id: string,
@@ -17,8 +17,8 @@ const mkGrade = (
     semester: { academic_year_id },
 });
 
-test('legacy GPA preset: 3.75 maps to First Class', () => {
-    const rules = legacyGpaThresholdPresetRules();
+test('GPA only preset: 3.75 maps to First Class', () => {
+    const rules = gpaOnlyPresetRules();
     const r = evaluateGraduationRules(rules, {
         grades: [mkGrade('m1', 4, 3), mkGrade('m2', 3.5, 3)],
         programStructure: [],
@@ -30,8 +30,8 @@ test('legacy GPA preset: 3.75 maps to First Class', () => {
     assert.equal(r.academicClass, 'First Class');
 });
 
-test('legacy GPA preset: 3.2 maps to Second Lower', () => {
-    const rules = legacyGpaThresholdPresetRules();
+test('GPA only preset: 3.2 maps to Second Lower', () => {
+    const rules = gpaOnlyPresetRules();
     const r = evaluateGraduationRules(rules, {
         grades: [mkGrade('m1', 3.2, 6)],
         programStructure: [],
@@ -43,7 +43,7 @@ test('legacy GPA preset: 3.2 maps to Second Lower', () => {
 });
 
 test('below third threshold maps to Pass', () => {
-    const rules = legacyGpaThresholdPresetRules();
+    const rules = gpaOnlyPresetRules();
     const r = evaluateGraduationRules(rules, {
         grades: [mkGrade('m1', 2.0, 6)],
         programStructure: [],

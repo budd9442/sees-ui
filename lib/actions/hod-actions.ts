@@ -16,7 +16,7 @@ async function attachEligibilityToStudents<T extends { id: string }>(students: T
     return Promise.all(
         students.map(async (s) => {
             const ev = await evaluateStudentEligibility(s.id);
-            return { ...s, academicClass: ev.academicClass, currentGPA: ev.gpa };
+            return { ...s, academicClass: ev.academicClass, currentGPA: ev.gpa, evaluation: ev };
         })
     );
 }
@@ -230,6 +230,7 @@ export async function getHODAnalyticsData(filters?: HODAnalyticsFilters) {
         include: {
             user: true,
             degree_path: true,
+            specialization: true,
             gpa_history: { orderBy: { calculation_date: 'desc' }, take: 1 },
         },
     });
@@ -241,7 +242,8 @@ export async function getHODAnalyticsData(filters?: HODAnalyticsFilters) {
             id: s.student_id,
             name: `${s.user.firstName} ${s.user.lastName}`,
             currentGPA: s.gpa_history[0]?.gpa ?? s.current_gpa,
-            specialization: s.degree_path?.name || 'Unassigned',
+            pathway: s.degree_path?.name || 'Unassigned',
+            specialization: s.specialization?.name || 'None',
             academicYear: s.current_level || 'Unknown',
             admissionYear: s.admission_year,
             analyticsMetadata: pickAnalyticsMetadataValues(s.metadata, analyticsKeys),

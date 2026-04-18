@@ -91,6 +91,7 @@ export async function evaluateStudentEligibility(studentId: string): Promise<Eli
                 module_id: true,
                 module_type: true,
                 specialization_id: true,
+                credits: true,
             },
         }),
         prisma.systemSetting.findMany({
@@ -133,6 +134,7 @@ export async function evaluateStudentEligibility(studentId: string): Promise<Eli
         module_id: s.module_id,
         module_type: s.module_type,
         specialization_id: s.specialization_id,
+        credits: s.credits,
     }));
 
     const profileRules = student.degree_path.graduation_eligibility_profile?.rules;

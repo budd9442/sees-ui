@@ -70,12 +70,11 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
     const [selectedSemester, setSelectedSemester] = useState('All');
     const [filterPathway, setFilterPathway] = useState('all');
     const [filterSpecialization, setFilterSpecialization] = useState('all');
+    const [filterLevel, setFilterLevel] = useState('all');
     const [showTiebreakDialog, setShowTiebreakDialog] = useState(false);
     const [tiebreakWeights, setTiebreakWeights] = useState({
         gpa: 0.6,
-        credits: 0.2,
-        attendance: 0.1,
-        participation: 0.1,
+        credits: 0.4,
     });
 
     const batchOptions = Array.from(
@@ -88,11 +87,18 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
     const pathwayOptions = Array.from(
         new Set<string>(
             students
-                .map((student: any) => student.specialization)
+                .map((student: any) => student.pathway)
                 .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
         )
     ).sort();
     const specializationOptions = Array.from(
+        new Set<string>(
+            students
+                .map((student: any) => student.specialization)
+                .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0 && value !== 'None')
+        )
+    ).sort();
+    const levelOptions = Array.from(
         new Set<string>(
             students
                 .map((student: any) => student.academicYear)
@@ -112,19 +118,22 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
                 return true;
             });
 
-            const totalPoints = studentGrades.reduce((sum: number, grade: any) => sum + (grade.points * grade.credits), 0);
-            const totalCredits = studentGrades.reduce((sum: number, grade: any) => sum + grade.credits, 0);
-            const gpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
+            let gpa = 0;
+            let creditsEarned = 0;
 
-            const creditsEarned = studentGrades.filter((g: any) => g.points >= 2.0).reduce((sum: number, g: any) => sum + g.credits, 0);
-            const attendance = 85;
-            const participation = 85;
+            if (selectedSemester === 'All') {
+                gpa = student.evaluation?.gpa ?? student.currentGPA ?? 0;
+                creditsEarned = student.evaluation?.creditDetail?.completed ?? 0;
+            } else {
+                const totalPoints = studentGrades.reduce((sum: number, grade: any) => sum + (grade.points * grade.credits), 0);
+                const totalCredits = studentGrades.reduce((sum: number, grade: any) => sum + grade.credits, 0);
+                gpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
+                creditsEarned = studentGrades.filter((g: any) => g.points >= 2.0).reduce((sum: number, g: any) => sum + g.credits, 0);
+            }
 
             const weightedScore =
                 (gpa * tiebreakWeights.gpa) +
-                ((creditsEarned / 120) * tiebreakWeights.credits) +
-                ((attendance / 100) * tiebreakWeights.attendance) +
-                ((participation / 100) * tiebreakWeights.participation);
+                ((creditsEarned / 132) * tiebreakWeights.credits);
 
                 return {
                     id: student.id,
@@ -134,8 +143,8 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
                     weightedAverage: weightedScore,
                     rank: 0,
                     academicClass: student.academicClass || 'None',
-                    pathway: student.degreeProgram || student.specialization || 'MIT',
-                    specialization: student.academicYear,
+                    pathway: student.pathway || 'MIT',
+                    specialization: student.specialization,
                     semester: selectedSemester === 'All' ? 'All' : selectedSemester,
                     academicYear: student.academicYear,
                     tiebreakApplied: false,
@@ -161,7 +170,8 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
     const filteredRankings = rankings.filter(ranking => {
         const matchesPathway = filterPathway === 'all' || ranking.pathway === filterPathway;
         const matchesSpecialization = filterSpecialization === 'all' || ranking.specialization === filterSpecialization;
-        return matchesPathway && matchesSpecialization;
+        const matchesLevel = filterLevel === 'all' || ranking.academicYear === filterLevel;
+        return matchesPathway && matchesSpecialization && matchesLevel;
     });
 
     const getTies = () => {
@@ -277,10 +287,14 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
             <Card>
                 <CardHeader><CardTitle>Ranking Parameters</CardTitle><CardDescription>Configure batch, semester, and filters for rankings</CardDescription></CardHeader>
                 <CardContent>
-                    <div className="grid gap-4 md:grid-cols-4">
+                    <div className="grid gap-4 md:grid-cols-5 flex-wrap">
                         <div className="space-y-2">
-                            <Label htmlFor="batch">Academic Batch</Label>
+                            <Label htmlFor="batch">Admission Batch</Label>
                             <Select value={selectedBatch} onValueChange={setSelectedBatch}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Batches</SelectItem>{batchOptions.map((batch: string) => (<SelectItem key={batch} value={batch}>{batch}</SelectItem>))}</SelectContent></Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="level">Study Level</Label>
+                            <Select value={filterLevel} onValueChange={setFilterLevel}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Levels</SelectItem>{levelOptions.map((level: string) => (<SelectItem key={level} value={level}>{level}</SelectItem>))}</SelectContent></Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="semester">Semester</Label>
@@ -292,7 +306,7 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="specialization">Specialization</Label>
-                            <Select value={filterSpecialization} onValueChange={setFilterSpecialization}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Levels</SelectItem>{specializationOptions.map((specialization: string) => (<SelectItem key={specialization} value={specialization}>{specialization}</SelectItem>))}</SelectContent></Select>
+                            <Select value={filterSpecialization} onValueChange={setFilterSpecialization}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Specializations</SelectItem>{specializationOptions.map((specialization: string) => (<SelectItem key={specialization} value={specialization}>{specialization}</SelectItem>))}</SelectContent></Select>
                         </div>
                     </div>
                 </CardContent>
@@ -306,12 +320,12 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
             </div>
 
             <Tabs defaultValue="rankings" className="space-y-4">
-                <TabsList><TabsTrigger value="rankings">Rankings</TabsTrigger><TabsTrigger value="ties">Tie Analysis</TabsTrigger><TabsTrigger value="distribution">Distribution</TabsTrigger><TabsTrigger value="certificates">Certificates</TabsTrigger></TabsList>
+                <TabsList><TabsTrigger value="rankings">Rankings</TabsTrigger><TabsTrigger value="ties">Tie Analysis</TabsTrigger><TabsTrigger value="distribution">Distribution</TabsTrigger></TabsList>
                 <TabsContent value="rankings" className="space-y-4">
-                    <Card><CardHeader><CardTitle>Academic Rankings</CardTitle><CardDescription>Rankings based on GPA with weighted tiebreaker logic</CardDescription></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Rank</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway</TableHead><TableHead>GPA</TableHead><TableHead>Tiebreak Score</TableHead><TableHead>Credits</TableHead><TableHead>Change</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filteredRankings.map((ranking) => { const RankIcon = getRankIcon(ranking.rank); const isTied = ties.some(tie => tie.students.some(s => s.id === ranking.id)); return (<TableRow key={ranking.id}><TableCell><div className="flex items-center gap-2"><div className={`flex h-8 w-8 items-center justify-center rounded-lg ${getRankColor(ranking.rank)}`}><RankIcon className="h-4 w-4" /></div><span className="font-bold">#{ranking.rank}</span>{isTied && (<Badge variant="outline" className="text-xs">Tied</Badge>)}</div></TableCell><TableCell><div><div className="font-medium">{ranking.studentName}</div><div className="text-sm text-muted-foreground">{ranking.studentId}</div></div></TableCell><TableCell><Badge variant="outline">{ranking.academicYear}</Badge></TableCell><TableCell><Badge variant="secondary">{ranking.pathway}</Badge></TableCell><TableCell><div className="font-bold text-lg text-primary">{ranking.gpa.toFixed(2)}</div><div className="text-xs text-muted-foreground">GPA</div></TableCell><TableCell><div className="text-sm text-muted-foreground">{ranking.weightedAverage?.toFixed(3)}</div></TableCell><TableCell><div className="font-medium">-</div></TableCell><TableCell><div className="text-sm text-gray-600">-</div></TableCell><TableCell><Button variant="outline" size="sm"><Award className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
+                    <Card><CardHeader><CardTitle>Academic Rankings</CardTitle><CardDescription>Rankings based on GPA with weighted tiebreaker logic</CardDescription></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Rank</TableHead><TableHead>Student</TableHead><TableHead>Academic Year</TableHead><TableHead>Pathway & Spec</TableHead><TableHead>GPA</TableHead><TableHead>Tiebreak Score</TableHead><TableHead>Credits</TableHead><TableHead>Change</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{filteredRankings.map((ranking) => { const RankIcon = getRankIcon(ranking.rank); const isTied = ties.some(tie => tie.students.some(s => s.id === ranking.id)); return (<TableRow key={ranking.id}><TableCell><div className="flex items-center gap-2"><div className={`flex h-8 w-8 items-center justify-center rounded-lg ${getRankColor(ranking.rank)}`}><RankIcon className="h-4 w-4" /></div><span className="font-bold">#{ranking.rank}</span>{isTied && (<Badge variant="outline" className="text-xs">Tied</Badge>)}</div></TableCell><TableCell><div><div className="font-medium">{ranking.studentName}</div><div className="text-sm text-muted-foreground">{ranking.studentId}</div></div></TableCell><TableCell><Badge variant="outline">{ranking.academicYear}</Badge></TableCell><TableCell><div className="flex flex-col gap-1"><Badge variant="secondary" className="w-fit">{ranking.pathway}</Badge>{ranking.specialization !== 'None' && <Badge variant="outline" className="w-fit">{ranking.specialization}</Badge>}</div></TableCell><TableCell><div className="font-bold text-lg text-primary">{ranking.gpa.toFixed(2)}</div><div className="text-xs text-muted-foreground">GPA</div></TableCell><TableCell><div className="text-sm text-muted-foreground">{ranking.weightedAverage?.toFixed(3)}</div></TableCell><TableCell><div className="font-medium">-</div></TableCell><TableCell><div className="text-sm text-gray-600">-</div></TableCell><TableCell><Button variant="outline" size="sm"><Award className="h-4 w-4" /></Button></TableCell></TableRow>); })}</TableBody></Table></CardContent></Card>
                 </TabsContent>
                 <TabsContent value="ties" className="space-y-4">
-                    <Card><CardHeader><CardTitle>Tie Analysis</CardTitle><CardDescription>Analysis of tied GPAs and tiebreaker resolution</CardDescription></CardHeader><CardContent><div className="space-y-4">{ties.length === 0 ? (<div className="text-center py-8 text-muted-foreground"><Target className="h-12 w-12 mx-auto mb-4" /><p>No ties detected in current rankings</p></div>) : (ties.map((tie, index) => (<div key={index} className="p-4 rounded-lg border"><div className="flex items-center gap-2 mb-3"><AlertCircle className="h-5 w-5 text-yellow-600" /><h4 className="font-semibold">Tied GPA: {tie.gpa.toFixed(2)}</h4><Badge variant="outline">{tie.students.length} students</Badge></div><div className="space-y-2">{tie.students.map((student) => (<div key={student.id} className="flex items-center justify-between p-2 rounded bg-muted"><div className="flex items-center gap-3"><span className="font-medium">#{student.rank}</span><span>{student.studentName}</span><Badge variant="secondary">{student.specialization}</Badge></div><div className="text-sm text-muted-foreground">Tiebreak: {student.weightedAverage?.toFixed(3)}</div></div>))}</div><div className="mt-3 text-sm text-muted-foreground"><strong>Tiebreaker factors:</strong> GPA ({tiebreakWeights.gpa}), Credits ({tiebreakWeights.credits}), Attendance ({tiebreakWeights.attendance}), Participation ({tiebreakWeights.participation})</div></div>)))}</div></CardContent></Card>
+                    <Card><CardHeader><CardTitle>Tie Analysis</CardTitle><CardDescription>Analysis of tied GPAs and tiebreaker resolution</CardDescription></CardHeader><CardContent><div className="space-y-4">{ties.length === 0 ? (<div className="text-center py-8 text-muted-foreground"><Target className="h-12 w-12 mx-auto mb-4" /><p>No ties detected in current rankings</p></div>) : (ties.map((tie, index) => (<div key={index} className="p-4 rounded-lg border"><div className="flex items-center gap-2 mb-3"><AlertCircle className="h-5 w-5 text-yellow-600" /><h4 className="font-semibold">Tied GPA: {tie.gpa.toFixed(2)}</h4><Badge variant="outline">{tie.students.length} students</Badge></div><div className="space-y-2">{tie.students.map((student) => (<div key={student.id} className="flex items-center justify-between p-2 rounded bg-muted"><div className="flex items-center gap-3"><span className="font-medium">#{student.rank}</span><span>{student.studentName}</span><div className="flex gap-1"><Badge variant="secondary">{student.pathway}</Badge>{student.specialization !== 'None' && <Badge variant="outline">{student.specialization}</Badge>}</div></div><div className="text-sm text-muted-foreground">Tiebreak: {student.weightedAverage?.toFixed(3)}</div></div>))}</div><div className="mt-3 text-sm text-muted-foreground"><strong>Tiebreaker factors:</strong> GPA ({tiebreakWeights.gpa}), Credits ({tiebreakWeights.credits})</div></div>)))}</div></CardContent></Card>
                 </TabsContent>
                 <TabsContent value="distribution" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2">
@@ -320,9 +334,7 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
                     </div>
                     <Card><CardHeader><CardTitle>Detailed Distribution</CardTitle></CardHeader><CardContent><div className="space-y-3">{getAcademicClassDistribution().map((item) => (<div key={item.academicClass} className="space-y-2"><div className="flex justify-between text-sm"><span>{item.academicClass}</span><span>{item.students} students ({item.percentage.toFixed(1)}%)</span></div><div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-blue-600 h-2 rounded-full" style={{ width: `${item.percentage}%` }} /></div></div>))}</div></CardContent></Card>
                 </TabsContent>
-                <TabsContent value="certificates" className="space-y-4">
-                    <Card><CardHeader><CardTitle>Recognition Certificates</CardTitle><CardDescription>Generate certificates for top performers</CardDescription></CardHeader><CardContent><div className="space-y-4"><div className="grid gap-4 md:grid-cols-3"><Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">First Class</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-yellow-600">{filteredRankings.filter(r => r.gpa >= 3.7).length}</div><p className="text-xs text-muted-foreground">GPA ≥ 3.7</p></CardContent></Card><Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Second Upper</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{filteredRankings.filter(r => r.gpa >= 3.0 && r.gpa < 3.7).length}</div><p className="text-xs text-muted-foreground">GPA 3.0-3.69</p></CardContent></Card><Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Top 10</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{Math.min(10, filteredRankings.length)}</div><p className="text-xs text-muted-foreground">Overall ranking</p></CardContent></Card></div><div className="space-y-3"><h4 className="font-semibold">Certificate Templates</h4><div className="grid gap-3 md:grid-cols-2"><div className="p-3 rounded-lg border"><div className="flex items-center gap-2 mb-2"><Crown className="h-5 w-5 text-yellow-600" /><span className="font-medium">Academic Excellence</span></div><p className="text-sm text-muted-foreground">For students with GPA ≥ 3.7</p><Button size="sm" className="mt-2">Generate Certificates</Button></div><div className="p-3 rounded-lg border"><div className="flex items-center gap-2 mb-2"><Trophy className="h-5 w-5 text-blue-600" /><span className="font-medium">Top Performer</span></div><p className="text-sm text-muted-foreground">For top 10 students</p><Button size="sm" className="mt-2">Generate Certificates</Button></div></div></div></div></CardContent></Card>
-                </TabsContent>
+
                 <TabsContent value="archive" className="space-y-4">
                 </TabsContent>
             </Tabs>
@@ -335,15 +347,13 @@ export default function RankingsClient({ initialData }: { initialData: any }) {
                         <div className="space-y-4">
                             <div className="space-y-2"><Label htmlFor="gpa-weight">GPA Weight</Label><Input id="gpa-weight" type="number" step="0.1" min="0" max="1" value={tiebreakWeights.gpa} onChange={(e) => setTiebreakWeights({ ...tiebreakWeights, gpa: parseFloat(e.target.value) })} /></div>
                             <div className="space-y-2"><Label htmlFor="credits-weight">Credits Weight</Label><Input id="credits-weight" type="number" step="0.1" min="0" max="1" value={tiebreakWeights.credits} onChange={(e) => setTiebreakWeights({ ...tiebreakWeights, credits: parseFloat(e.target.value) })} /></div>
-                            <div className="space-y-2"><Label htmlFor="attendance-weight">Attendance Weight</Label><Input id="attendance-weight" type="number" step="0.1" min="0" max="1" value={tiebreakWeights.attendance} onChange={(e) => setTiebreakWeights({ ...tiebreakWeights, attendance: parseFloat(e.target.value) })} /></div>
-                            <div className="space-y-2"><Label htmlFor="participation-weight">Participation Weight</Label><Input id="participation-weight" type="number" step="0.1" min="0" max="1" value={tiebreakWeights.participation} onChange={(e) => setTiebreakWeights({ ...tiebreakWeights, participation: parseFloat(e.target.value) })} /></div>
                         </div>
                         <div className="p-3 rounded-lg bg-muted">
-                            <div className="text-sm font-medium">Total Weight: {(tiebreakWeights.gpa + tiebreakWeights.credits + tiebreakWeights.attendance + tiebreakWeights.participation).toFixed(1)}</div>
-                            {(tiebreakWeights.gpa + tiebreakWeights.credits + tiebreakWeights.attendance + tiebreakWeights.participation) !== 1.0 && (<div className="text-sm text-red-600">Weights must sum to 1.0</div>)}
+                            <div className="text-sm font-medium">Total Weight: {(tiebreakWeights.gpa + tiebreakWeights.credits).toFixed(1)}</div>
+                            {(tiebreakWeights.gpa + tiebreakWeights.credits) !== 1.0 && (<div className="text-sm text-red-600">Weights must sum to 1.0</div>)}
                         </div>
                     </div>
-                    <DialogFooter><Button variant="outline" onClick={() => setShowTiebreakDialog(false)}>Cancel</Button><Button onClick={() => { setShowTiebreakDialog(false); toast.success('Tiebreaker weights updated successfully!'); }} disabled={(tiebreakWeights.gpa + tiebreakWeights.credits + tiebreakWeights.attendance + tiebreakWeights.participation) !== 1.0}><Target className="mr-2 h-4 w-4" /> Update Weights</Button></DialogFooter>
+                    <DialogFooter><Button variant="outline" onClick={() => setShowTiebreakDialog(false)}>Cancel</Button><Button onClick={() => { setShowTiebreakDialog(false); toast.success('Tiebreaker weights updated successfully!'); }} disabled={(tiebreakWeights.gpa + tiebreakWeights.credits) !== 1.0}><Target className="mr-2 h-4 w-4" /> Update Weights</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

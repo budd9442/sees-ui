@@ -2,24 +2,10 @@ import { z } from 'zod';
 
 /** Semantic datasets exposed to the query engine (allowlisted). */
 export const analyticsDatasetIdSchema = z.enum([
-    // Staff / HOD (existing)
-    'staff_module_grades',
-    'hod_student_summary',
-    'hod_module_grades',
-    'hod_gpa_monthly',
-    // Admin + HOD expanded
-    'admin_enrollment_trends',
-    'admin_gpa_distribution',
-    'admin_module_performance',
-    'admin_pass_fail_by_program',
-    'admin_student_metadata',
-    'admin_grade_heatmap',
-    'admin_internship_stats',
-    'admin_academic_goals',
-    'admin_gpa_by_admission_year',
-    'admin_at_risk_students',
-    'admin_ranking_trends',
-    'admin_module_yearly_trend',
+    'core_student_metrics',
+    'core_module_metrics',
+    'core_grade_distribution',
+    'core_career_goals',
 ]);
 
 export type AnalyticsDatasetId = z.infer<typeof analyticsDatasetIdSchema>;
@@ -55,19 +41,21 @@ export const analyticsQueryInputSchema = z.object({
     /** Server-side grouping for pivot-style results */
     groupBy: z.enum([
         'none',
-        'pathway',
         'level',
-        'letter_grade',
-        'module',
-        'month',
-        'metadata',
+        'pathway',
         'admission_year',
-        'program',
         'enrollment_status',
-        'grade_bucket',
+        'academic_class',
+        'gpa_bucket',
+        'metadata',
+        'module',
+        'academic_year',
+        'letter_grade',
+        'program',
+        'status',
         'goal_type',
-        'internship_status',
-        'specialization',
+        'month',
+        'company',
     ]).optional(),
 });
 
@@ -111,7 +99,7 @@ export const visualEncodingsSchema = z.object({
     pivotCol: z.string().optional(),
     pivotValue: z.string().optional(),
     // --- Appearance ---
-    colorScheme: colorSchemeSchema,
+    colorScheme: colorSchemeSchema.default('default').optional(),
     showDataLabels: z.boolean().optional(),
     sortOrder: z.enum(['none', 'asc', 'desc']).optional(),
     /** KPI trend indicator column name (numeric, compared to metric) */

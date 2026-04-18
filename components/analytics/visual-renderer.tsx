@@ -63,15 +63,21 @@ function palette(scheme: string | undefined): string[] {
 
 // ─── Aggregations ──────────────────────────────────────────────────────────────
 function aggregateMetric(rows: Record<string, unknown>[], col: string, agg: KpiAggregation | undefined): number {
+    const a = agg ?? 'avg';
+
+    // Special case for 'count': we don't need numeric values
+    if (a === 'count') {
+        return rows.filter((r) => r[col] !== null && r[col] !== undefined).length;
+    }
+
     const nums = rows.map((r) => Number(r[col])).filter((n) => Number.isFinite(n));
     if (!nums.length) return NaN;
-    const a = agg ?? 'avg';
+
     if (a === 'first') return nums[0]!;
     if (a === 'sum') return nums.reduce((s, n) => s + n, 0);
     if (a === 'avg') return nums.reduce((s, n) => s + n, 0) / nums.length;
     if (a === 'min') return Math.min(...nums);
     if (a === 'max') return Math.max(...nums);
-    if (a === 'count') return nums.length;
     return nums[0]!;
 }
 

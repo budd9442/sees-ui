@@ -1,11 +1,11 @@
 import type { GraduationRulesDocument } from './rule-schema';
 
-/** Matches legacy SystemSetting thresholds used across the codebase */
-export function legacyGpaThresholdPresetRules(): GraduationRulesDocument {
+/** Matches standard GPA-only SystemSetting thresholds used across the codebase */
+export function gpaOnlyPresetRules(): GraduationRulesDocument {
     return {
         schemaVersion: 1,
         version: 1,
-        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS'],
+        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS', 'BASE_DEGREE'],
         divisions: {
             FIRST_CLASS: {
                 label: 'First Class',
@@ -23,6 +23,10 @@ export function legacyGpaThresholdPresetRules(): GraduationRulesDocument {
                 label: 'Third Class',
                 conditions: [{ type: 'min_gpa', minGpa: 2.5 }],
             },
+            BASE_DEGREE: {
+                label: 'Degree Eligible',
+                conditions: [{ type: 'min_gpa', minGpa: 2.0 }],
+            },
         },
     };
 }
@@ -35,7 +39,7 @@ export function honoursFourYearGuidePresetRules(): GraduationRulesDocument {
     return {
         schemaVersion: 1,
         version: 1,
-        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS'],
+        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS', 'BASE_DEGREE'],
         divisions: {
             FIRST_CLASS: {
                 label: 'First Class',
@@ -77,6 +81,13 @@ export function honoursFourYearGuidePresetRules(): GraduationRulesDocument {
             THIRD_PASS: {
                 label: 'Third Class',
                 conditions: [{ type: 'min_gpa', minGpa: 2.5 }],
+            },
+            BASE_DEGREE: {
+                label: 'Degree Eligible',
+                conditions: [
+                    { type: 'min_gpa', minGpa: 2.0 },
+                    { type: 'min_total_credits_attempted', minCredits: 132, minGradePoint: 0.0, scope: 'ALL_STRUCTURED' }
+                ],
             },
         },
     };
@@ -87,7 +98,7 @@ export function exitBscThreeYearGuidePresetRules(): GraduationRulesDocument {
     return {
         schemaVersion: 1,
         version: 1,
-        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS'],
+        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS', 'BASE_DEGREE'],
         divisions: {
             FIRST_CLASS: {
                 label: 'First Class',
@@ -130,23 +141,30 @@ export function exitBscThreeYearGuidePresetRules(): GraduationRulesDocument {
                 label: 'Third Class',
                 conditions: [{ type: 'min_gpa', minGpa: 2.5 }],
             },
+            BASE_DEGREE: {
+                label: 'Degree Eligible',
+                conditions: [
+                    { type: 'min_gpa', minGpa: 2.0 },
+                    { type: 'min_total_credits_attempted', minCredits: 90, minGradePoint: 0.0, scope: 'ALL_STRUCTURED' }
+                ],
+            },
         },
     };
 }
 
-export const PRESET_IDS = ['legacy_gpa', 'honours_4yr_guide', 'exit_bsc_3yr_guide'] as const;
+export const PRESET_IDS = ['gpa_only', 'honours_4yr_guide', 'exit_bsc_3yr_guide'] as const;
 
 export type PresetId = (typeof PRESET_IDS)[number];
 
 export function getPresetRules(presetId: PresetId): GraduationRulesDocument {
     switch (presetId) {
-        case 'legacy_gpa':
-            return legacyGpaThresholdPresetRules();
+        case 'gpa_only':
+            return gpaOnlyPresetRules();
         case 'honours_4yr_guide':
             return honoursFourYearGuidePresetRules();
         case 'exit_bsc_3yr_guide':
             return exitBscThreeYearGuidePresetRules();
         default:
-            return legacyGpaThresholdPresetRules();
+            return gpaOnlyPresetRules();
     }
 }

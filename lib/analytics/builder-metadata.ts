@@ -5,22 +5,10 @@ export type GroupByOption = NonNullable<VisualSpec['groupBy']>;
 export type ColumnKind = 'number' | 'string';
 
 export const DATASET_LABELS: Record<AnalyticsDatasetId, string> = {
-    staff_module_grades: 'Global Grade Distribution',
-    hod_student_summary: 'Student Summary (HOD)',
-    hod_module_grades: 'Module Grades (HOD)',
-    hod_gpa_monthly: 'GPA Trend (Monthly)',
-    admin_enrollment_trends: 'Enrollment Trends',
-    admin_gpa_distribution: 'GPA Distribution',
-    admin_module_performance: 'Module Performance (All)',
-    admin_pass_fail_by_program: 'Pass/Fail by Program',
-    admin_student_metadata: 'Student Metadata Analytics',
-    admin_grade_heatmap: 'Grade Heatmap',
-    admin_internship_stats: 'Internship Statistics',
-    admin_academic_goals: 'Academic Goals',
-    admin_gpa_by_admission_year: 'GPA by Admission Year (Cohort)',
-    admin_at_risk_students: 'At-Risk Students',
-    admin_ranking_trends: 'Ranking Trends',
-    admin_module_yearly_trend: 'Module Historical Trend',
+    core_student_metrics: 'Student Metrics & Demographics',
+    core_module_metrics: 'Module Performance',
+    core_grade_distribution: 'Grade Distribution Facts',
+    core_career_goals: 'Career & Academic Goals',
 };
 
 /** Declared kinds for known query shapes (aligned with executeAnalyticsQuery). */
@@ -30,100 +18,87 @@ export function columnKindsForShape(
 ): { name: string; kind: ColumnKind }[] {
     const g = groupBy ?? 'none';
     switch (datasetId) {
-        case 'staff_module_grades':
-            if (g === 'pathway') return [{ name: 'pathway', kind: 'string' }, { name: 'total_count', kind: 'number' }];
-            return [{ name: 'letter_grade', kind: 'string' }, { name: 'count', kind: 'number' }];
-
-        case 'hod_student_summary':
-            if (g === 'pathway') return [{ name: 'pathway', kind: 'string' }, { name: 'student_count', kind: 'number' }, { name: 'avg_gpa', kind: 'number' }];
-            if (g === 'level') return [{ name: 'level', kind: 'string' }, { name: 'student_count', kind: 'number' }, { name: 'avg_gpa', kind: 'number' }];
-            if (g === 'metadata') return [{ name: 'metadata_value', kind: 'string' }, { name: 'student_count', kind: 'number' }, { name: 'avg_gpa', kind: 'number' }];
-            return [{ name: 'student_id', kind: 'string' }, { name: 'name', kind: 'string' }, { name: 'gpa', kind: 'number' }, { name: 'pathway', kind: 'string' }, { name: 'level', kind: 'string' }];
-
-        case 'hod_module_grades':
-            return [{ name: 'module_id', kind: 'string' }, { name: 'code', kind: 'string' }, { name: 'title', kind: 'string' }, { name: 'graded_count', kind: 'number' }, { name: 'avg_grade_point', kind: 'number' }, { name: 'pass_rate', kind: 'number' }];
-
-        case 'hod_gpa_monthly':
-            return [{ name: 'month', kind: 'string' }, { name: 'avg_gpa', kind: 'number' }, { name: 'sample_size', kind: 'number' }];
-
-        case 'admin_enrollment_trends':
-            if (g === 'level') return [{ name: 'level', kind: 'string' }, { name: 'student_count', kind: 'number' }];
-            if (g === 'enrollment_status') return [{ name: 'enrollment_status', kind: 'string' }, { name: 'student_count', kind: 'number' }];
-            return [{ name: 'admission_year', kind: 'string' }, { name: 'student_count', kind: 'number' }];
-
-        case 'admin_gpa_distribution':
-            return [{ name: 'gpa_range', kind: 'string' }, { name: 'student_count', kind: 'number' }];
-
-        case 'admin_module_performance':
+        case 'core_student_metrics': {
+            if (g === 'none') {
+                return [
+                    { name: 'student_id', kind: 'string' },
+                    { name: 'name', kind: 'string' },
+                    { name: 'email', kind: 'string' },
+                    { name: 'gpa', kind: 'number' },
+                    { name: 'level', kind: 'string' },
+                    { name: 'program', kind: 'string' },
+                    { name: 'admission_year', kind: 'string' },
+                    { name: 'academic_class', kind: 'string' },
+                    { name: 'enrollment_status', kind: 'string' }
+                ];
+            }
+            const k = g === 'program' ? 'pathway' : g;
             return [
-                { name: 'module_code', kind: 'string' },
-                { name: 'module_name', kind: 'string' },
-                { name: 'level', kind: 'string' },
-                { name: 'credits', kind: 'number' },
+                { name: k, kind: 'string' },
+                { name: 'student_count', kind: 'number' },
+                { name: 'avg_gpa', kind: 'number' }
+            ];
+        }
+
+        case 'core_module_metrics': {
+            if (g === 'none' || g === 'module') {
+                return [
+                    { name: 'module_code', kind: 'string' },
+                    { name: 'module_name', kind: 'string' },
+                    { name: 'level', kind: 'string' },
+                    { name: 'credits', kind: 'number' },
+                    { name: 'academic_year', kind: 'string' },
+                    { name: 'graded_count', kind: 'number' },
+                    { name: 'avg_grade_point', kind: 'number' },
+                    { name: 'pass_count', kind: 'number' },
+                    { name: 'fail_count', kind: 'number' },
+                    { name: 'pass_rate', kind: 'number' }
+                ];
+            }
+            return [
+                { name: g, kind: 'string' },
+                { name: 'module_count', kind: 'number' },
                 { name: 'graded_count', kind: 'number' },
                 { name: 'avg_grade_point', kind: 'number' },
                 { name: 'pass_count', kind: 'number' },
                 { name: 'fail_count', kind: 'number' },
-                { name: 'pass_rate', kind: 'number' },
+                { name: 'pass_rate', kind: 'number' }
             ];
+        }
 
-        case 'admin_pass_fail_by_program':
+        case 'core_grade_distribution': {
+            if (g === 'none') {
+                return [
+                    { name: 'letter_grade', kind: 'string' },
+                    { name: 'grade_point', kind: 'number' },
+                    { name: 'module_code', kind: 'string' },
+                    { name: 'level', kind: 'string' },
+                    { name: 'pathway', kind: 'string' }
+                ];
+            }
+            const k = g === 'program' ? 'pathway' : g;
             return [
-                { name: 'program_code', kind: 'string' },
-                { name: 'program_name', kind: 'string' },
-                { name: 'pass_count', kind: 'number' },
-                { name: 'fail_count', kind: 'number' },
-                { name: 'total', kind: 'number' },
-                { name: 'pass_rate', kind: 'number' },
+                { name: k, kind: 'string' },
+                { name: 'count', kind: 'number' },
+                { name: 'avg_grade_point', kind: 'number' }
             ];
+        }
 
-        case 'admin_student_metadata':
-            if (g === 'metadata') return [{ name: 'metadata_value', kind: 'string' }, { name: 'student_count', kind: 'number' }, { name: 'avg_gpa', kind: 'number' }];
-            return [{ name: 'metadata_key', kind: 'string' }, { name: 'question_label', kind: 'string' }, { name: 'type', kind: 'string' }];
-
-        case 'admin_grade_heatmap':
-            return [{ name: 'module_code', kind: 'string' }]; // dynamic columns per letter
-
-        case 'admin_internship_stats':
-            if (g === 'internship_status') return [{ name: 'status', kind: 'string' }, { name: 'count', kind: 'number' }];
-            return [{ name: 'company', kind: 'string' }, { name: 'student_count', kind: 'number' }];
-
-        case 'admin_academic_goals':
-            if (g === 'goal_type') return [
-                { name: 'goal_type', kind: 'string' },
+        case 'core_career_goals': {
+            if (g === 'status' || g === 'company') {
+                return [
+                    { name: g, kind: 'string' },
+                    { name: 'count', kind: 'number' }
+                ];
+            }
+            return [
+                { name: g === 'none' ? 'goal_type' : g, kind: 'string' },
                 { name: 'total_goals', kind: 'number' },
                 { name: 'achieved_count', kind: 'number' },
                 { name: 'achievement_rate', kind: 'number' },
-                { name: 'avg_progress', kind: 'number' },
+                { name: 'avg_progress', kind: 'number' }
             ];
-            return [{ name: 'status', kind: 'string' }, { name: 'count', kind: 'number' }];
-
-        case 'admin_gpa_by_admission_year':
-            return [{ name: 'admission_year', kind: 'string' }, { name: 'avg_gpa', kind: 'number' }, { name: 'student_count', kind: 'number' }];
-
-        case 'admin_at_risk_students':
-            return [
-                { name: 'student_id', kind: 'string' },
-                { name: 'name', kind: 'string' },
-                { name: 'email', kind: 'string' },
-                { name: 'gpa', kind: 'number' },
-                { name: 'level', kind: 'string' },
-                { name: 'program', kind: 'string' },
-                { name: 'admission_year', kind: 'number' },
-                { name: 'academic_class', kind: 'string' },
-            ];
-
-        case 'admin_ranking_trends':
-            if (g === 'level') return [{ name: 'level', kind: 'string' }, { name: 'avg_gpa', kind: 'number' }, { name: 'avg_rank', kind: 'number' }, { name: 'student_count', kind: 'number' }];
-            return [{ name: 'rank', kind: 'number' }, { name: 'gpa', kind: 'number' }, { name: 'weighted_average', kind: 'number' }, { name: 'level', kind: 'string' }, { name: 'program', kind: 'string' }];
-
-        case 'admin_module_yearly_trend':
-            return [
-                { name: 'academic_year', kind: 'string' },
-                { name: 'graded_count', kind: 'number' },
-                { name: 'avg_grade_point', kind: 'number' },
-                { name: 'pass_rate', kind: 'number' },
-            ];
+        }
 
         default:
             return [];
@@ -135,59 +110,49 @@ export function kindOfColumn(datasetId: AnalyticsDatasetId, groupBy: GroupByOpti
     return row?.kind ?? 'string';
 }
 
-const STAFF_DATASETS: AnalyticsDatasetId[] = ['staff_module_grades'];
-const HOD_DATASETS: AnalyticsDatasetId[] = [
-    'staff_module_grades',
-    'hod_student_summary',
-    'hod_module_grades',
-    'hod_gpa_monthly',
-    'admin_enrollment_trends',
-    'admin_gpa_distribution',
-    'admin_module_performance',
-    'admin_pass_fail_by_program',
-    'admin_student_metadata',
-    'admin_grade_heatmap',
-    'admin_internship_stats',
-    'admin_academic_goals',
-    'admin_gpa_by_admission_year',
-    'admin_at_risk_students',
-    'admin_ranking_trends',
-];
-const ADMIN_DATASETS: AnalyticsDatasetId[] = [...HOD_DATASETS];
+const STAFF_DATASETS: AnalyticsDatasetId[] = ['core_module_metrics', 'core_grade_distribution'];
+const HOD_DATASETS: AnalyticsDatasetId[] = ['core_student_metrics', 'core_module_metrics', 'core_grade_distribution'];
+const ADMIN_DATASETS: AnalyticsDatasetId[] = [...HOD_DATASETS, 'core_career_goals'];
 
 export function analyticsDatasetsForRole(role: string): AnalyticsDatasetId[] {
     if (role === 'admin') return ADMIN_DATASETS;
     if (role === 'hod') return HOD_DATASETS;
-    if (role === 'staff' || role === 'advisor') return STAFF_DATASETS;
     return STAFF_DATASETS;
 }
 
 export function groupByOptionsForDataset(datasetId: AnalyticsDatasetId): { value: GroupByOption; label: string }[] {
     switch (datasetId) {
-        case 'staff_module_grades':
-            return [{ value: 'none', label: 'Letter grade (stacked)' }, { value: 'pathway', label: 'By pathway (totals)' }];
-        case 'hod_student_summary':
-            return [{ value: 'none', label: 'Student rows' }, { value: 'pathway', label: 'By pathway' }, { value: 'level', label: 'By level' }, { value: 'metadata', label: 'By metadata value' }];
-        case 'hod_module_grades':
-        case 'hod_gpa_monthly':
-            return [{ value: 'none', label: 'Default aggregation' }];
-        case 'admin_enrollment_trends':
-            return [{ value: 'none', label: 'By admission year' }, { value: 'level', label: 'By level' }, { value: 'enrollment_status', label: 'By status' }];
-        case 'admin_gpa_distribution':
-        case 'admin_module_performance':
-        case 'admin_pass_fail_by_program':
-        case 'admin_grade_heatmap':
-        case 'admin_gpa_by_admission_year':
-        case 'admin_at_risk_students':
-            return [{ value: 'none', label: 'Default' }];
-        case 'admin_student_metadata':
-            return [{ value: 'none', label: 'Question catalog' }, { value: 'metadata', label: 'Group by metadata value' }];
-        case 'admin_internship_stats':
-            return [{ value: 'none', label: 'By company' }, { value: 'internship_status', label: 'By status' }];
-        case 'admin_academic_goals':
-            return [{ value: 'none', label: 'By status' }, { value: 'goal_type', label: 'By goal type' }];
-        case 'admin_ranking_trends':
-            return [{ value: 'none', label: 'Individual rankings' }, { value: 'level', label: 'By level' }];
+        case 'core_student_metrics':
+            return [
+                { value: 'none', label: 'Raw Student List' },
+                { value: 'level', label: 'By Level' },
+                { value: 'pathway', label: 'By Pathway/Program' },
+                { value: 'admission_year', label: 'By Cohort Year' },
+                { value: 'enrollment_status', label: 'By Enrollment Status' },
+                { value: 'academic_class', label: 'By Class Honors' },
+                { value: 'gpa_bucket', label: 'By GPA Target Range' },
+                { value: 'metadata', label: 'By Custom Metadata' }
+            ];
+        case 'core_module_metrics':
+            return [
+                { value: 'none', label: 'Raw Modules' },
+                { value: 'level', label: 'By Module Level' },
+                { value: 'academic_year', label: 'By Academic Year' }
+            ];
+        case 'core_grade_distribution':
+            return [
+                { value: 'none', label: 'Raw Grades' },
+                { value: 'letter_grade', label: 'By Letter Grade' },
+                { value: 'module', label: 'By Module Code' },
+                { value: 'level', label: 'By Student Level' },
+                { value: 'pathway', label: 'By Student Pathway' }
+            ];
+        case 'core_career_goals':
+            return [
+                { value: 'none', label: 'By Goal Type' },
+                { value: 'status', label: 'By Internship/Goal Status' },
+                { value: 'company', label: 'By Internship Company' }
+            ];
         default:
             return [{ value: 'none', label: 'None' }];
     }
