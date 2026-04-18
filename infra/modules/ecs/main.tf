@@ -40,6 +40,24 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "ecs_secrets_access" {
+  name = "${var.project_name}-ecs-secrets-policy"
+  role = aws_iam_role.ecs_task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "secretsmanager:GetSecretValue"
+      Effect = "Allow"
+      Resource = [
+        var.database_url_secret_arn,
+        var.mq_url_secret_arn,
+        var.nextauth_secret_arn
+      ]
+    }]
+  })
+}
+
 # ALB
 resource "aws_security_group" "alb" {
   name        = "${var.project_name}-alb-sg"
@@ -144,9 +162,12 @@ resource "aws_ecs_task_definition" "app" {
       hostPort      = 3000
     }]
     environment = [
-      { name = "DATABASE_URL", value = var.database_url },
-      { name = "RABBITMQ_URL", value = var.mq_url },
       { name = "NODE_ENV", value = "production" }
+    ]
+    secrets = [
+      { name = "DATABASE_URL", valueFrom = var.database_url_secret_arn },
+      { name = "RABBITMQ_URL", valueFrom = var.mq_url_secret_arn },
+      { name = "NEXTAUTH_SECRET", valueFrom = var.nextauth_secret_arn }
     ]
     logConfiguration = {
       logDriver = "awslogs"
