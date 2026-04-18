@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getAcademicCreditRules } from '@/lib/actions/credit-rule-actions';
 import { CreditRulesClient } from './_components/credit-rules-client';
 import { Metadata } from 'next';

@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { Suspense } from 'react';
 import { getStudentSchedule } from '@/lib/actions/student-actions';
 import { ScheduleView } from './schedule-view';

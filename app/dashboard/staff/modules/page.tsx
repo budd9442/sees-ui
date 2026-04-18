@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getStaffAssignedModules } from '@/lib/actions/staff-actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

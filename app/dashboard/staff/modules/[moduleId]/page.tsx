@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getEnrolledStudents, getModuleGradingScaleForStaff } from '@/lib/actions/staff-actions';
 import { notFound } from 'next/navigation';
 import StudentGradingClient from './grading-view';

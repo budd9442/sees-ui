@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getModuleRegistrationData } from '@/lib/actions/student-actions';
 import { ModuleRegistrationView } from './module-registration-view';
 

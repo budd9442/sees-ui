@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { Suspense } from 'react';
 import { getSpecializationInitialData } from '@/lib/actions/specialization-actions';
 import { SpecializationClient } from './_components/specialization-client';

@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { Suspense } from 'react';
 import { getStudentGrades } from '@/lib/actions/student-actions';
 import { GradesView } from './grades-view';

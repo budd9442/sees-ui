@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { Suspense } from 'react';
 import { getAdminAcademicYears } from '@/lib/actions/academic-year-admin';
 import { AcademicGovernanceClient } from './_components/academic-governance-client';

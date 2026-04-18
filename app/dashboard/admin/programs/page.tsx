@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getAllPrograms } from '@/lib/actions/admin-programs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

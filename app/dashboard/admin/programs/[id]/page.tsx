@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getProgramById, getAllModulesSimple, getAllAcademicYears } from '@/lib/actions/admin-programs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
