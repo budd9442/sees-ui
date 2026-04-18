@@ -89,10 +89,18 @@ jobs:
           exit 1
         fi
 
-    - name: Deploy Amazon ECS task definition
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: ${{ steps.register-task-def.outputs.task_def_arn }}
-        service: ${{ env.ECS_SERVICE }}
-        cluster: ${{ env.ECS_CLUSTER }}
-        wait-for-service-stability: true
+    - name: Update ECS Service
+      run: |
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service $ECS_SERVICE \
+          --task-definition ${{ steps.register-task-def.outputs.task_def_arn }} \
+          --force-new-deployment \
+          --region $AWS_REGION
+
+    - name: Wait for service stability
+      run: |
+        aws ecs wait services-stable \
+          --cluster $ECS_CLUSTER \
+          --services $ECS_SERVICE \
+          --region $AWS_REGION
