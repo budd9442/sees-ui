@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { GeminiService } from '@/lib/services/gemini-service';
+import { GrokService } from '@/lib/services/grok-service';
 import { assertStudentWriteAccess } from '@/lib/actions/student-access';
 
 const pathwayGuidancePreferenceSchema = z.object({
@@ -172,7 +172,7 @@ export async function getPathwayGuidance() {
         marks: mr.grade?.marks ?? null,
     }));
 
-    const decision = await GeminiService.generatePathwayDecision({
+    const decision = await GrokService.generatePathwayDecision({
         currentGpa: student.current_gpa ?? 0,
         preferences: prefs,
         transcript: transcriptPayload,
@@ -180,7 +180,7 @@ export async function getPathwayGuidance() {
     });
 
     const recommended = deterministicBreakdown.find((s) => s.code === decision.primary_recommendation) ?? deterministicBreakdown[0];
-    const explanation = await GeminiService.generatePathwayGuidanceExplanation({
+    const explanation = await GrokService.generatePathwayGuidanceExplanation({
         currentGpa: student.current_gpa ?? 0,
         recommendedPathway: recommended.code,
         score: decision.fit_score,
@@ -200,11 +200,11 @@ export async function getPathwayGuidance() {
         primary_recommendation: recommended.code,
         fit_score: decision.fit_score,
         skill_vector: decision.skill_vector ?? deterministicSkillVector,
-        skill_vector_source: decision.skill_vector ? 'GEMINI' : 'DETERMINISTIC_FALLBACK',
+        skill_vector_source: decision.skill_vector ? 'GROK' : 'DETERMINISTIC_FALLBACK',
         supporting_reasons: [...decision.supporting_reasons, ...explanation.supporting_reasons].slice(0, 5),
         insight: explanation.insight,
         deterministic_breakdown: deterministicBreakdown,
-        decision_source: decision.modelUsed ? 'GEMINI' : 'DETERMINISTIC_FALLBACK',
+        decision_source: decision.modelUsed ? 'GROK' : 'DETERMINISTIC_FALLBACK',
         decision_failure_reason: decision.failureReason,
     };
 }

@@ -35,14 +35,16 @@ export function DashboardView({ student, notifications, pathwayDemand, gpaHistor
     const gpaData = gpaHistory;
 
     // Calculate GPA Trend
-    let trendValue = 0;
+    let trendPercent = 0;
+    let trendAbsolute = 0;
     let isPositive = true;
 
     if (gpaData.length >= 2) {
         const current = gpaData[gpaData.length - 1].gpa;
         const previous = gpaData[gpaData.length - 2].gpa;
         const diff = current - previous;
-        trendValue = previous ? (Math.abs(diff) / previous) * 100 : 0;
+        trendAbsolute = Number(Math.abs(diff).toFixed(2));
+        trendPercent = previous > 0 ? Number(((Math.abs(diff) / previous) * 100).toFixed(1)) : 0;
         isPositive = diff >= 0;
     }
 
@@ -116,7 +118,7 @@ export function DashboardView({ student, notifications, pathwayDemand, gpaHistor
                     title="Current GPA"
                     value={student.currentGPA.toFixed(2)}
                     icon={TrendingUp}
-                    trend={{ value: Number(trendValue.toFixed(1)), isPositive }}
+                    trend={gpaData.length >= 2 ? { value: trendPercent, absolute: trendAbsolute, isPositive } : undefined}
                     href="/dashboard/student/grades"
                 />
                 <StatCard

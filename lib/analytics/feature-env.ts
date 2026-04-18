@@ -1,3 +1,3 @@
 export function isAnalyticsGeminiEnabled() {
-    return process.env.ENABLE_ANALYTICS_GEMINI === 'true' && Boolean(process.env.GEMINI_API_KEY);
+    return Boolean(process.env.XAI_API_KEY);
 }

@@ -5,7 +5,7 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { assertStudentWriteAccess } from '@/lib/actions/student-access';
 import { AcademicEngine } from '@/lib/services/academic-engine';
-import { GeminiService } from '@/lib/services/gemini-service';
+import { GrokService } from '@/lib/services/grok-service';
 import { createHash } from 'crypto';
 
 export async function getCreditsData() {
@@ -1017,7 +1017,7 @@ export async function getPersonalizedAIFeedback(forceRegenerate = false) {
         };
     }
 
-    const aiFeedback = await GeminiService.generatePersonalizedFeedback(feedbackContext);
+    const aiFeedback = await GrokService.generatePersonalizedFeedback(feedbackContext);
     const reason =
         forceRegenerate ? 'USER_REEVALUATE'
             : shouldInvalidateByExpiry ? 'EXPIRED'

@@ -14,7 +14,7 @@ type Props = {
     onApplyPatch?: (patch: ReportDefinitionPatch) => void;
 };
 
-export function GeminiAssistantPanel({ aggregatesSummary, onApplyPatch }: Props) {
+export function AnalyticsAssistantPanel({ aggregatesSummary, onApplyPatch }: Props) {
     const [prompt, setPrompt] = useState('');
     const [narrative, setNarrative] = useState<string | null>(null);
     const [patchJson, setPatchJson] = useState<string | null>(null);
@@ -53,33 +53,57 @@ export function GeminiAssistantPanel({ aggregatesSummary, onApplyPatch }: Props)
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-base">AI assistant (Gemini)</CardTitle>
-                <CardDescription>
-                    Requires ENABLE_ANALYTICS_GEMINI=true and GEMINI_API_KEY. Outputs validated JSON only—review any patch
-                    before applying.
+        <Card className="border-none shadow-none bg-transparent">
+            <CardHeader className="px-0 pt-0">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    ✨ Grok Analyst
+                </CardTitle>
+                <CardDescription className="text-[10px] leading-relaxed">
+                    Powered by xAI Grok. Use natural language to generate insight summaries, 
+                    add new visualizations, or restructure your report.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4 px-0">
                 <Textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Ask for chart suggestions or a short summary of trends…"
-                    rows={3}
+                    placeholder="e.g., 'Analyze the grade distribution and add a chart comparing modules by pass rate'"
+                    rows={4}
+                    className="text-xs resize-none bg-muted/30 focus-visible:ring-primary/30"
                 />
-                <Button type="button" onClick={run} disabled={loading || !prompt.trim()}>
-                    {loading ? 'Running…' : 'Run assistant'}
+                <Button 
+                    type="button" 
+                    onClick={run} 
+                    disabled={loading || !prompt.trim()}
+                    className="w-full h-9 text-xs font-semibold"
+                >
+                    {loading ? 'Running Analysis...' : 'Ask Assistant'}
                 </Button>
+                
                 {narrative && (
-                    <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap">{narrative}</div>
+                    <div className="rounded-lg border bg-primary/5 p-3 text-[11px] leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                        <p className="font-semibold text-primary mb-1 text-[10px] uppercase tracking-wider">Analysis Result:</p>
+                        {narrative}
+                    </div>
                 )}
+                
                 {patchJson && (
-                    <pre className="max-h-48 overflow-auto rounded-md border bg-muted/20 p-2 text-xs">{patchJson}</pre>
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Proposed Report Change:</p>
+                        <pre className="max-h-48 overflow-auto rounded-lg border bg-muted/20 p-2 text-[10px] font-mono text-muted-foreground">
+                            {patchJson}
+                        </pre>
+                    </div>
                 )}
+                
                 {lastPatch && onApplyPatch && (
-                    <Button type="button" variant="secondary" onClick={() => onApplyPatch(lastPatch)}>
-                        Apply patch to report
+                    <Button 
+                        type="button" 
+                        variant="glow"
+                        onClick={() => onApplyPatch(lastPatch)}
+                        className="w-full h-9 text-xs font-semibold"
+                    >
+                        Apply Changes to Report
                     </Button>
                 )}
             </CardContent>

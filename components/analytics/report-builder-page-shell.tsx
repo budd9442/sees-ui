@@ -12,9 +12,9 @@ type Props = {
     backLabel: string;
     defaultDefinition: ReportDefinition;
     filterContext: AnalyticsQueryFilters;
-    /** Role for dataset allowlist (staff / advisor / hod). */
     builderRole: string;
     aggregatesSummary?: string;
+    variant?: 'embedded' | 'fullPage';
 };
 
 export function ReportBuilderPageShell({
@@ -24,25 +24,31 @@ export function ReportBuilderPageShell({
     filterContext,
     builderRole,
     aggregatesSummary,
+    variant = 'fullPage',
 }: Props) {
     return (
-        <div className="mx-auto w-full max-w-[1600px] space-y-4 p-4 md:p-6">
-            <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-background">
+            <div className="flex flex-wrap items-center gap-3 px-4 py-3 shrink-0 border-b">
                 <Button variant="ghost" size="sm" asChild className="-ml-2">
                     <Link href={backHref}>
                         <ArrowLeft className="h-4 w-4 mr-1" />
                         {backLabel}
                     </Link>
                 </Button>
-                <h1 className="text-xl font-semibold tracking-tight">Report builder</h1>
+                <div>
+                    <h1 className="text-lg font-semibold tracking-tight">Analytics Report Builder</h1>
+                    <p className="text-[10px] text-muted-foreground">Build, save, and share custom analytics reports</p>
+                </div>
             </div>
-            <ReportBuilderPanel
-                variant="fullPage"
-                defaultDefinition={defaultDefinition}
-                filterContext={filterContext}
-                builderRole={builderRole}
-                aggregatesSummary={aggregatesSummary}
-            />
+            <div className="flex-1 overflow-hidden p-2">
+                <ReportBuilderPanel
+                    variant={variant}
+                    defaultDefinition={defaultDefinition}
+                    filterContext={filterContext}
+                    builderRole={builderRole}
+                    aggregatesSummary={aggregatesSummary}
+                />
+            </div>
         </div>
     );
 }

@@ -10,7 +10,8 @@ interface StatCardProps {
   value: string | number;
   icon: LucideIcon;
   trend?: {
-    value: number;
+    value: number;      // percentage change
+    absolute?: number;  // raw absolute change (optional, e.g. 0.30 GPA points)
     isPositive: boolean;
   };
   /** When set, the whole card navigates to this route. */
@@ -47,7 +48,11 @@ export function StatCard({
                 )}
               >
                 <span>{trend.isPositive ? '↑' : '↓'}</span>
-                <span>{Math.abs(trend.value)}%</span>
+                {trend.absolute != null ? (
+                  <span>{trend.absolute} pts ({trend.value}%)</span>
+                ) : (
+                  <span>{trend.value}%</span>
+                )}
               </p>
             )}
           </div>

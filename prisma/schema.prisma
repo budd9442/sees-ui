@@ -84,6 +84,7 @@ model Student {
   user                    User                 @relation(fields: [student_id], references: [user_id], onDelete: Cascade)
   selection_allocation_change_requests SelectionAllocationChangeRequest[]
   ai_feedback_snapshots    StudentAIFeedbackSnapshot[]
+  recovery_snapshots       AcademicRecoverySnapshot[]
 }
 
 model StudentAIFeedbackSnapshot {
@@ -104,6 +105,22 @@ model StudentAIFeedbackSnapshot {
 
   @@index([student_id, generated_at])
   @@index([student_id, expires_at])
+}
+
+// Caches AI recovery advice per GPA dip event.
+// The dip_fingerprint is "previousGPA_currentGPA" (e.g. "3.40_3.10").
+model AcademicRecoverySnapshot {
+  snapshot_id      String   @id @default(uuid())
+  student_id       String
+  dip_fingerprint  String
+  previous_gpa     Float
+  current_gpa      Float
+  advice_json      Json
+  generated_at     DateTime @default(now())
+  student          Student  @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+
+  @@unique([student_id, dip_fingerprint])
+  @@index([student_id])
 }
 
 model Staff {

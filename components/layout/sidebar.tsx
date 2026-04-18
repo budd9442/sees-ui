@@ -339,6 +339,12 @@ const navigationItems: NavItem[] = [
     roles: ['admin'],
   },
   {
+    title: 'Analytics Builder',
+    href: '/dashboard/admin/analytics',
+    icon: BarChart3,
+    roles: ['admin'],
+  },
+  {
     title: 'System Logs',
     href: '/dashboard/admin/logs',
     icon: History,

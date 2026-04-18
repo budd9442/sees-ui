@@ -20,6 +20,30 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+function LoadingMessages() {
+  const [index, setIndex] = useState(0);
+  const messages = [
+    'Checking your grades...',
+    'Analyzing your goals...',
+    'Crunching numbers...',
+    'Analyzing upcoming modules...',
+    'Consulting with AI...'
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % messages.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [messages.length]);
+
+  return (
+    <p className="text-sm font-medium text-muted-foreground animate-in fade-in slide-in-from-bottom-2 duration-700">
+      {messages[index]}
+    </p>
+  );
+}
+
 export default function PersonalizedFeedbackPage() {
   const [feedback, setFeedback] = useState<any | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
@@ -28,10 +52,12 @@ export default function PersonalizedFeedbackPage() {
   const [fromCache, setFromCache] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchFeedback() {
       try {
+        setError(null);
         const data = await getPersonalizedAIFeedback(false);
         setFeedback(data.feedback);
         setGeneratedAt(data.generatedAt ? new Date(data.generatedAt).toISOString() : null);
@@ -39,7 +65,9 @@ export default function PersonalizedFeedbackPage() {
         setInvalidationReason(data.invalidationReason);
         setFromCache(!!data.fromCache);
       } catch (err) {
-        toast.error('Failed to load personalized feedback');
+        const message = err instanceof Error ? err.message : 'Failed to load personalized feedback';
+        setError(message);
+        toast.error(message);
       } finally {
         setLoading(false);
       }
@@ -49,6 +77,8 @@ export default function PersonalizedFeedbackPage() {
 
   const handleReEvaluate = async () => {
     setRefreshing(true);
+    setLoading(true); // Show friendly loading text during full re-evaluation
+    setError(null);
     try {
       const data = await reEvaluatePersonalizedAIFeedback();
       setFeedback(data.feedback);
@@ -57,17 +87,26 @@ export default function PersonalizedFeedbackPage() {
       setInvalidationReason(data.invalidationReason);
       setFromCache(!!data.fromCache);
       toast.success('AI feedback re-evaluated');
-    } catch {
-      toast.error('Failed to re-evaluate feedback');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to re-evaluate feedback';
+      setError(message);
+      toast.error(message);
     } finally {
       setRefreshing(false);
+      setLoading(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex flex-col items-center justify-center p-24 space-y-4">
+        <div className="relative">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-primary animate-pulse" />
+        </div>
+        <div className="h-6 overflow-hidden">
+          <LoadingMessages />
+        </div>
       </div>
     );
   }
@@ -91,14 +130,20 @@ export default function PersonalizedFeedbackPage() {
         </Button>
       </div>
 
-      {!feedback && (
-        <Alert>
+      {error && (
+        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>Unable to load AI feedback right now. Try re-evaluating.</AlertDescription>
+          <AlertDescription>
+            <p className="font-semibold">Analysis Failed</p>
+            <p className="text-sm opacity-90">{error}</p>
+            <Button variant="outline" size="sm" onClick={() => void handleReEvaluate()} className="mt-4 bg-white hover:bg-slate-50 border-destructive/20 text-destructive">
+              Try Again
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
 
-      {feedback && (
+      {feedback && !error && (
         <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>

@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
-import { GeminiService } from '@/lib/services/gemini-service';
+import { GrokService } from '@/lib/services/grok-service';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { assertStudentWriteAccess } from '@/lib/actions/student-access';
@@ -288,7 +288,7 @@ export async function getSpecializationGuidance() {
         marks: mr.grade?.marks ?? null,
     }));
 
-    const decision = await GeminiService.generateSpecializationDecision({
+    const decision = await GrokService.generateSpecializationDecision({
         currentGpa: gpa,
         preferences: prefs,
         transcript: transcriptPayload,
@@ -299,7 +299,7 @@ export async function getSpecializationGuidance() {
         specializationScores.find((s) => s.code === decision.recommended_specialization) ??
         specializationScores[0];
 
-    const ai = await GeminiService.generateSpecializationGuidanceExplanation({
+    const ai = await GrokService.generateSpecializationGuidanceExplanation({
         studentId: student.student_id,
         currentGpa: gpa,
         recommendedSpecialization: recommended.code,
@@ -321,11 +321,11 @@ export async function getSpecializationGuidance() {
         recommended_specialization: recommended.code,
         fit_score: decision.fit_score,
         skill_vector: decision.skill_vector ?? deterministicSkillVector,
-        skill_vector_source: decision.skill_vector ? 'GEMINI' : 'DETERMINISTIC_FALLBACK',
+        skill_vector_source: decision.skill_vector ? 'GROK' : 'DETERMINISTIC_FALLBACK',
         reasons: [...decision.reasons, ...ai.reasons].slice(0, 5),
         insight: ai.insight,
         deterministic_breakdown: specializationScores,
-        decision_source: decision.modelUsed ? 'GEMINI' : 'DETERMINISTIC_FALLBACK',
+        decision_source: decision.modelUsed ? 'GROK' : 'DETERMINISTIC_FALLBACK',
         decision_failure_reason: decision.failureReason,
     };
 }

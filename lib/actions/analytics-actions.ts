@@ -13,7 +13,7 @@ export async function runAnalyticsQueryAction(input: unknown): Promise<Analytics
 export async function listAnalyticsReports() {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
-    if (!['staff', 'advisor', 'hod'].includes(session.user.role)) throw new Error('Unauthorized');
+    if (!['staff', 'advisor', 'hod', 'admin'].includes(session.user.role)) throw new Error('Unauthorized');
 
     return prisma.analyticsReport.findMany({
         where: { owner_user_id: session.user.id },
@@ -47,7 +47,7 @@ export async function saveAnalyticsReport(input: {
 }) {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
-    if (!['staff', 'advisor', 'hod'].includes(session.user.role)) throw new Error('Unauthorized');
+    if (!['staff', 'advisor', 'hod', 'admin'].includes(session.user.role)) throw new Error('Unauthorized');
 
     const definition = reportDefinitionSchema.parse(input.definition);
 
@@ -93,6 +93,17 @@ export async function duplicateAnalyticsReport(reportId: string) {
         },
     });
     return { reportId: copy.report_id };
+}
+
+export async function deleteAnalyticsReport(reportId: string) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error('Unauthorized');
+
+    const deleted = await prisma.analyticsReport.deleteMany({
+        where: { report_id: reportId, owner_user_id: session.user.id },
+    });
+    if (deleted.count === 0) throw new Error('Report not found');
+    return { ok: true };
 }
 
 function rowsToCsv(columns: string[], rows: Record<string, unknown>[]) {
