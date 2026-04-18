@@ -141,7 +141,7 @@ resource "aws_route53_record" "app" {
 
 # ECR Repository
 resource "aws_ecr_repository" "app" {
-  name                 = var.project_name
+  name                 = "${var.project_name}-app"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
