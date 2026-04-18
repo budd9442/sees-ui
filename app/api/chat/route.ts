@@ -3,10 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const XAI_API_URL = "https://api.x.ai/v1/responses";
 
-if (!XAI_API_KEY) {
-  console.error('XAI_API_KEY environment variable is not set');
-}
-
 // Official DIM Guide Book Context for MIT/IT programs
 const GUIDE_BOOK_CONTEXT = `
 Department of Industrial Management (DIM), Faculty of Science.
