@@ -1,5 +1,5 @@
-export const dynamic = "force-dynamic";
 'use server';
+export const dynamic = "force-dynamic";
 
 import { Suspense } from 'react';
 import { getBulkEnrollmentBatches } from '@/lib/actions/enrollment-bulk-actions';

@@ -1,5 +1,5 @@
-export const dynamic = "force-dynamic";
 'use server';
+export const dynamic = "force-dynamic";
 
 import { Suspense } from 'react';
 import { getEnrollmentStats } from '@/lib/actions/enrollment-actions';
