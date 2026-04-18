@@ -45,21 +45,38 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition-family: ${{ env.ECS_TASK_DEFINITION }}
+        container-name: ${{ env.CONTAINER_NAME }}
+        image: ${{ steps.build-image.outputs.image }}
+
+    - name: Register new Task Definition
+      id: register-task-def
+      run: |
+        NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+          --cli-input-json "file://${{ steps.task-def.outputs.task-definition }}" \
+          --query 'taskDefinition.taskDefinitionArn' --output text)
+        echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
     - name: Run Prisma Migrations
       run: |
-        # Automatically find the private subnet and security group created by Terraform
-        export PRIVATE_SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=sees-platform-private-subnet-0" --query 'Subnets[0].SubnetId' --output text)
+        # Use a Public Subnet with Public IP enabled for the one-off migration task.
+        # This ensures the image pull (ECR/DockerHub) succeeds immediately without NAT instance dependencies.
+        # The task still has the ECS Security Group, so it can reach the RDS database.
+        export PUBLIC_SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=sees-platform-public-subnet-0" --query 'Subnets[0].SubnetId' --output text)
         export ECS_SG_ID=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=sees-platform-ecs-tasks-sg" --query 'SecurityGroups[0].GroupId' --output text)
         
-        echo "Found Subnet: $PRIVATE_SUBNET_ID"
-        echo "Found SG: $ECS_SG_ID"
+        echo "Launching migration on Subnet: $PUBLIC_SUBNET_ID with Task Def: ${{ steps.register-task-def.outputs.task_def_arn }}"
 
         TASK_ARN=$(aws ecs run-task \
           --cluster $ECS_CLUSTER \
-          --task-definition $ECS_TASK_DEFINITION \
+          --task-definition ${{ steps.register-task-def.outputs.task_def_arn }} \
           --overrides '{"containerOverrides": [{"name": "app", "command": ["npx", "prisma", "migrate", "deploy"]}]}' \
           --launch-type FARGATE \
-          --network-configuration "{\"awsvpcConfiguration\": {\"subnets\": [\"$PRIVATE_SUBNET_ID\"], \"securityGroups\": [\"$ECS_SG_ID\"]}}" \
+          --network-configuration "{\"awsvpcConfiguration\": {\"subnets\": [\"$PUBLIC_SUBNET_ID\"], \"securityGroups\": [\"$ECS_SG_ID\"], \"assignPublicIp\": \"ENABLED\"}}" \
           --query 'tasks[0].taskArn' --output text)
 
         echo "Started migration task: $TASK_ARN"
@@ -72,18 +89,10 @@ jobs:
           exit 1
         fi
 
-    - name: Fill in the new image ID in the Amazon ECS task definition
-      id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition-family: ${{ env.ECS_TASK_DEFINITION }}
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.build-image.outputs.image }}
-
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
-        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        task-definition: ${{ steps.register-task-def.outputs.task_def_arn }}
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
