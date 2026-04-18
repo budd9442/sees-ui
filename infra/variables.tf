@@ -35,6 +35,6 @@ variable "mq_username" {
 }
 
 variable "domain_name" {
-  description = "Domain name for the platform (e.g. platform.example.com)"
+  description = "Domain name for the platform"
   type        = string
 }
