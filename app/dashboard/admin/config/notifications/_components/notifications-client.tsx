@@ -54,6 +54,8 @@ const TRIGGER_LABELS: Record<string, string> = {
     [NotificationEventKey.PATHWAY_SELECTION_OPENED]: 'Pathway selection — window just opened',
     [NotificationEventKey.SPECIALIZATION_SELECTION_OPENED]: 'Specialization selection — window just opened',
     [NotificationEventKey.PATHWAY_ALLOCATED]: 'Pathway allocation updates',
+    [NotificationEventKey.REPORT_ASSIGNED]: 'Anonymous report assigned to admin',
+    [NotificationEventKey.REPORT_SUBMITTED]: 'Anonymous report submitted (confirmation)',
     [NotificationEventKey.SYSTEM_ALERT]: 'System alerts',
 };
 
@@ -72,6 +74,8 @@ const PLACEHOLDER_BY_CATEGORY: Record<NotificationTemplate['category'], string[]
     pathway_selection_opened: ['{{studentName}}', '{{windowLabel}}', '{{level}}', '{{closesAt}}', '{{extraMessage}}'],
     specialization_selection_opened: ['{{studentName}}', '{{windowLabel}}', '{{level}}', '{{closesAt}}', '{{extraMessage}}'],
     pathway_allocated: ['{{studentName}}', '{{outcome}}'],
+    report_assigned: ['{{adminName}}', '{{reportTitle}}', '{{reportCategory}}', '{{reportUrl}}'],
+    report_submitted: ['{{studentName}}', '{{reportTitle}}', '{{reportCategory}}', '{{submittedAt}}'],
     system_alert: ['{{alertTitle}}', '{{alertBody}}'],
 };
 
@@ -238,6 +242,9 @@ export default function NotificationsClient({ initialData }: { initialData: Noti
             case 'pathway_selection_opened':
             case 'specialization_selection_opened':
                 return 'bg-cyan-100 text-cyan-800';
+            case 'report_assigned':
+            case 'report_submitted':
+                return 'bg-amber-100 text-amber-800';
             case 'system_alert':
                 return 'bg-red-100 text-red-800';
             default:
@@ -308,6 +315,8 @@ export default function NotificationsClient({ initialData }: { initialData: Noti
                                         <SelectItem value="pathway_selection_opened">Pathway selection opened</SelectItem>
                                         <SelectItem value="specialization_selection_opened">Specialization selection opened</SelectItem>
                                         <SelectItem value="pathway_allocated">Pathway Allocated</SelectItem>
+                                        <SelectItem value="report_assigned">Report Assigned</SelectItem>
+                                        <SelectItem value="report_submitted">Report Submitted</SelectItem>
                                         <SelectItem value="system_alert">System Alert</SelectItem>
                                     </SelectContent>
                                 </Select>
