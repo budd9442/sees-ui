@@ -680,7 +680,7 @@ export async function getRankingsData() {
         // Calculate other metrics
         const totalCreditsEarned = studentGrades
             .filter(
-                (g) => (g.grade_point ?? 0) >= 2.0 || (g.marks != null && g.marks >= 50)
+                (g) => (g.grade_point ?? 0) >= 2.0 || (g.marks != null && g.marks >= 50) || g.letter_grade === 'Pass'
             )
             .reduce((sum, g) => sum + g.module.credits, 0);
         const totalCreditsAttempted = studentGrades.reduce((sum, g) => sum + g.module.credits, 0);

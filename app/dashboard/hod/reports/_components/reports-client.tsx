@@ -87,7 +87,7 @@ export default function ReportsClient({ initialData }: { initialData: any }) {
         const avgGPA = totalCredits > 0 ? totalPoints / totalCredits : 0;
 
         const passRate = allGrades.length > 0
-            ? (allGrades.filter((g: any) => g.points >= 2.0).length / allGrades.length) * 100
+            ? (allGrades.filter((g: any) => g.points >= 2.0 || g.letterGrade === 'Pass').length / allGrades.length) * 100
             : 0;
 
         const atRiskStudents = students.filter((student: any) => {
@@ -95,7 +95,7 @@ export default function ReportsClient({ initialData }: { initialData: any }) {
             const studentPoints = studentGrades.reduce((sum: number, grade: any) => sum + (grade.points * grade.credits), 0);
             const studentCredits = studentGrades.reduce((sum: number, grade: any) => sum + grade.credits, 0);
             const studentGPA = studentCredits > 0 ? studentPoints / studentCredits : 0;
-            return studentGPA < 2.5 || studentGrades.some((g: any) => g.points < 2.0);
+            return studentGPA < 2.5 || studentGrades.some((g: any) => g.points < 2.0 && g.letterGrade !== 'Pass');
         }).length;
 
         return { totalStudents, totalModules, avgGPA, passRate, atRiskStudents };
@@ -146,7 +146,7 @@ export default function ReportsClient({ initialData }: { initialData: any }) {
                 ? moduleGrades.reduce((sum: number, g: any) => sum + g.points, 0) / moduleGrades.length
                 : 0;
             const passRate = moduleGrades.length > 0
-                ? (moduleGrades.filter((g: any) => g.points >= 2.0).length / moduleGrades.length) * 100
+                ? (moduleGrades.filter((g: any) => g.points >= 2.0 || g.letterGrade === 'Pass').length / moduleGrades.length) * 100
                 : 0;
 
             return { module: module.title, code: module.code, avgGrade, passRate, enrolledStudents: moduleGrades.length };
@@ -159,7 +159,7 @@ export default function ReportsClient({ initialData }: { initialData: any }) {
             const studentPoints = studentGrades.reduce((sum: number, grade: any) => sum + (grade.points * grade.credits), 0);
             const studentCredits = studentGrades.reduce((sum: number, grade: any) => sum + grade.credits, 0);
             const studentGPA = studentCredits > 0 ? studentPoints / studentCredits : 0;
-            return studentGPA < 2.5 || studentGrades.some((g: any) => g.points < 2.0);
+            return studentGPA < 2.5 || studentGrades.some((g: any) => g.points < 2.0 && g.letterGrade !== 'Pass');
         }).map((student: any) => {
             const studentGrades = grades.filter((g: any) => g.studentId === student.id && g.isReleased);
             const studentPoints = studentGrades.reduce((sum: number, grade: any) => sum + (grade.points * grade.credits), 0);
