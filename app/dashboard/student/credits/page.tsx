@@ -6,11 +6,11 @@ import Loading from '../loading';
 export const dynamic = 'force-dynamic';
 
 export default async function CreditsPage() {
-  const { studentGrades } = await getCreditsData();
+  const data = await getCreditsData();
 
   return (
     <Suspense fallback={<Loading />}>
-      <CreditsClient studentGrades={studentGrades} />
+      <CreditsClient {...data} />
     </Suspense>
   );
 }

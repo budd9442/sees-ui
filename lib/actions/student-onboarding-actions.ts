@@ -2,8 +2,9 @@
 
 import { randomUUID } from 'crypto';
 import type { Prisma } from '@prisma/client';
-import { auth } from '@/auth';
+import { auth, signOut } from '@/auth';
 import { prisma } from '@/lib/db';
+import { redirect } from 'next/navigation';
 import {
     normalizeOnboardingQuestions,
     ONBOARDING_QUESTIONS_SETTING_KEY,
@@ -110,8 +111,11 @@ export async function getStudentOnboardingState() {
         where: { student_id: session.user.id },
         select: { metadata: true, onboarding_completed_at: true },
     });
-    if (!student) throw new Error('Student profile not found');
     const doc = await readQuestionsDoc();
+    if (!student) {
+        // If no student profile exists, log out the user to prevent redirect loop.
+        await signOut({ redirectTo: '/login' });
+    }
     return {
         completed: !!student.onboarding_completed_at,
         completedAt: student.onboarding_completed_at?.toISOString() ?? null,
@@ -156,7 +160,9 @@ export async function submitStudentOnboardingAnswers(answersRaw: unknown) {
         where: { student_id: session.user.id },
         select: { metadata: true },
     });
-    if (!student) throw new Error('Student profile not found');
+    if (!student) {
+        await signOut({ redirectTo: '/login' });
+    }
 
     const existing = (student.metadata ?? {}) as Record<string, unknown>;
     const nextMetadata = { ...existing, ...answers };

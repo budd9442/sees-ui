@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Mail, Shield, Building, IdCard, GraduationCap } from "lucide-react";
+import { TwoFactorSettings } from "@/components/auth/TwoFactorSettings";
 
 type ProfileFormData = {
     firstName: string;
@@ -217,6 +218,27 @@ export default function ProfilePage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Security Section */}
+            {(user.role === 'admin' || user.role === 'staff') && (
+                <div className="grid gap-6 md:grid-cols-2">
+                    <TwoFactorSettings />
+                    <Card className="border-border/40">
+                        <CardHeader>
+                            <CardTitle>Session Security</CardTitle>
+                            <CardDescription>Manage active sessions and security logs.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                Your last login was on {user.lastLoginDate ? new Date(user.lastLoginDate).toLocaleString() : 'N/A'}.
+                            </p>
+                            <Button variant="outline" size="sm" disabled>
+                                View Login History
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

@@ -24,6 +24,10 @@ model User {
   role                String               @default("student")
   firstName           String
   lastName            String
+  isTwoFactorEnabled  Boolean              @default(false)
+  twoFactorSecret     String?
+  twoFactorBackupCodes String[]
+  twoFactorConfirmation TwoFactorConfirmation?
   received_messages   Message[]            @relation("Recipient")
   sent_messages       Message[]            @relation("Sender")
   notifications       Notification[]
@@ -33,6 +37,12 @@ model User {
   registrationTokens                      RegistrationToken[]
   resolved_selection_change_requests        SelectionAllocationChangeRequest[] @relation("ResolvedSelectionChangeRequests")
   analytics_reports                         AnalyticsReport[]
+}
+
+model TwoFactorConfirmation {
+  id      String @id @default(cuid())
+  userId  String @unique
+  user    User   @relation(fields: [userId], references: [user_id], onDelete: Cascade)
 }
 
 model RegistrationToken {

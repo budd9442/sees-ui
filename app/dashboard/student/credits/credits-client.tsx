@@ -30,19 +30,44 @@ import { exportTabularData } from '@/lib/export';
 
 interface CreditsClientProps {
     studentGrades: any[];
+    creditDetail: {
+        completed: number;
+        required: number;
+        remaining: number;
+    };
+    creditRules: Array<{
+        level: string;
+        min: number;
+        max: number;
+        semester: number;
+    }>;
+    thresholds: Record<string, string>;
+    gradingBands: Array<{
+        letter: string;
+        points: number;
+        minMarks: number;
+        maxMarks: number;
+    }>;
 }
 
-/** Released module counts toward credit using grade points (letter-only ok) or legacy marks ≥ 50. */
-function earnsModuleCredit(g: any) {
-    if (!g.isReleased) return false;
-    const pts = g.gradePoint ?? g.points ?? 0;
-    if (pts >= 2) return true;
-    const m = g.marks ?? (typeof g.grade === 'number' ? g.grade : null);
-    return m != null && typeof m === 'number' && m >= 50;
-}
 
-export function CreditsClient({ studentGrades }: CreditsClientProps) {
+export function CreditsClient({ 
+    studentGrades, 
+    creditDetail, 
+    creditRules, 
+    thresholds, 
+    gradingBands 
+}: CreditsClientProps) {
     const [selectedSemester, setSelectedSemester] = useState('all');
+
+    /** Released module counts toward credit using grade points (letter-only ok) or legacy marks ≥ 50. */
+    const earnsModuleCredit = (g: any) => {
+        if (!g.isReleased) return false;
+        const pts = g.gradePoint ?? g.points ?? 0;
+        if (pts >= 2) return true;
+        const m = g.marks ?? (typeof g.grade === 'number' ? g.grade : null);
+        return m != null && typeof m === 'number' && m >= 50;
+    };
 
     // Calculate credit totals
     const totalCreditsEarned = studentGrades.filter(earnsModuleCredit).reduce((sum, g) => sum + g.credits, 0);
@@ -51,8 +76,8 @@ export function CreditsClient({ studentGrades }: CreditsClientProps) {
         .filter(g => g.isReleased)
         .reduce((sum, g) => sum + g.credits, 0);
 
-    const totalCreditsRequired = 132; // Honours graduation requirement per guide
-    const creditsRemaining = totalCreditsRequired - totalCreditsEarned;
+    const totalCreditsRequired = creditDetail.required || 132;
+    const creditsRemaining = Math.max(0, totalCreditsRequired - totalCreditsEarned);
     const progressPercentage = Math.round((totalCreditsEarned / totalCreditsRequired) * 100);
 
     // Group by academic year and semester
@@ -97,18 +122,36 @@ export function CreditsClient({ studentGrades }: CreditsClientProps) {
     });
 
     // Academic year requirements
-    const yearRequirements = {
-        L1: { min: 24, max: 30, description: 'Foundation year modules' },
-        L2: { min: 24, max: 30, description: 'Core degree modules' },
-        L3: { min: 24, max: 30, description: 'Advanced modules and project' },
-        L4: { min: 24, max: 30, description: 'Final year and research project' },
-    } as const;
+    const aggregatedYearRequirements = creditRules.reduce((acc, rule) => {
+        const level = rule.level;
+        if (!acc[level]) {
+            acc[level] = { min: 0, max: 0, description: `${level} degree modules` };
+        }
+        acc[level].min += rule.min;
+        acc[level].max += rule.max;
+        return acc;
+    }, {} as Record<string, { min: number, max: number, description: string }>);
 
-    const getGradeColor = (grade: number) => {
-        if (grade >= 80) return 'text-green-600';
-        if (grade >= 70) return 'text-blue-600';
-        if (grade >= 60) return 'text-yellow-600';
-        if (grade >= 50) return 'text-orange-600';
+    const yearRequirements = Object.keys(aggregatedYearRequirements).length > 0
+        ? aggregatedYearRequirements
+        : {
+            L1: { min: 24, max: 30, description: 'Foundation year modules' },
+            L2: { min: 24, max: 30, description: 'Core degree modules' },
+            L3: { min: 24, max: 30, description: 'Advanced modules and project' },
+            L4: { min: 24, max: 30, description: 'Final year and research project' },
+        };
+
+    const getGradeColor = (marks: number) => {
+        if (gradingBands.length > 0) {
+            const band = [...gradingBands].sort((a, b) => b.minMarks - a.minMarks).find(b => marks >= b.minMarks);
+            if (band) return getLetterGradeColor(band.letter);
+        }
+        
+        // Fallback to legacy thresholds
+        if (marks >= 80) return 'text-green-600';
+        if (marks >= 70) return 'text-blue-600';
+        if (marks >= 60) return 'text-yellow-600';
+        if (marks >= 50) return 'text-orange-600';
         return 'text-red-600';
     };
 

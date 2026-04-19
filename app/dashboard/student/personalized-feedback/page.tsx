@@ -215,23 +215,7 @@ export default function PersonalizedFeedbackPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Next 30-Day Plan</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="text-sm list-disc pl-4 space-y-1">
-            {(feedback.next30DayPlan || []).map((p: string, i: number) => <li key={i}>{p}</li>)}
-          </ul>
-        </CardContent>
-      </Card>
 
-      <Alert>
-        <Sparkles className="h-4 w-4" />
-        <AlertDescription>
-          {feedback.confidenceNotes?.summary || 'AI feedback generated from your complete academic context.'}
-        </AlertDescription>
-      </Alert>
       </>
       )}
     </div>

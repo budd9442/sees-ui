@@ -29,8 +29,13 @@ function LoginButton() {
 }
 
 export default function LoginPage() {
-    const [errorMessage, dispatch] = useActionState(authenticate, undefined);
+    const [state, dispatch] = useActionState(authenticate, undefined);
     const [showPassword, setShowPassword] = useState(false);
+    
+    const errorMessage = typeof state === 'string' ? state : state?.error;
+    const show2FA = (errorMessage === '2FA_REQUIRED' || errorMessage === 'INVALID_2FA_CODE') && typeof state === 'object';
+    const persistedEmail = typeof state === 'object' ? state?.email : '';
+    const persistedPassword = typeof state === 'object' ? state?.password : '';
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-background">
@@ -102,51 +107,92 @@ export default function LoginPage() {
                         </CardHeader>
                         <CardContent>
                             <form action={dispatch} className="space-y-5">
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Email</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        name="email"
-                                        placeholder="name@sees.edu"
-                                        autoComplete="email"
-                                        required
-                                    />
-                                </div>
+                                {show2FA ? (
+                                    <>
+                                        <input type="hidden" name="email" value={persistedEmail} />
+                                        <input type="hidden" name="password" value={persistedPassword} />
+                                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor="code">Two-Factor Code</Label>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => window.location.reload()}
+                                                        className="text-xs text-primary hover:underline"
+                                                    >
+                                                        Back to Login
+                                                    </button>
+                                                </div>
+                                                <Input
+                                                    id="code"
+                                                    name="code"
+                                                    placeholder="Enter 6-digit verification code"
+                                                    required
+                                                    autoFocus
+                                                    maxLength={6}
+                                                    className="font-mono text-center tracking-widest text-lg"
+                                                />
+                                                <p className="text-[0.8rem] text-muted-foreground">
+                                                    Enter the code from your authenticator app.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="email">Email</Label>
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                name="email"
+                                                placeholder="name@sees.edu"
+                                                autoComplete="email"
+                                                required
+                                            />
+                                        </div>
 
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <Label htmlFor="password">Password</Label>
-                                        <Link
-                                            href="/forgot-password"
-                                            className="text-sm font-medium text-primary hover:underline"
-                                        >
-                                            Forgot password?
-                                        </Link>
-                                    </div>
-                                    <div className="relative">
-                                        <Input
-                                            id="password"
-                                            type={showPassword ? 'text' : 'password'}
-                                            name="password"
-                                            placeholder="Enter your password"
-                                            autoComplete="current-password"
-                                            required
-                                            minLength={6}
-                                            className="pr-10"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword((s) => !s)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                        >
-                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                        </button>
-                                    </div>
-                                </div>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <Label htmlFor="password">Password</Label>
+                                                <Link
+                                                    href="/forgot-password"
+                                                    className="text-sm font-medium text-primary hover:underline"
+                                                >
+                                                    Forgot password?
+                                                </Link>
+                                            </div>
+                                            <div className="relative">
+                                                <Input
+                                                    id="password"
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    name="password"
+                                                    placeholder="Enter your password"
+                                                    autoComplete="current-password"
+                                                    required
+                                                    minLength={6}
+                                                    className="pr-10"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword((s) => !s)}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                                >
+                                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
 
-                                {errorMessage && (
+                                {show2FA && errorMessage === 'INVALID_2FA_CODE' && (
+                                    <Alert variant="destructive">
+                                        <AlertDescription>Invalid verification code. Please try again.</AlertDescription>
+                                    </Alert>
+                                )}
+
+                                {errorMessage && !show2FA && (
                                     <Alert variant="destructive">
                                         <AlertDescription>{errorMessage}</AlertDescription>
                                     </Alert>

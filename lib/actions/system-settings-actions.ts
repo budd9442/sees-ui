@@ -94,6 +94,7 @@ export async function initializeSystemGovernance() {
         { key: 'maintenance_mode', value: 'false', category: 'SYSTEM', description: 'Safety lockdown for students and staff' },
         { key: 'institution_name', value: 'SEES Academic Platform', category: 'BRANDING', description: 'University name for portal UI' },
         { key: 'active_semester_id', value: 'SEM-CURRENT-UUID', category: 'ACADEMIC', description: 'System-wide active semester' },
+        { key: 'ENFORCE_STAFF_2FA', value: 'false', category: 'SECURITY', description: 'Force all Staff and Admins to use Two-Factor Authentication' },
     ];
 
     return { success: true };

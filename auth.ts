@@ -5,6 +5,7 @@ import { compare } from "bcryptjs";
 import Credentials from "next-auth/providers/credentials";
 import { headers } from "next/headers";
 import { clientIpFromHeaders, writeAuditLog } from "@/lib/audit/write-audit-log";
+import { verifyTwoFactorCode } from "@/lib/auth/two-factor";
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig,
@@ -27,6 +28,11 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     },
     providers: [
         Credentials({
+            credentials: {
+                email: { label: "Email", type: "email" },
+                password: { label: "Password", type: "password" },
+                code: { label: "Code", type: "text" }
+            },
             async authorize(credentials) {
                 const { email, password } = credentials ?? {};
                 const h = await headers();
@@ -68,6 +74,40 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                 const passwordsMatch = await compare(String(password), (user as any).password_hash);
 
                 if (passwordsMatch) {
+                    // Check for 2FA enforcement
+                    const enforce2FASetting = await prisma.systemSetting.findUnique({
+                        where: { key: 'ENFORCE_STAFF_2FA' }
+                    });
+                    
+                    let userRole = (user as any).role ?? 'student';
+                    const isStaffOrAdmin = userRole === 'admin' || !!(user as any).staff;
+                    const is2FARequired = (enforce2FASetting?.value === 'true' && isStaffOrAdmin) || user.isTwoFactorEnabled;
+
+                    if (is2FARequired) {
+                        const code = (credentials as any).code;
+                        
+                        if (!code) {
+                            throw new Error("2FA_REQUIRED");
+                        }
+
+                        const isValid = await verifyTwoFactorCode(code, user.twoFactorSecret || "");
+                        
+                        if (!isValid) {
+                            const isBackupValid = user.twoFactorBackupCodes.includes(code);
+                            if (!isBackupValid) {
+                                throw new Error("INVALID_2FA_CODE");
+                            }
+                            
+                            // Remove used backup code
+                            await prisma.user.update({
+                                where: { user_id: user.user_id },
+                                data: {
+                                    twoFactorBackupCodes: user.twoFactorBackupCodes.filter(c => c !== code)
+                                }
+                            });
+                        }
+                    }
+
                     try {
                         // Use string literal key access to avoid linter complaints if types are messy
                         // Or assume linter is right about camelCase

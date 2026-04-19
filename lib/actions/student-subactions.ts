@@ -7,58 +7,87 @@ import { assertStudentWriteAccess } from '@/lib/actions/student-access';
 import { AcademicEngine } from '@/lib/services/academic-engine';
 import { GrokService } from '@/lib/services/grok-service';
 import { createHash } from 'crypto';
+import { evaluateStudentEligibility } from '@/lib/graduation/student-eligibility';
 
 export async function getCreditsData() {
     const session = await auth();
-    if (!session?.user?.email) throw new Error("Unauthorized");
+    if (!session?.user?.id) throw new Error("Unauthorized");
 
-    let userId = session.user.id;
-    let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
-    if (!u && session.user.email) {
-        u = await prisma.user.findUnique({ where: { email: session.user.email } });
-    }
-
-    if (!u) throw new Error("User not found");
-    userId = u.user_id;
-
-    const studentRecord = await prisma.student.findUnique({
-        where: { student_id: userId },
-        include: {
-            grades: {
-                include: {
-                    module: true,
-                    semester: {
-                        include: { academic_year: true }
+    const userId = session.user.id;
+    const [student, eligibility, creditRules, settings, gradingScheme] = await Promise.all([
+        prisma.student.findUnique({
+            where: { student_id: userId },
+            include: {
+                grades: {
+                    include: {
+                        module: true,
+                        semester: {
+                            include: { academic_year: true }
+                        }
                     }
                 }
-            } as any
-        }
-    });
+            }
+        }),
+        evaluateStudentEligibility(userId),
+        prisma.academicCreditRule.findMany({
+            where: { academic_year: { active: true } }
+        }),
+        prisma.systemSetting.findMany({
+            where: {
+                key: {
+                    in: [
+                        'threshold_first_class',
+                        'threshold_second_upper',
+                        'threshold_second_lower',
+                        'threshold_third_class',
+                    ]
+                }
+            }
+        }),
+        prisma.gradingScheme.findFirst({
+            where: { active: true },
+            include: { bands: true }
+        })
+    ]);
 
-    if (!studentRecord) throw new Error("Student profile not found");
+    if (!student) throw new Error("Student profile not found");
 
-    const record = studentRecord as any;
-
-    const studentGrades = record.grades.map((g: any) => {
+    const studentGrades = student.grades.map((g: any) => {
         const isReleased = !!g.released_at;
         return {
-        id: g.grade_id,
-        moduleId: g.module_id,
-        moduleCode: g.module.code,
-        moduleTitle: g.module.name,
-        credits: g.module.credits,
-        marks: isReleased ? g.marks ?? null : null,
-        grade: isReleased ? g.marks ?? null : null,
-        letterGrade: isReleased ? g.letter_grade : 'Pending',
-        points: isReleased ? g.grade_point : 0,
-        gradePoint: isReleased ? g.grade_point : 0,
-        semester: g.semester.label || 'Unknown',
-        academicYear: g.module.level || 'L1', // Fallback to module level
-        isReleased
-    };
+            id: g.grade_id,
+            moduleId: g.module_id,
+            moduleCode: g.module.code,
+            moduleTitle: g.module.name,
+            credits: g.module.credits,
+            marks: isReleased ? g.marks ?? null : null,
+            grade: isReleased ? g.marks ?? null : null,
+            letterGrade: isReleased ? g.letter_grade : 'Pending',
+            points: isReleased ? g.grade_point : 0,
+            gradePoint: isReleased ? g.grade_point : 0,
+            semester: g.semester.label || 'Unknown',
+            academicYear: g.module.level || 'L1',
+            isReleased
+        };
     });
 
-    return { studentGrades };
+    return { 
+        studentGrades,
+        creditDetail: eligibility.creditDetail,
+        creditRules: creditRules.map(r => ({
+            level: r.level,
+            min: r.min_credits,
+            max: r.max_credits,
+            semester: r.semester_number
+        })),
+        thresholds: Object.fromEntries(settings.map(s => [s.key, s.value])),
+        gradingBands: gradingScheme?.bands.map(b => ({
+            letter: b.letter_grade,
+            points: b.grade_point,
+            minMarks: b.min_marks,
+            maxMarks: b.max_marks
+        })) || []
+    };
 }
 
 type QuantGoalType = 'GPA_TARGET' | 'CREDITS_TARGET' | 'MODULE_GRADE_TARGET' | 'CGPA_IMPROVEMENT';
