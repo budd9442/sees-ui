@@ -429,47 +429,36 @@ export function VisualEncodingInspector({ selected, updateSelected, allowedDatas
                 <SectionHeader icon={Filter} label="Filters" count={activeFilters} open={openSections.filters} onClick={() => toggleSection('filters')} />
                 {openSections.filters && (
                     <div className="space-y-2 pl-1">
-                        {/* Metadata filters */}
-                        {selected.datasetId === 'core_student_metrics' && (
+                        {/* Student & Academic filters */}
+                        {(selected.datasetId === 'core_student_metrics' || selected.datasetId === 'core_grade_distribution') && (
                             <>
                                 <div className="space-y-1">
-                                    <Label className="text-xs">Metadata key</Label>
+                                    <Label className="text-xs">Pathway / Program</Label>
                                     <Input
-                                        value={selected.filters?.metadataKey ?? ''}
-                                        placeholder="e.g. al_subject_stream"
+                                        value={selected.filters?.pathway ?? ''}
+                                        placeholder="e.g. MIT"
                                         className="h-8 text-xs"
-                                        onChange={(e) => mergeFilters({ metadataKey: e.target.value || undefined })}
+                                        onChange={(e) => mergeFilters({ pathway: e.target.value || undefined })}
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-xs">Metadata value</Label>
-                                    <Input
-                                        value={selected.filters?.metadataValue ?? ''}
-                                        placeholder="e.g. Physical Science"
-                                        className="h-8 text-xs"
-                                        onChange={(e) => mergeFilters({ metadataValue: e.target.value || undefined })}
-                                    />
+                                    <Label className="text-xs">Level filter</Label>
+                                    <Select
+                                        value={selected.filters?.level ?? '__all__'}
+                                        onValueChange={(v) => mergeFilters({ level: v === '__all__' ? undefined : v })}
+                                    >
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="All levels" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__all__" className="text-xs">All levels</SelectItem>
+                                            {['L1', 'L2', 'L3', 'L4'].map((l) => <SelectItem key={l} value={l} className="text-xs">{l}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </>
                         )}
 
-                        {/* Level filter */}
-                        <div className="space-y-1">
-                            <Label className="text-xs">Level filter</Label>
-                            <Select
-                                value={selected.filters?.level ?? '__all__'}
-                                onValueChange={(v) => mergeFilters({ level: v === '__all__' ? undefined : v })}
-                            >
-                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="All levels" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="__all__" className="text-xs">All levels</SelectItem>
-                                    {['L1', 'L2', 'L3', 'L4'].map((l) => <SelectItem key={l} value={l} className="text-xs">{l}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* GPA range (for student summary datasets) */}
-                        {(selected.datasetId.startsWith('admin_') || selected.datasetId.startsWith('hod_student')) && (
+                        {/* GPA range */}
+                        {(selected.datasetId === 'core_student_metrics' || selected.datasetId === 'core_grade_distribution') && (
                             <div className="grid grid-cols-2 gap-1.5">
                                 <div className="space-y-1">
                                     <Label className="text-xs">GPA min</Label>
@@ -500,26 +489,87 @@ export function VisualEncodingInspector({ selected, updateSelected, allowedDatas
                             </div>
                         )}
 
-                        {/* Enrollment status */}
+                        {/* Status filters */}
                         {selected.datasetId === 'core_student_metrics' && (
+                            <>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Enrollment status</Label>
+                                    <Select
+                                        value={selected.filters?.enrollmentStatus ?? '__all__'}
+                                        onValueChange={(v) => mergeFilters({ enrollmentStatus: v === '__all__' ? undefined : v })}
+                                    >
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__all__" className="text-xs">All</SelectItem>
+                                            {['ENROLLED', 'SUSPENDED', 'WITHDRAWN', 'GRADUATED'].map((s) => (
+                                                <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Graduation status</Label>
+                                    <Select
+                                        value={selected.filters?.graduationStatus ?? '__all__'}
+                                        onValueChange={(v) => mergeFilters({ graduationStatus: v === '__all__' ? undefined : v })}
+                                    >
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__all__" className="text-xs">All</SelectItem>
+                                            {['NOT_GRADUATED', 'PENDING', 'GRADUATED'].map((s) => (
+                                                <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Module specific filters */}
+                        {selected.datasetId === 'core_module_metrics' && (
                             <div className="space-y-1">
-                                <Label className="text-xs">Enrollment status</Label>
-                                <Select
-                                    value={selected.filters?.enrollmentStatus ?? '__all__'}
-                                    onValueChange={(v) => mergeFilters({ enrollmentStatus: v === '__all__' ? undefined : v })}
-                                >
-                                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="__all__" className="text-xs">All</SelectItem>
-                                        {['ENROLLED', 'SUSPENDED', 'WITHDRAWN', 'GRADUATED'].map((s) => (
-                                            <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label className="text-xs">Fail rate min (%)</Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={selected.filters?.failRateMin ?? ''}
+                                    placeholder="e.g. 15"
+                                    className="h-8 text-xs"
+                                    onChange={(e) => mergeFilters({ failRateMin: e.target.value ? parseFloat(e.target.value) : undefined })}
+                                />
                             </div>
                         )}
 
-                        {/* Admission year */}
+                        {/* Audit / Career filters */}
+                        {(selected.datasetId === 'core_career_goals' || selected.datasetId === 'core_audit_logs') && (
+                            <>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">{selected.datasetId === 'core_audit_logs' ? 'Action Type' : 'Status'}</Label>
+                                    <Input
+                                        value={selected.filters?.status ?? ''}
+                                        placeholder="e.g. LOGIN"
+                                        className="h-8 text-xs"
+                                        onChange={(e) => mergeFilters({ status: e.target.value || undefined })}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Company / Category</Label>
+                                    <Input
+                                        value={selected.filters?.company ?? selected.filters?.metadataKey ?? ''}
+                                        placeholder="e.g. Google"
+                                        className="h-8 text-xs"
+                                        onChange={(e) => {
+                                            const val = e.target.value || undefined;
+                                            if (selected.datasetId === 'core_audit_logs') mergeFilters({ metadataKey: val });
+                                            else mergeFilters({ company: val });
+                                        }}
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {/* Common filters */}
                         <div className="space-y-1">
                             <Label className="text-xs">Admission year</Label>
                             <Input
@@ -532,6 +582,32 @@ export function VisualEncodingInspector({ selected, updateSelected, allowedDatas
                                 onChange={(e) => mergeFilters({ admissionYear: e.target.value ? parseInt(e.target.value) : undefined })}
                             />
                         </div>
+
+                        {/* Metadata filters */}
+                        {selected.datasetId === 'core_student_metrics' && (
+                            <>
+                                <Separator className="my-2" />
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-tight">Custom Metadata</p>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Key</Label>
+                                    <Input
+                                        value={selected.filters?.metadataKey ?? ''}
+                                        placeholder="e.g. first_generation"
+                                        className="h-8 text-xs"
+                                        onChange={(e) => mergeFilters({ metadataKey: e.target.value || undefined })}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Value</Label>
+                                    <Input
+                                        value={selected.filters?.metadataValue ?? ''}
+                                        placeholder="e.g. YES"
+                                        className="h-8 text-xs"
+                                        onChange={(e) => mergeFilters({ metadataValue: e.target.value || undefined })}
+                                    />
+                                </div>
+                            </>
+                        )}
 
                         {activeFilters > 0 && (
                             <Button

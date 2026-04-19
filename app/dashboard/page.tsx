@@ -24,7 +24,7 @@ export default async function DashboardPage() {
     }
 
     if (role === 'advisor') {
-        redirect('/dashboard/advisor');
+        redirect('/dashboard/staff');
     }
 
     if (role === 'hod') {

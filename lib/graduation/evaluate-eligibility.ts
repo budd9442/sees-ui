@@ -274,10 +274,8 @@ export function academicClassFromDivision(divisionId: DivisionId | null, divisio
             return 'Second Upper';
         case 'SECOND_LOWER':
             return 'Second Lower';
-        case 'THIRD_PASS':
-            return 'Third/Pass';
         case 'BASE_DEGREE':
-            return divisionLabel || 'Degree eligible';
+            return divisionLabel || 'Pass';
         default:
             return divisionLabel || 'Pass';
     }
@@ -301,6 +299,7 @@ export function evaluateGraduationRules(
         programId: string;
         studentSpecializationId: string | null;
         admissionYear: number;
+        graduationRequiredCredits?: number;
     }
 ): EligibilityEvaluationResult {
     const rules = parseGraduationRulesDocument(rulesInput);
@@ -343,11 +342,11 @@ export function evaluateGraduationRules(
     const completedCredits = input.grades.reduce((sum, g) => sum + g.module.credits, 0);
 
     const baseEval = divisionEvaluations.find((d) => d.divisionId === 'BASE_DEGREE');
-    const degreeReq = baseEval || divisionEvaluations.find(d => d.divisionId === 'THIRD_PASS');
+    const degreeReq = baseEval;
     const creditCond = degreeReq?.conditions.find(c => c.condition.type === 'min_credits_at_min_grade_point' || c.condition.type === 'min_total_credits_attempted');
 
     // Extracted purely for Dashboard aesthetic tracking. Never silently blocks eligibility.
-    const requiredCredits = (creditCond?.condition as any)?.minCredits || (totalStructuredCredits > 0 ? totalStructuredCredits : 132);
+    const requiredCredits = (creditCond?.condition as any)?.minCredits || (totalStructuredCredits > 0 ? totalStructuredCredits : (input.graduationRequiredCredits || 132));
 
     // Final Eligibility determination: PURE CONFIGURATION DRIVEN
     // A student is eligible if they pass the BASE_DEGREE configuration (if it exists).
@@ -391,20 +390,21 @@ export function evaluateGraduationRules(
 }
 
 /** Ephemeral rules from flat GPA thresholds (when no DB profile exists). */
-export function ephemeralRulesFromThresholds(first: number, upper: number, lower: number, third: number): GraduationRulesDocument {
+export function ephemeralRulesFromThresholds(first: number, upper: number, lower: number): GraduationRulesDocument {
     return {
         schemaVersion: 1,
         version: 1,
-        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS', 'BASE_DEGREE'],
+        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'BASE_DEGREE'],
         divisions: {
             FIRST_CLASS: { label: 'First Class', conditions: [{ type: 'min_gpa', minGpa: first }] },
             SECOND_UPPER: { label: 'Second Class Upper', conditions: [{ type: 'min_gpa', minGpa: upper }] },
             SECOND_LOWER: { label: 'Second Class Lower', conditions: [{ type: 'min_gpa', minGpa: lower }] },
-            THIRD_PASS: { label: 'Third Class', conditions: [{ type: 'min_gpa', minGpa: third }] },
             BASE_DEGREE: {
-                label: 'Degree Eligible',
+                label: 'Pass',
                 conditions: [
                     { type: 'min_gpa', minGpa: 2.0 },
+                    { type: 'min_total_credits_attempted', minCredits: 132, minGradePoint: 1.0, scope: 'ALL_STRUCTURED' },
+                    { type: 'min_credits_at_min_grade_point', minCredits: 105, minGradePoint: 2.0, scope: 'ALL_STRUCTURED' }
                 ]
             }
         },

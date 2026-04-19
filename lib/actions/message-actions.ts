@@ -11,7 +11,7 @@ const userInclude = {
   student: true,
   staff: {
     include: {
-      advisor: true,
+      advisor_profile: true,
       hod: true,
     },
   },

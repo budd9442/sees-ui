@@ -8,8 +8,8 @@ import type { ReportDefinition } from '@/lib/analytics/schema';
 import type { AnalyticsQueryFilters } from '@/lib/analytics/schema';
 
 type Props = {
-    backHref: string;
-    backLabel: string;
+    backHref?: string;
+    backLabel?: string;
     defaultDefinition: ReportDefinition;
     filterContext: AnalyticsQueryFilters;
     builderRole: string;
@@ -29,12 +29,14 @@ export function ReportBuilderPageShell({
     return (
         <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-background">
             <div className="flex flex-wrap items-center gap-3 px-4 py-3 shrink-0 border-b">
-                <Button variant="ghost" size="sm" asChild className="-ml-2">
-                    <Link href={backHref}>
-                        <ArrowLeft className="h-4 w-4 mr-1" />
-                        {backLabel}
-                    </Link>
-                </Button>
+                {backHref && backLabel && (
+                    <Button variant="ghost" size="sm" asChild className="-ml-2">
+                        <Link href={backHref}>
+                            <ArrowLeft className="h-4 w-4 mr-1" />
+                            {backLabel}
+                        </Link>
+                    </Button>
+                )}
                 <div>
                     <h1 className="text-lg font-semibold tracking-tight">Analytics Report Builder</h1>
                     <p className="text-[10px] text-muted-foreground">Build, save, and share custom analytics reports</p>

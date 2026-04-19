@@ -86,7 +86,7 @@ export async function ensureDefaultSettings() {
         { key: 'threshold_first_class', value: '3.7', description: 'Minimum GPA for First Class' },
         { key: 'threshold_second_upper', value: '3.0', description: 'Minimum GPA for Second Upper' },
         { key: 'threshold_second_lower', value: '2.5', description: 'Minimum GPA for Second Lower' },
-        { key: 'threshold_pass', value: '2.0', description: 'Minimum GPA for Pass' }
+        { key: 'threshold_pass_class', value: '2.0', description: 'Minimum GPA for Pass' }
     ];
 
     for (const d of defaults) {

@@ -44,7 +44,6 @@ export async function confirmTwoFactorSetup(code: string, secret: string) {
         }
     });
 
-    revalidatePath('/dashboard/settings');
     revalidatePath('/dashboard/profile');
 
     return { success: true, backupCodes };
@@ -63,7 +62,6 @@ export async function disableTwoFactor() {
         }
     });
 
-    revalidatePath('/dashboard/settings');
     revalidatePath('/dashboard/profile');
 
     return { success: true };

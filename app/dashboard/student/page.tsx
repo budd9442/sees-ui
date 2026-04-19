@@ -30,6 +30,7 @@ export default async function StudentDashboardPage() {
           pathwayDemand={data.pathwayDemand}
           gpaHistory={gpaHistory}
           goalsSummary={goalsSummary}
+          graduationRequiredCredits={data.graduationRequiredCredits}
         />
       </Suspense>
     );

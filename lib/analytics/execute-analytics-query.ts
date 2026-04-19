@@ -67,8 +67,10 @@ export async function executeAnalyticsQuery(raw: unknown): Promise<AnalyticsQuer
                         where: {
                             current_gpa: { gte: thresholdMin, lte: thresholdMax },
                             ...(f.level ? { current_level: f.level } : {}),
+                            ...(f.pathway ? { degree_path: { name: { contains: f.pathway, mode: 'insensitive' } } } : {}),
                             ...(f.programId ? { degree_path_id: f.programId } : {}),
                             ...(f.enrollmentStatus ? { enrollment_status: f.enrollmentStatus } : {}),
+                            ...(f.graduationStatus ? { graduation_status: f.graduationStatus } : {}),
                             ...(f.admissionYear ? { admission_year: f.admissionYear } : {}),
                         },
                         select: {
@@ -78,13 +80,13 @@ export async function executeAnalyticsQuery(raw: unknown): Promise<AnalyticsQuer
                             admission_year: true,
                             academic_class: true,
                             enrollment_status: true,
+                            graduation_status: true,
                             metadata: true,
                             degree_path: { select: { name: true, code: true } },
                             user: { select: { firstName: true, lastName: true, email: true } },
                         },
                     });
 
-                    type Acc = { n: number; sumGpa: number };
                     const groupByField = (s: any): string | null => {
                         if (groupBy === 'level') return s.current_level ?? 'Unknown';
                         if (groupBy === 'pathway' || groupBy === 'program') return s.degree_path?.name ?? 'Unknown';
@@ -132,10 +134,76 @@ export async function executeAnalyticsQuery(raw: unknown): Promise<AnalyticsQuer
                             admission_year: s.admission_year,
                             academic_class: s.academic_class ?? '',
                             enrollment_status: s.enrollment_status ?? '',
+                            graduation_status: s.graduation_status ?? '',
                             ...Object.fromEntries(metadataKeys.map((k) => [k, String(meta[k] ?? '')])),
                         };
                     });
-                    return { columns: ['student_id', 'name', 'email', 'gpa', 'level', 'program', 'admission_year', 'academic_class', 'enrollment_status', ...metadataKeys], rows };
+                    return { columns: ['student_id', 'name', 'email', 'gpa', 'level', 'program', 'admission_year', 'academic_class', 'enrollment_status', 'graduation_status', ...metadataKeys], rows };
+                }
+
+                case 'core_audit_logs': {
+                    const logs = await prisma.auditLog.findMany({
+                        where: {
+                            ...(f.status ? { action: f.status } : {}), // reusing status for action type in logs
+                            ...(f.metadataKey ? { category: f.metadataKey } : {}),
+                        },
+                        orderBy: { timestamp: 'desc' },
+                        take: 500
+                    });
+
+                    if (groupBy === 'status' || groupBy === 'category') {
+                        const map = new Map<string, number>();
+                        for (const l of logs) {
+                            const key = groupBy === 'status' ? l.action : l.category;
+                            map.set(key, (map.get(key) ?? 0) + 1);
+                        }
+                        const rows = [...map.entries()].map(([key, count]) => ({ [groupBy]: key, count }));
+                        return { columns: [groupBy, 'count'], rows };
+                    }
+
+                    const rows = logs.map(l => ({
+                        log_id: l.log_id,
+                        action: l.action,
+                        category: l.category,
+                        timestamp: l.timestamp,
+                        ip: l.ip_address,
+                        entity: `${l.entity_type}:${l.entity_id}`
+                    }));
+                    return { columns: ['log_id', 'action', 'category', 'timestamp', 'ip', 'entity'], rows };
+                }
+
+                case 'core_system_health': {
+                    const metrics = await prisma.systemMetric.findMany({
+                        orderBy: { timestamp: 'desc' },
+                        take: 100
+                    });
+
+                    if (groupBy === 'month') {
+                        const map = new Map<string, { n: number, cpu: number, mem: number }>();
+                        for (const m of metrics) {
+                            const key = monthKey(m.timestamp);
+                            const cur = map.get(key) ?? { n: 0, cpu: 0, mem: 0 };
+                            cur.n++;
+                            cur.cpu += m.cpu;
+                            cur.mem += m.memory;
+                            map.set(key, cur);
+                        }
+                        const rows = [...map.entries()].map(([key, v]) => ({
+                            month: key,
+                            avg_cpu: Math.round(v.cpu / v.n),
+                            avg_memory: Math.round(v.mem / v.n)
+                        }));
+                        return { columns: ['month', 'avg_cpu', 'avg_memory'], rows };
+                    }
+
+                    const rows = metrics.map(m => ({
+                        timestamp: m.timestamp,
+                        cpu: m.cpu,
+                        memory: m.memory,
+                        active_users: m.active_users,
+                        health_score: m.health
+                    }));
+                    return { columns: ['timestamp', 'cpu', 'memory', 'active_users', 'health_score'], rows };
                 }
 
                 case 'core_module_metrics': {

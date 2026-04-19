@@ -138,7 +138,7 @@ model Staff {
   staff_number      String            @unique
   staff_type        String
   department        String
-  advisor           Advisor?
+  advisor_profile   Advisor?
   hod               HOD?
   lecture_schedules LectureSchedule[]
   user              User              @relation(fields: [staff_id], references: [user_id], onDelete: Cascade)

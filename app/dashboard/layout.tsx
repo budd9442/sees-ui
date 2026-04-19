@@ -53,7 +53,14 @@ export default async function DashboardLayout({
       !!(dbUser as any)?.student &&
       (((dbUser as any)?.student?.current_level === 'GRADUATED') ||
         ((dbUser as any)?.student?.graduation_status === 'GRADUATED')),
-    avatar: undefined // Explicitly undefined if not present
+    avatar: dbUser?.avatar || undefined,
+    lastLoginDate: dbUser?.last_login_date || (session.user as any).lastLoginDate,
+    phone: dbUser?.phone || undefined,
+    linkedin: dbUser?.linkedin || undefined,
+    github: dbUser?.github || undefined,
+    address: dbUser?.address || undefined,
+    bio: dbUser?.bio || undefined,
+    emergency_contact: dbUser?.emergency_contact || undefined,
   };
 
   if ((dbUser as any)?.student && !(dbUser as any).student.onboarding_completed_at) {

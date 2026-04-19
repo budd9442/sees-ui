@@ -64,17 +64,18 @@ export function HodDashboardView({
     const avgDepartmentGpa =
         academicPerformanceData.length > 0
             ? (
-                  academicPerformanceData.reduce((acc, row) => acc + Number(row.avgGPA ?? 0), 0) /
-                  academicPerformanceData.length
-              ).toFixed(2)
+                academicPerformanceData.reduce((acc, row) => acc + Number(row.avgGPA ?? 0), 0) /
+                academicPerformanceData.length
+            ).toFixed(2)
             : '0.00';
 
-    const sortedWorkload = [...staffWorkloadData].sort((a, b) => Number(b.students ?? 0) - Number(a.students ?? 0));
+    const sortedWorkload = [...staffWorkloadData].sort((a, b) => Number(b.modules ?? 0) - Number(a.modules ?? 0));
     const highestLoadStaff = sortedWorkload[0];
     const workloadBaseline =
         staffWorkloadData.length > 0
-            ? staffWorkloadData.reduce((acc, row) => acc + Number(row.students ?? 0), 0) / staffWorkloadData.length
+            ? staffWorkloadData.reduce((acc, row) => acc + Number(row.modules ?? 0), 0) / staffWorkloadData.length
             : 0;
+    const maxStaffModules = Math.max(...staffWorkloadData.map(s => Number(s.modules ?? 0)), 1);
 
     const quickInsights = [
         {
@@ -138,7 +139,7 @@ export function HodDashboardView({
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{totalStaff}</div>
-                            <p className="text-xs text-muted-foreground">Active faculty members</p>
+                            <p className="text-xs text-muted-foreground">Active department staff</p>
                         </CardContent>
                     </Card>
                 </Link>
@@ -266,7 +267,7 @@ export function HodDashboardView({
                     <Card>
                         <CardHeader>
                             <CardTitle>Staff Workload Distribution</CardTitle>
-                            <CardDescription>Modules and students per faculty member</CardDescription>
+                            <CardDescription>Modules and students per staff member</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-6">
@@ -279,8 +280,8 @@ export function HodDashboardView({
                                             </div>
                                             <span className="text-sm text-muted-foreground">{staff.students} Students total</span>
                                         </div>
-                                        <Progress value={(staff.students / 250) * 100} className="h-2" />
-                                        {Number(staff.students ?? 0) > workloadBaseline * 1.25 && (
+                                        <Progress value={(staff.modules / maxStaffModules) * 100} className="h-2" />
+                                        {Number(staff.modules ?? 0) > workloadBaseline * 1.25 && (
                                             <p className="text-xs text-amber-600">Above department average load</p>
                                         )}
                                     </div>

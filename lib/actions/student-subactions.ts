@@ -39,7 +39,8 @@ export async function getCreditsData() {
                         'threshold_first_class',
                         'threshold_second_upper',
                         'threshold_second_lower',
-                        'threshold_third_class',
+                        'threshold_pass_class',
+                        'graduation_required_credits',
                     ]
                 }
             }
@@ -81,6 +82,7 @@ export async function getCreditsData() {
             semester: r.semester_number
         })),
         thresholds: Object.fromEntries(settings.map(s => [s.key, s.value])),
+        graduationRequiredCredits: parseInt(settings.find(s => s.key === 'graduation_required_credits')?.value || '132', 10),
         gradingBands: gradingScheme?.bands.map(b => ({
             letter: b.letter_grade,
             points: b.grade_point,

@@ -4,6 +4,7 @@ const HOD_ONLY: AnalyticsDatasetId[] = [
     'core_student_metrics',
     'core_module_metrics',
     'core_grade_distribution',
+    'core_audit_logs',
 ];
 
 const ADMIN_DATASETS: AnalyticsDatasetId[] = [
@@ -11,6 +12,8 @@ const ADMIN_DATASETS: AnalyticsDatasetId[] = [
     'core_module_metrics',
     'core_grade_distribution',
     'core_career_goals',
+    'core_audit_logs',
+    'core_system_health',
 ];
 
 const STAFFISH_ROLES = new Set(['staff', 'advisor', 'hod', 'admin']);
@@ -22,7 +25,7 @@ export function assertDatasetAllowedForRole(datasetId: AnalyticsDatasetId, role:
     if (HOD_ONLY.includes(datasetId) && !['hod', 'admin'].includes(role)) {
         throw new Error('Analytics: dataset requires HOD or admin role');
     }
-    if (datasetId === 'core_career_goals' && role !== 'admin') {
+    if ((datasetId === 'core_career_goals' || datasetId === 'core_system_health') && role !== 'admin') {
         throw new Error('Analytics: dataset requires admin role');
     }
 }
@@ -32,9 +35,12 @@ export const DATASET_DESCRIPTIONS: Record<AnalyticsDatasetId, string> = {
     core_module_metrics: 'Unified module performance facts. Includes pass rates, credit sizes, and grade averages. Group by academic_year or level to view module history.',
     core_grade_distribution: 'Highly granular grade facts spanning letters and point values. Group by letter_grade, module, pathway, or level to generate heatmaps and histograms.',
     core_career_goals: 'Career engagement rollups including academic-goal states and student internship placements. Group by company, status, or goal_type.',
+    core_audit_logs: 'Security and activity audit trails. Track login history, profile changes, and administrative actions across the platform.',
+    core_system_health: 'Platform performance and resource utilization metrics. Monitor CPU, memory, and active user concurrency trends.',
 };
 
 export const DATASET_CATEGORIES: Record<string, AnalyticsDatasetId[]> = {
     'Student Intelligence': ['core_student_metrics', 'core_career_goals'],
     'Academic Performance': ['core_module_metrics', 'core_grade_distribution'],
+    'Platform Governance': ['core_audit_logs', 'core_system_health'],
 };

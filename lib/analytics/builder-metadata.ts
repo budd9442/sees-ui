@@ -9,6 +9,8 @@ export const DATASET_LABELS: Record<AnalyticsDatasetId, string> = {
     core_module_metrics: 'Module Performance',
     core_grade_distribution: 'Grade Distribution Facts',
     core_career_goals: 'Career & Academic Goals',
+    core_audit_logs: 'Platform Audit Trail',
+    core_system_health: 'System Resource Metrics',
 };
 
 /** Declared kinds for known query shapes (aligned with executeAnalyticsQuery). */
@@ -100,6 +102,40 @@ export function columnKindsForShape(
             ];
         }
 
+        case 'core_audit_logs': {
+            if (g === 'status' || g === 'category') {
+                return [
+                    { name: g, kind: 'string' },
+                    { name: 'count', kind: 'number' }
+                ];
+            }
+            return [
+                { name: 'log_id', kind: 'string' },
+                { name: 'action', kind: 'string' },
+                { name: 'category', kind: 'string' },
+                { name: 'timestamp', kind: 'string' },
+                { name: 'ip', kind: 'string' },
+                { name: 'entity', kind: 'string' }
+            ];
+        }
+
+        case 'core_system_health': {
+            if (g === 'month') {
+                return [
+                    { name: 'month', kind: 'string' },
+                    { name: 'avg_cpu', kind: 'number' },
+                    { name: 'avg_memory', kind: 'number' }
+                ];
+            }
+            return [
+                { name: 'timestamp', kind: 'string' },
+                { name: 'cpu', kind: 'number' },
+                { name: 'memory', kind: 'number' },
+                { name: 'active_users', kind: 'number' },
+                { name: 'health_score', kind: 'number' }
+            ];
+        }
+
         default:
             return [];
     }
@@ -129,6 +165,7 @@ export function groupByOptionsForDataset(datasetId: AnalyticsDatasetId): { value
                 { value: 'pathway', label: 'By Pathway/Program' },
                 { value: 'admission_year', label: 'By Cohort Year' },
                 { value: 'enrollment_status', label: 'By Enrollment Status' },
+                { value: 'graduation_status', label: 'By Graduation Status' },
                 { value: 'academic_class', label: 'By Class Honors' },
                 { value: 'gpa_bucket', label: 'By GPA Target Range' },
                 { value: 'metadata', label: 'By Custom Metadata' }
@@ -152,6 +189,17 @@ export function groupByOptionsForDataset(datasetId: AnalyticsDatasetId): { value
                 { value: 'none', label: 'By Goal Type' },
                 { value: 'status', label: 'By Internship/Goal Status' },
                 { value: 'company', label: 'By Internship Company' }
+            ];
+        case 'core_audit_logs':
+            return [
+                { value: 'none', label: 'Raw Audit Trail' },
+                { value: 'status', label: 'By Action Type' },
+                { value: 'category', label: 'By Category' }
+            ];
+        case 'core_system_health':
+            return [
+                { value: 'none', label: 'Raw Metrics' },
+                { value: 'month', label: 'By Month' }
             ];
         default:
             return [{ value: 'none', label: 'None' }];

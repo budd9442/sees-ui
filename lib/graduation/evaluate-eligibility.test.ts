@@ -20,8 +20,8 @@ const mkGrade = (
 test('GPA only preset: 3.75 maps to First Class', () => {
     const rules = gpaOnlyPresetRules();
     const r = evaluateGraduationRules(rules, {
-        grades: [mkGrade('m1', 4, 3), mkGrade('m2', 3.5, 3)],
-        programStructure: [],
+        grades: [mkGrade('m1', 4, 132)],
+        programStructure: [{ module_id: 'm1', module_type: 'GPA', specialization_id: null, credits: 132 }],
         programId: 'p1',
         studentSpecializationId: null,
         admissionYear: 2022,
@@ -33,8 +33,8 @@ test('GPA only preset: 3.75 maps to First Class', () => {
 test('GPA only preset: 3.2 maps to Second Lower', () => {
     const rules = gpaOnlyPresetRules();
     const r = evaluateGraduationRules(rules, {
-        grades: [mkGrade('m1', 3.2, 6)],
-        programStructure: [],
+        grades: [mkGrade('m1', 3.2, 132)],
+        programStructure: [{ module_id: 'm1', module_type: 'GPA', specialization_id: null, credits: 132 }],
         programId: 'p1',
         studentSpecializationId: null,
         admissionYear: 2022,
@@ -42,24 +42,24 @@ test('GPA only preset: 3.2 maps to Second Lower', () => {
     assert.equal(r.matchedDivisionId, 'SECOND_LOWER');
 });
 
-test('below third threshold maps to Pass', () => {
+test('Pass maps to BASE_DEGREE and returns Pass label', () => {
     const rules = gpaOnlyPresetRules();
     const r = evaluateGraduationRules(rules, {
-        grades: [mkGrade('m1', 2.0, 6)],
-        programStructure: [],
+        grades: [mkGrade('m1', 2.0, 132)],
+        programStructure: [{ module_id: 'm1', module_type: 'GPA', specialization_id: null, credits: 132 }],
         programId: 'p1',
         studentSpecializationId: null,
         admissionYear: 2022,
     });
-    assert.equal(r.matchedDivisionId, null);
+    assert.equal(r.matchedDivisionId, 'BASE_DEGREE');
     assert.equal(r.academicClass, 'Pass');
 });
 
 test('ephemeral thresholds match evaluateGraduationRules', () => {
-    const rules = ephemeralRulesFromThresholds(3.7, 3.3, 3.0, 2.5);
+    const rules = ephemeralRulesFromThresholds(3.7, 3.3, 3.0);
     const r = evaluateGraduationRules(rules, {
-        grades: [mkGrade('m1', 3.35, 10)],
-        programStructure: [],
+        grades: [mkGrade('m1', 3.35, 132)],
+        programStructure: [{ module_id: 'm1', module_type: 'GPA', specialization_id: null, credits: 132 }],
         programId: 'p1',
         studentSpecializationId: null,
         admissionYear: 2022,

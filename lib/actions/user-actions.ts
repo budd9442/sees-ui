@@ -75,7 +75,7 @@ export async function getUsers({
                     staff: {
                         include: {
                             hod: true,
-                            advisor: true,
+                            advisor_profile: true,
                         }
                     },
                 },
@@ -106,12 +106,12 @@ export async function getUsers({
                     department: u.staff.department,
                     type: u.staff.staff_type,
                     isHOD: !!u.staff.hod,
-                    isAdvisor: !!u.staff.advisor,
-                    advisorAvailableForContact: u.staff.advisor?.is_available_for_contact ?? true,
-                    advisorSpecialties: Array.isArray(u.staff.advisor?.specialty_areas)
-                        ? (u.staff.advisor?.specialty_areas as string[]).join(', ')
+                    isAdvisor: !!u.staff.advisor_profile,
+                    advisorAvailableForContact: u.staff.advisor_profile?.is_available_for_contact ?? true,
+                    advisorSpecialties: Array.isArray(u.staff.advisor_profile?.specialty_areas)
+                        ? (u.staff.advisor_profile?.specialty_areas as string[]).join(', ')
                         : '',
-                    advisorBio: u.staff.advisor?.bio ?? '',
+                    advisorBio: u.staff.advisor_profile?.bio ?? '',
                 };
             }
             else if (u.email.includes('admin')) role = 'admin';
@@ -582,31 +582,35 @@ export async function changePassword(data: ChangePasswordSchema & { userId: stri
     }
 }
 
-export async function updateProfile(userId: string, data: { firstName: string; lastName: string }) {
+export async function updateProfile(userId: string, data: { 
+    firstName: string; 
+    lastName: string;
+    phone?: string;
+    linkedin?: string;
+    github?: string;
+    address?: string;
+    bio?: string;
+    emergency_contact?: string;
+}) {
     try {
-        // Secure: Verify with session and use robust lookup
         const session = await auth();
-        let targetId = userId;
-
-        if (session?.user?.email) {
-            // Check if userId exists, if not fallback to email
-            const existing = await prisma.user.findUnique({ where: { user_id: userId } });
-            if (!existing) {
-                console.warn(`updateProfile: User ID ${userId} not found. Attempting recovery via email ${session.user.email}`);
-                const byEmail = await prisma.user.findUnique({ where: { email: session.user.email } });
-                if (byEmail) {
-                    targetId = byEmail.user_id;
-                } else {
-                    throw new Error("User record not found");
-                }
-            }
+        if (!session?.user?.id) {
+            return { success: false, error: "Unauthorized: No active session found" };
         }
+
+        const targetId = session.user.id;
 
         await prisma.user.update({
             where: { user_id: targetId },
             data: {
                 firstName: data.firstName,
                 lastName: data.lastName,
+                phone: data.phone || null,
+                linkedin: data.linkedin || null,
+                github: data.github || null,
+                address: data.address || null,
+                bio: data.bio || null,
+                emergency_contact: data.emergency_contact || null,
             },
         });
 
@@ -614,7 +618,7 @@ export async function updateProfile(userId: string, data: { firstName: string; l
         return { success: true };
     } catch (error) {
         console.error('Failed to update profile:', error);
-        return { success: false, error: 'Failed to update user profile' };
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to update user profile' };
     }
 }
 export async function toggleHODStatus(staffId: string) {
@@ -667,12 +671,12 @@ export async function toggleAdvisorStatus(staffId: string) {
     try {
         const staff = await prisma.staff.findUnique({
             where: { staff_id: staffId },
-            include: { advisor: true }
+            include: { advisor_profile: true }
         });
 
         if (!staff) throw new Error("Staff record not found");
 
-        if (staff.advisor) {
+        if (staff.advisor_profile) {
             // Remove Advisor status
             await prisma.advisor.delete({
                 where: { advisor_id: staffId }
@@ -692,5 +696,25 @@ export async function toggleAdvisorStatus(staffId: string) {
     } catch (error) {
         console.error('Failed to toggle Advisor status:', error);
         return { success: false, error: 'Failed to update Advisor status' };
+    }
+}
+export async function getLoginHistory() {
+    try {
+        const session = await auth();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const logs = await prisma.auditLog.findMany({
+            where: {
+                admin_id: session.user.id,
+                action: "AUTH_LOGIN_SUCCESS"
+            },
+            orderBy: { timestamp: 'desc' },
+            take: 10
+        });
+
+        return { success: true, data: logs };
+    } catch (error) {
+        console.error('Failed to fetch login history:', error);
+        return { success: false, error: 'Failed to fetch login history' };
     }
 }

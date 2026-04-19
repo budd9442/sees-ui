@@ -176,32 +176,6 @@ const navigationItems: NavItem[] = [
     roles: ['staff', 'advisor', 'hod'],
   },
 
-  // Advisor Navigation
-  {
-    title: 'Dashboard',
-    href: '/dashboard/advisor',
-    icon: LayoutDashboard,
-    roles: ['advisor', 'hod'],
-  },
-  {
-    title: 'My Advisees',
-    href: '/dashboard/advisor/students',
-    icon: Users,
-    roles: ['advisor', 'hod'],
-  },
-
-  {
-    title: 'Academic Records',
-    href: '/dashboard/advisor/records',
-    icon: FileText,
-    roles: ['advisor', 'hod'],
-  },
-  {
-    title: 'Messages',
-    href: '/dashboard/advisor/messages',
-    icon: MessageSquare,
-    roles: ['advisor', 'hod'],
-  },
 
   // HOD Navigation
   {
@@ -385,7 +359,7 @@ export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolea
     // Most items should start with their role path
     // Special case: 'staff' also includes 'advisor' items in their view
     if (currentPerspective === 'staff' || currentPerspective === 'advisor') {
-        if (!item.href.startsWith('/dashboard/staff') && !item.href.startsWith('/dashboard/advisor')) return false;
+        if (!item.href.startsWith('/dashboard/staff')) return false;
     } else {
         // For HOD/Student/Admin, be strict
         if (!item.href.startsWith(perspectivePath)) return false;

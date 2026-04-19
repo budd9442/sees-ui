@@ -48,6 +48,7 @@ interface CreditsClientProps {
         minMarks: number;
         maxMarks: number;
     }>;
+    graduationRequiredCredits: number;
 }
 
 
@@ -56,15 +57,24 @@ export function CreditsClient({
     creditDetail, 
     creditRules, 
     thresholds, 
-    gradingBands 
+    gradingBands,
+    graduationRequiredCredits
 }: CreditsClientProps) {
     const [selectedSemester, setSelectedSemester] = useState('all');
 
-    /** Released module counts toward credit using grade points (letter-only ok) or legacy marks ≥ 50. */
+    /** Released module counts toward credit using grading bands floor or legacy marks ≥ 50. */
     const earnsModuleCredit = (g: any) => {
         if (!g.isReleased) return false;
-        const pts = g.gradePoint ?? g.points ?? 0;
-        if (pts >= 2) return true;
+        
+        // Use grading bands if available
+        if (gradingBands.length > 0) {
+            // A grade point of 2.0 (usually C) is the standard floor for credit in many systems
+            // We use the pass threshold from settings if available, else 2.0
+            const passThreshold = parseFloat(thresholds.threshold_pass_class || '2.0');
+            const pts = g.gradePoint ?? g.points ?? 0;
+            if (pts >= passThreshold) return true;
+        }
+
         const m = g.marks ?? (typeof g.grade === 'number' ? g.grade : null);
         return m != null && typeof m === 'number' && m >= 50;
     };
@@ -76,7 +86,7 @@ export function CreditsClient({
         .filter(g => g.isReleased)
         .reduce((sum, g) => sum + g.credits, 0);
 
-    const totalCreditsRequired = creditDetail.required || 132;
+    const totalCreditsRequired = creditDetail.required || graduationRequiredCredits || 132;
     const creditsRemaining = Math.max(0, totalCreditsRequired - totalCreditsEarned);
     const progressPercentage = Math.round((totalCreditsEarned / totalCreditsRequired) * 100);
 

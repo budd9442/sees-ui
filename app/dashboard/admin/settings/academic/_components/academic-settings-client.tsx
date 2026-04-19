@@ -32,7 +32,7 @@ export default function AcademicSettingsClient({ initialSettings, initialScheme 
         threshold_first_class: initialSettings.find((s: any) => s.key === 'threshold_first_class')?.value || '3.7',
         threshold_second_upper: initialSettings.find((s: any) => s.key === 'threshold_second_upper')?.value || '3.3',
         threshold_second_lower: initialSettings.find((s: any) => s.key === 'threshold_second_lower')?.value || '3.0',
-        threshold_third_class: initialSettings.find((s: any) => s.key === 'threshold_third_class')?.value || '2.5'
+        threshold_pass_class: initialSettings.find((s: any) => s.key === 'threshold_pass_class')?.value || '2.5'
     });
 
     const [bands, setBands] = useState<Band[]>(initialScheme?.bands.map((b: any) => ({
@@ -130,12 +130,12 @@ export default function AcademicSettingsClient({ initialSettings, initialScheme 
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label>Third/Pass Class</Label>
+                            <Label>Pass Class (Minimum GPA)</Label>
                             <Input 
                                 type="number" 
                                 step="0.1" 
-                                value={thresholds.threshold_third_class}
-                                onChange={(e) => setThresholds({...thresholds, threshold_third_class: e.target.value})}
+                                value={thresholds.threshold_pass_class}
+                                onChange={(e) => setThresholds({...thresholds, threshold_pass_class: e.target.value})}
                             />
                         </div>
                     </CardContent>

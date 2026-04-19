@@ -1,0 +1,36 @@
+D:\dev\sees-ui\node_modules\@prisma\client\src\runtime\getPrismaClient.ts:259
+        throw new PrismaClientInitializationError(
+              ^
+
+PrismaClientInitializationError: `PrismaClient` needs to be constructed with a non-empty, valid `PrismaClientOptions`:
+
+```
+new PrismaClient({
+  ...
+})
+```
+
+or
+
+```
+constructor() {
+  super({ ... });
+}
+```
+          
+    at new t (D:\dev\sees-ui\node_modules\@prisma\client\src\runtime\getPrismaClient.ts:259:15)
+    at <anonymous> (D:\dev\sees-ui\scratch\test-prisma-staff.ts:3:16)
+    at Object.<anonymous> (D:\dev\sees-ui\scratch\test-prisma-staff.ts:20:6)
+    at Module._compile (node:internal/modules/cjs/loader:1812:14)
+    at Object.transformer (D:\dev\sees-ui\node_modules\tsx\dist\register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1533:32)
+    at Module._load (node:internal/modules/cjs/loader:1335:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:328:3)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:233:7) {
+  clientVersion: '7.3.0',
+  errorCode: undefined,
+  retryable: undefined
+}
+
+Node.js v24.14.0

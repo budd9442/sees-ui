@@ -5,7 +5,7 @@ export function gpaOnlyPresetRules(): GraduationRulesDocument {
     return {
         schemaVersion: 1,
         version: 1,
-        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS', 'BASE_DEGREE'],
+        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'BASE_DEGREE'],
         divisions: {
             FIRST_CLASS: {
                 label: 'First Class',
@@ -19,27 +19,26 @@ export function gpaOnlyPresetRules(): GraduationRulesDocument {
                 label: 'Second Class Lower',
                 conditions: [{ type: 'min_gpa', minGpa: 3.0 }],
             },
-            THIRD_PASS: {
-                label: 'Third Class',
-                conditions: [{ type: 'min_gpa', minGpa: 2.5 }],
-            },
             BASE_DEGREE: {
-                label: 'Degree Eligible',
-                conditions: [{ type: 'min_gpa', minGpa: 2.0 }],
+                label: 'Pass',
+                conditions: [
+                    { type: 'min_gpa', minGpa: 2.0 },
+                    { type: 'min_total_credits_attempted', minCredits: 132, minGradePoint: 1.0, scope: 'ALL_STRUCTURED' },
+                    { type: 'min_credits_at_min_grade_point', minCredits: 105, minGradePoint: 2.0, scope: 'ALL_STRUCTURED' }
+                ],
             },
         },
     };
 }
 
 /**
- * BSc Honours (4-year) style from guide_book — MIT/IT share the same class numbers.
- * Board discretion clauses are not auto-enforced (manual exam board).
+ * BSc Honours (4-year) style.
  */
 export function honoursFourYearGuidePresetRules(): GraduationRulesDocument {
     return {
         schemaVersion: 1,
         version: 1,
-        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS', 'BASE_DEGREE'],
+        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'BASE_DEGREE'],
         divisions: {
             FIRST_CLASS: {
                 label: 'First Class',
@@ -78,15 +77,12 @@ export function honoursFourYearGuidePresetRules(): GraduationRulesDocument {
                     { type: 'max_program_years', maxYears: 4 },
                 ],
             },
-            THIRD_PASS: {
-                label: 'Third Class',
-                conditions: [{ type: 'min_gpa', minGpa: 2.5 }],
-            },
             BASE_DEGREE: {
-                label: 'Degree Eligible',
+                label: 'Pass',
                 conditions: [
                     { type: 'min_gpa', minGpa: 2.0 },
-                    { type: 'min_total_credits_attempted', minCredits: 132, minGradePoint: 0.0, scope: 'ALL_STRUCTURED' }
+                    { type: 'min_total_credits_attempted', minCredits: 132, minGradePoint: 1.0, scope: 'ALL_STRUCTURED' },
+                    { type: 'min_credits_at_min_grade_point', minCredits: 105, minGradePoint: 2.0, scope: 'ALL_STRUCTURED' }
                 ],
             },
         },
@@ -98,7 +94,7 @@ export function exitBscThreeYearGuidePresetRules(): GraduationRulesDocument {
     return {
         schemaVersion: 1,
         version: 1,
-        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'THIRD_PASS', 'BASE_DEGREE'],
+        evaluationOrder: ['FIRST_CLASS', 'SECOND_UPPER', 'SECOND_LOWER', 'BASE_DEGREE'],
         divisions: {
             FIRST_CLASS: {
                 label: 'First Class',
@@ -137,15 +133,12 @@ export function exitBscThreeYearGuidePresetRules(): GraduationRulesDocument {
                     { type: 'max_program_years', maxYears: 3 },
                 ],
             },
-            THIRD_PASS: {
-                label: 'Third Class',
-                conditions: [{ type: 'min_gpa', minGpa: 2.5 }],
-            },
             BASE_DEGREE: {
-                label: 'Degree Eligible',
+                label: 'Pass',
                 conditions: [
                     { type: 'min_gpa', minGpa: 2.0 },
-                    { type: 'min_total_credits_attempted', minCredits: 90, minGradePoint: 0.0, scope: 'ALL_STRUCTURED' }
+                    { type: 'min_total_credits_attempted', minCredits: 102, minGradePoint: 1.0, scope: 'ALL_STRUCTURED' },
+                    { type: 'min_credits_at_min_grade_point', minCredits: 85, minGradePoint: 2.0, scope: 'ALL_STRUCTURED' }
                 ],
             },
         },

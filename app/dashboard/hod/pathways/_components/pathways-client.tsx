@@ -41,7 +41,9 @@ import {
     getSelectionInsights,
     listAllocationChangeRequestsForRound,
     resolveAllocationChangeRequest,
+    promoteAllWaitlistToFreeSlots,
 } from '@/lib/actions/selection-actions';
+
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -406,6 +408,19 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                 setApprovalWarnings([]);
                 refreshDetail();
             } else toast.error(result.error || 'Redistribution failed');
+        });
+    };
+
+    const handlePromoteWaitlist = async () => {
+        if (!selectedRoundId) return;
+        startTransition(async () => {
+            const result = await promoteAllWaitlistToFreeSlots(selectedRoundId);
+            if (result.success) {
+                toast.success(`Redistributed ${result.moved} student(s) to pathways with available capacity.`);
+                refreshDetail();
+            } else {
+                toast.error(result.error || 'Failed to redistribute waitlist');
+            }
         });
     };
 
@@ -1599,6 +1614,26 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                                     {sum.pending} application(s) are still pending. They will not receive an allocation on
                                     approval until you run allocation or resolve them. You can still approve if that is intentional.
                                 </AlertDescription>
+                            </Alert>
+                        )}
+
+                        {sum && sum.waitlisted > 0 && roundDetail?.slotStats?.some((s: any) => s.allocated < s.capacity) && (
+                            <Alert className="bg-blue-50 border-blue-200 py-3">
+                                <Zap className="h-4 w-4 text-blue-600" />
+                                <div className="flex-1 flex items-center justify-between gap-4">
+                                    <AlertDescription className="text-xs text-blue-700 font-medium ml-2">
+                                        There are {sum.waitlisted} students on the waitlist, and some pathways still have available seats.
+                                        You can automatically move waitlisted students to these free pathways.
+                                    </AlertDescription>
+                                    <Button
+                                        size="sm"
+                                        onClick={handlePromoteWaitlist}
+                                        disabled={isPending}
+                                        className="h-7 text-[10px] bg-blue-600 hover:bg-blue-700 shrink-0"
+                                    >
+                                        Move to free pathways
+                                    </Button>
+                                </div>
                             </Alert>
                         )}
                     </div>

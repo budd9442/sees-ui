@@ -9,7 +9,6 @@ export const divisionIdSchema = z.enum([
     'FIRST_CLASS',
     'SECOND_UPPER',
     'SECOND_LOWER',
-    'THIRD_PASS',
     'BASE_DEGREE',
 ]);
 

@@ -48,9 +48,9 @@ type ProgramRow = {
 };
 
 const PRESETS: { id: PresetId; label: string; description: string }[] = [
-    { id: 'gpa_only', label: 'GPA thresholds only', description: 'First / 2:1 / 2:2 / Third by minimum GPA only.' },
-    { id: 'honours_4yr_guide', label: 'Honours 4-year (guide)', description: 'Adds credit floors, GPA-module rules, and max years (4).' },
-    { id: 'exit_bsc_3yr_guide', label: 'Exit BSc 3-year (guide)', description: 'Three-year exit pattern with stricter credit totals.' },
+    { id: 'gpa_only', label: 'GPA thresholds only', description: 'First / 2:1 / 2:2 / Pass by minimum GPA only.' },
+    { id: 'honours_4yr_guide', label: 'Honours 4-year (guide)', description: 'Adds credit floors (132 total, 105 @ C), GPA-module rules, and max years (4).' },
+    { id: 'exit_bsc_3yr_guide', label: 'Exit BSc 3-year (guide)', description: 'Three-year exit pattern with 102 total / 85 @ C credits.' },
 ];
 
 const CONDITION_TYPES: { value: GraduationCondition['type']; label: string }[] = [

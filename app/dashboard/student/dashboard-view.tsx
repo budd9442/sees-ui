@@ -30,9 +30,10 @@ interface DashboardViewProps {
     pathwayDemand: any;
     gpaHistory: { semester: string; gpa: number }[];
     goalsSummary: StudentGoalsSummary;
+    graduationRequiredCredits: number;
 }
 
-export function DashboardView({ student, notifications, schedules, pathwayDemand, gpaHistory, goalsSummary }: DashboardViewProps) {
+export function DashboardView({ student, notifications, schedules, pathwayDemand, gpaHistory, goalsSummary, graduationRequiredCredits }: DashboardViewProps) {
     const router = useRouter();
     // Use real semester-wise cumulative GPA history
     const gpaData = gpaHistory;
@@ -52,7 +53,7 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
     }
 
     // Credit distribution
-    const totalRequired = 120;
+    const totalRequired = graduationRequiredCredits || 132;
     const creditData = [
         { name: 'Completed', value: student.totalCredits, color: '#16a34a' },
         {
@@ -76,8 +77,6 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
             'Second Upper': 'bg-blue-100 text-blue-800 border-blue-200',
             'Second Class Lower': 'bg-yellow-100 text-yellow-800 border-yellow-200',
             'Second Lower': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-            'Third Class': 'bg-orange-100 text-orange-800 border-orange-200',
-            'Third/Pass': 'bg-orange-100 text-orange-800 border-orange-200',
             'Pass': 'bg-gray-100 text-gray-800 border-gray-200',
             Unassigned: 'bg-gray-100 text-gray-800 border-gray-200',
         };

@@ -190,11 +190,15 @@ export async function getStudentDashboardData() {
         take: 5
     });
 
+    const graduationCreditsSetting = await prisma.systemSetting.findUnique({ where: { key: 'graduation_required_credits' } });
+    const graduationRequiredCredits = parseInt(graduationCreditsSetting?.value || '132', 10);
+
     return {
         student,
         notifications,
         schedules,
-        pathwayDemand: { MIT: 65, IT: 35, thresholdReached: true }
+        pathwayDemand: { MIT: 65, IT: 35, thresholdReached: true },
+        graduationRequiredCredits
     };
 }
 

@@ -48,8 +48,12 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     include: { 
                         student: true, 
                         staff: {
-                            include: {
-                                advisor: true,
+                            select: {
+                                staff_id: true,
+                                staff_number: true,
+                                staff_type: true,
+                                department: true,
+                                advisor_profile: true,
                                 hod: true
                             }
                         } 
@@ -108,18 +112,17 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                         }
                     }
 
+                    const now = new Date();
                     try {
-                        // Use string literal key access to avoid linter complaints if types are messy
-                        // Or assume linter is right about camelCase
                         await prisma.user.update({
                             where: { user_id: (user as any).user_id },
-                            data: { last_login_date: new Date() },
+                            data: { last_login_date: now },
                         });
                     } catch (e) {
                         console.error("Failed to update last login:", e);
                     }
 
-                    // Determine role (prefer persisted User.role, then infer from relations)
+                    // Determine role
                     let role: string = (user as any).role ?? 'student';
                     const staff = (user as any).staff;
 
@@ -128,7 +131,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                             role = 'admin';
                         } else if (staff?.hod) {
                             role = 'hod';
-                        } else if (staff?.advisor) {
+                        } else if (staff?.advisor_profile) {
                             role = 'advisor';
                         } else if (staff) {
                             role = 'staff';
@@ -143,6 +146,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     return {
                         ...user,
                         id: user.user_id,
+                        last_login_date: now,
                         role,
                         firstName,
                         lastName,

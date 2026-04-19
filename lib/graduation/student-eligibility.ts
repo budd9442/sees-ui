@@ -12,8 +12,8 @@ import {
  * 1. Load `Student` + `degree_path.graduation_eligibility_profile` (JSON rules), released `Grade`s
  *    (with `module`, `semester`), and `ProgramStructure` for `degree_path_id`.
  * 2. If **no profile** → build rules from `SystemSetting` keys `threshold_first_class`,
- *    `threshold_second_upper`, `threshold_second_lower`, `threshold_third_class` (defaults 3.7 /
- *    3.3 / 3.0 / 2.5) via `ephemeralRulesFromThresholds`.
+ *    `threshold_second_upper`, and `threshold_second_lower` (defaults 3.7 / 3.3 / 3.0) via
+ *    `ephemeralRulesFromThresholds`. (The 2.0 graduation floor is the default).
  * 3. **`evaluateGraduationRules`** (`./evaluate-eligibility.ts`) — weighted GPA over GPA-counting
  *    modules, best released grade per module; walk `evaluationOrder` divisions; first division
  *    where **all** conditions pass wins; `academicClass` from `academicClassFromDivision`.
@@ -63,22 +63,6 @@ export async function evaluateStudentEligibility(studentId: string): Promise<Eli
         },
     });
 
-    if (!student) {
-        return {
-            isEligible: false,
-            creditDetail: {
-                completed: 0,
-                required: 132,
-                remaining: 132,
-            },
-            gpa: 0,
-            totalGpaCredits: 0,
-            matchedDivisionId: null,
-            matchedLabel: 'Pass',
-            academicClass: 'Pass',
-            divisionEvaluations: [],
-        };
-    }
 
     const [grades, structureRows, settings] = await Promise.all([
         prisma.grade.findMany({
@@ -107,20 +91,39 @@ export async function evaluateStudentEligibility(studentId: string): Promise<Eli
                         'threshold_first_class',
                         'threshold_second_upper',
                         'threshold_second_lower',
-                        'threshold_third_class',
+                        'graduation_required_credits',
                     ],
                 },
             },
         }),
     ]);
 
+    const graduationRequiredCredits = parseInt(settings.find(s => s.key === 'graduation_required_credits')?.value || '132', 10);
+
+    if (!student) {
+        return {
+            isEligible: false,
+            creditDetail: {
+                completed: 0,
+                required: graduationRequiredCredits,
+                remaining: graduationRequiredCredits,
+            },
+            gpa: 0,
+            totalGpaCredits: 0,
+            matchedDivisionId: null,
+            matchedLabel: 'Pass',
+            academicClass: 'Pass',
+            divisionEvaluations: [],
+        };
+    }
+
     if (grades.length === 0) {
         return {
             isEligible: false,
             creditDetail: {
                 completed: 0,
-                required: 132,
-                remaining: 132,
+                required: graduationRequiredCredits,
+                remaining: graduationRequiredCredits,
             },
             gpa: 0,
             totalGpaCredits: 0,
@@ -156,8 +159,7 @@ export async function evaluateStudentEligibility(studentId: string): Promise<Eli
         const first = parseFloat(settings.find((s) => s.key === 'threshold_first_class')?.value || '3.7');
         const upper = parseFloat(settings.find((s) => s.key === 'threshold_second_upper')?.value || '3.3');
         const lower = parseFloat(settings.find((s) => s.key === 'threshold_second_lower')?.value || '3.0');
-        const third = parseFloat(settings.find((s) => s.key === 'threshold_third_class')?.value || '2.5');
-        rules = ephemeralRulesFromThresholds(first, upper, lower, third);
+        rules = ephemeralRulesFromThresholds(first, upper, lower);
     }
 
     return evaluateGraduationRules(rules, {
@@ -166,5 +168,6 @@ export async function evaluateStudentEligibility(studentId: string): Promise<Eli
         programId: student.degree_path_id,
         studentSpecializationId: student.specialization_id,
         admissionYear: student.admission_year,
+        graduationRequiredCredits,
     });
 }

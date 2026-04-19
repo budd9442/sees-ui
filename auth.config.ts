@@ -28,6 +28,7 @@ export const authConfig = {
                 (session.user as any).role = token.role;
                 (session.user as any).firstName = token.firstName;
                 (session.user as any).lastName = token.lastName;
+                (session.user as any).lastLoginDate = token.lastLoginDate;
             }
             return session;
         },
@@ -37,6 +38,7 @@ export const authConfig = {
                 token.role = (user as any).role;
                 token.firstName = (user as any).firstName;
                 token.lastName = (user as any).lastName;
+                token.lastLoginDate = (user as any).last_login_date;
             }
             return token;
         }

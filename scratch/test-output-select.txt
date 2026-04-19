@@ -1,0 +1,11 @@
+[QUEUE] Connecting to RabbitMQ...
+[QUEUE] Worker initialized successfully. Listening on "enrollment_invites"
+Error selecting advisor: 
+Invalid `prisma.staff.findFirst()` invocation in
+D:\dev\sees-ui\scratch\test-prisma-staff-select.ts:5:38
+
+  2 
+  3 async function main() {
+  4   try {
+→ 5     const staff = await prisma.staff.findFirst(
+Can't reach database server at base

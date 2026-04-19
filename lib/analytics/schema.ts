@@ -6,6 +6,8 @@ export const analyticsDatasetIdSchema = z.enum([
     'core_module_metrics',
     'core_grade_distribution',
     'core_career_goals',
+    'core_audit_logs',
+    'core_system_health',
 ]);
 
 export type AnalyticsDatasetId = z.infer<typeof analyticsDatasetIdSchema>;
@@ -27,6 +29,13 @@ export const analyticsQueryFiltersSchema = z.object({
     moduleId: z.string().optional(),
     gpaMin: z.coerce.number().min(0).max(4).optional(),
     gpaMax: z.coerce.number().min(0).max(4).optional(),
+    letterGrade: z.string().optional(),
+    // Engagement / Career
+    status: z.string().optional(),
+    company: z.string().optional(),
+    // Staff scope
+    department: z.string().optional(),
+    staffType: z.string().optional(),
     // Metadata scope
     metadataKey: z.string().optional(),
     metadataValue: z.string().optional(),

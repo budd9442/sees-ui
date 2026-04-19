@@ -1254,6 +1254,85 @@ export async function moveWaitlistStudent(appId: string, targetSlotId: string) {
     }
 }
 
+/**
+ * Automatically move all waitlisted students in a round to any pathway/specialization
+ * that still has available capacity.
+ */
+export async function promoteAllWaitlistToFreeSlots(roundId: string) {
+    try {
+        const actor = await requireHodOrAdmin();
+        if (!actor) return { success: false, error: 'Unauthorized' };
+
+        const round = await prisma.selectionRound.findUnique({
+            where: { round_id: roundId },
+            include: { configs: true, applications: true },
+        });
+        if (!round) return { success: false, error: 'Round not found' };
+        if (round.status !== 'CLOSED') {
+            return { success: false, error: 'Round must be closed to redistribute waitlist' };
+        }
+
+        const waitlisted = round.applications
+            .filter((a) => a.status === 'WAITLISTED')
+            .sort((a, b) => (a.waitlist_pos || 99) - (b.waitlist_pos || 99));
+
+        if (waitlisted.length === 0) return { success: true, moved: 0 };
+
+        // Calculate current usage per slot
+        const usage = new Map<string, number>();
+        round.applications.forEach((a) => {
+            if (a.status === 'ALLOCATED' && a.allocated_to) {
+                usage.set(a.allocated_to, (usage.get(a.allocated_to) || 0) + 1);
+            }
+        });
+
+        const freeSlots = round.configs
+            .map((c) => ({
+                id: slotIdFromConfig(c),
+                capacity: c.capacity,
+                remaining: c.capacity - (usage.get(slotIdFromConfig(c)) || 0),
+            }))
+            .filter((s) => s.remaining > 0);
+
+        if (freeSlots.length === 0) {
+            return { success: false, error: 'No free capacity remains in any configured pathway.' };
+        }
+
+        let movedCount = 0;
+        await prisma.$transaction(async (tx) => {
+            for (const app of waitlisted) {
+                // Find first slot that still has capacity in our local tracking
+                const target = freeSlots.find((s) => s.remaining > 0);
+                if (!target) break;
+
+                await tx.selectionApplication.update({
+                    where: { app_id: app.app_id },
+                    data: { status: 'ALLOCATED', allocated_to: target.id, waitlist_pos: null },
+                });
+
+                target.remaining--;
+                movedCount++;
+            }
+        });
+
+        await writeAuditLog({
+            adminId: actor.userId,
+            action: 'SELECTION_WAITLIST_PROMOTE_ALL',
+            entityType: 'SELECTION_ROUND',
+            entityId: roundId,
+            category: 'STAFF',
+            metadata: { movedCount, totalWaitlisted: waitlisted.length },
+        });
+
+        revalidatePath('/dashboard/hod/pathways');
+        return { success: true, moved: movedCount };
+    } catch (error) {
+        console.error('promoteAllWaitlistToFreeSlots error:', error);
+        return { success: false, error: 'Failed to promote waitlist students' };
+    }
+}
+
+
 export async function rejectApplication(appId: string) {
     try {
         const actor = await requireHodOrAdmin();

@@ -1,0 +1,23 @@
+[QUEUE] Connecting to RabbitMQ...
+
+Invalid `prisma.staff.findFirst()` invocation in
+D:\dev\sees-ui\scratch\trigger-error.ts:6:24
+
+  3 async function main() {
+  4   try {
+  5     // @ts-ignore
+→ 6     await prisma.staff.findFirst({
+          include: {
+            nonExistentField: true,
+            ~~~~~~~~~~~~~~~~
+        ?   advisor?: true,
+        ?   hod?: true,
+        ?   lecture_schedules?: true,
+        ?   user?: true,
+        ?   assignments?: true,
+        ?   graduation_eligibility_profiles_updated?: true
+          }
+        })
+
+Unknown field `nonExistentField` for include statement on model `Staff`. Available options are marked with ?.
+[QUEUE] Worker initialized successfully. Listening on "enrollment_invites"

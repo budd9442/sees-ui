@@ -7,7 +7,7 @@ export type UserWithRelations = {
   student: unknown | null;
   staff: {
     staff_type: string;
-    advisor: unknown | null;
+    advisor_profile: unknown | null;
     hod: unknown | null;
   } | null;
 };
@@ -17,7 +17,7 @@ export function appRoleFromUserRecord(user: UserWithRelations): string {
   if (st) {
     if (st.staff_type === 'ADMIN' || st.staff_type === 'REGISTRAR') return 'admin';
     if (st.hod) return 'hod';
-    if (st.advisor) return 'advisor';
+    if (st.advisor_profile) return 'advisor';
     return 'staff';
   }
   return 'student';

@@ -42,8 +42,6 @@ export default async function StaffAnalyticsBuilderPage({
             }
         >
             <ReportBuilderPageShell
-                backHref={backHref}
-                backLabel="Back to analytics"
                 defaultDefinition={defaultStaffReportDefinition()}
                 filterContext={{
                     academicYearId: academicYearId === 'all' ? undefined : academicYearId,

@@ -282,13 +282,7 @@ export function Navbar() {
                 <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                   <Link href="/dashboard/profile" className="flex items-center font-medium py-2">
                     <User className="mr-3 h-4 w-4 text-muted-foreground" />
-                    Profile Detail
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
-                  <Link href="/dashboard/settings" className="flex items-center font-medium py-2">
-                    <Settings className="mr-3 h-4 w-4 text-muted-foreground" />
-                    Account Settings
+                    Profile & Settings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1" />

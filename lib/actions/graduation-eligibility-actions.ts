@@ -122,8 +122,7 @@ async function syncThresholdSettingsFromMinGpaRules(doc: GraduationRulesDocument
     const first = extractMinGpa('FIRST_CLASS');
     const upper = extractMinGpa('SECOND_UPPER');
     const lower = extractMinGpa('SECOND_LOWER');
-    const third = extractMinGpa('THIRD_PASS');
-    if (first == null || upper == null || lower == null || third == null) return;
+    if (first == null || upper == null || lower == null) return;
 
     const upsert = async (key: string, value: string) => {
         await prisma.systemSetting.upsert({
@@ -142,7 +141,6 @@ async function syncThresholdSettingsFromMinGpaRules(doc: GraduationRulesDocument
     await upsert('threshold_first_class', String(first));
     await upsert('threshold_second_upper', String(upper));
     await upsert('threshold_second_lower', String(lower));
-    await upsert('threshold_third_class', String(third));
 
     await prisma.systemSetting.upsert({
         where: { key: 'gpa_academic_class_thresholds' },
@@ -153,7 +151,6 @@ async function syncThresholdSettingsFromMinGpaRules(doc: GraduationRulesDocument
                 firstClass: first,
                 secondUpper: upper,
                 secondLower: lower,
-                thirdPass: third,
             }),
             category: 'GPA',
             updated_at: new Date(),
@@ -163,7 +160,6 @@ async function syncThresholdSettingsFromMinGpaRules(doc: GraduationRulesDocument
                 firstClass: first,
                 secondUpper: upper,
                 secondLower: lower,
-                thirdPass: third,
             }),
             updated_at: new Date(),
         },

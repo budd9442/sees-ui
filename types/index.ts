@@ -12,7 +12,6 @@ export type AcademicClass =
   | 'First Class'
   | 'Second Class Upper'
   | 'Second Class Lower'
-  | 'Third Class'
   | 'Pass';
 
 export type EnrollmentStatus = 'enrolled' | 'graduated' | 'suspended';
@@ -35,6 +34,13 @@ export interface User {
   isActive: boolean;
   isHOD?: boolean;
   isGraduated?: boolean;
+  phone?: string;
+  linkedin?: string;
+  github?: string;
+  address?: string;
+  bio?: string;
+  emergency_contact?: string;
+  lastLoginDate?: string | Date;
 }
 
 export interface Student extends User {
@@ -205,7 +211,6 @@ export interface SystemConfig {
     firstClass: number;
     secondUpper: number;
     secondLower: number;
-    thirdClass: number;
     pass: number;
   };
 }

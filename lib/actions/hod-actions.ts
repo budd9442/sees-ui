@@ -122,11 +122,20 @@ export async function getHODDashboardData() {
     }));
 
     // Staff Workload tracking
-    const staffWorkloadData = deptStaff.map(s => ({
-        name: `${s.user.firstName} ${s.user.lastName}`,
-        modules: s.assignments.length,
-        students: s.assignments.reduce((acc, a) => acc + (a.module?.module_registrations?.length || 0), 0)
-    }));
+    const staffWorkloadData = deptStaff.map(s => {
+        const uniqueStudentIds = new Set<string>();
+        s.assignments.forEach(a => {
+            a.module?.module_registrations?.forEach(r => {
+                uniqueStudentIds.add(r.student_id);
+            });
+        });
+
+        return {
+            name: `${s.user.firstName} ${s.user.lastName}`,
+            modules: s.assignments.length,
+            students: uniqueStudentIds.size
+        };
+    });
 
     // Selection workflow items awaiting HOD action (same queue as Selection Management)
     const [closedSelectionRounds, pendingAllocationChangeRequests] = await Promise.all([
