@@ -66,7 +66,20 @@ export default async function DashboardLayout({
   };
 
   if ((dbUser as any)?.student && !(dbUser as any).student.onboarding_completed_at) {
-    redirect('/onboarding/student');
+    const { readQuestionsDoc } = await import('@/lib/actions/student-onboarding-actions');
+    const doc = await readQuestionsDoc();
+    
+    if (doc.questions.length === 0) {
+      // Auto-complete onboarding since no questions are configured
+      const { prisma } = await import('@/lib/db');
+      await prisma.student.update({
+        where: { student_id: (dbUser as any).student.student_id },
+        data: { onboarding_completed_at: new Date() }
+      });
+      redirect('/onboarding/student/lms-import');
+    } else {
+      redirect('/onboarding/student');
+    }
   }
 
   // If onboarding is done but LMS import isn't committed yet, force the student

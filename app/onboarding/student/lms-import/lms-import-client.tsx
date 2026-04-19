@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { logoutAction } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
 type LmsImportStatus = 'NOT_STARTED' | 'RUNNING' | 'PREVIEW_READY' | 'COMMITTED' | 'FAILED';
@@ -181,6 +182,18 @@ export default function LmsImportClient() {
 
     return (
         <div className="mx-auto max-w-4xl space-y-6 p-6">
+            <div className="flex justify-end">
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => logoutAction()}
+                    className="text-muted-foreground hover:text-destructive flex items-center gap-2"
+                >
+                    <LogOut className="h-4 w-4" />
+                    Log Out
+                </Button>
+            </div>
+
             <Card>
                 <CardHeader>
                     <CardTitle>Import Module Registrations from LMS</CardTitle>

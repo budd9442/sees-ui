@@ -30,14 +30,27 @@ async function requireAdminOrHod() {
 
 async function requireStudentSession() {
     const session = await auth();
+    const email = session?.user?.email;
     const role = (session?.user as { role?: string } | null)?.role;
-    if (!session?.user?.id || role !== 'student') {
+    
+    if (!email || role !== 'student') {
         throw new Error('Unauthorized');
     }
-    return session;
+
+    // Robust User Lookup (copied from student-actions.ts)
+    let userId = session.user?.id;
+    let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+
+    if (!u && email) {
+        u = await prisma.user.findUnique({ where: { email } });
+    }
+
+    if (!u) throw new Error("User not found in database");
+    
+    return { ...session, user: { ...session.user, id: u.user_id } };
 }
 
-async function readQuestionsDoc(): Promise<OnboardingQuestionsDocument> {
+export async function readQuestionsDoc(): Promise<OnboardingQuestionsDocument> {
     const row = await prisma.systemSetting.findUnique({
         where: { key: ONBOARDING_QUESTIONS_SETTING_KEY },
     });
@@ -186,6 +199,10 @@ export async function submitStudentOnboardingAnswers(answersRaw: unknown) {
             onboarding_completed_at: new Date(),
         },
     });
+
+    revalidatePath('/onboarding/student', 'layout');
+    revalidatePath('/onboarding/student/lms-import');
+    revalidatePath('/dashboard', 'layout');
 
     return { ok: true, metadata: nextMetadata, analyticsMetadata };
 }

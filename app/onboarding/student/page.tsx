@@ -7,13 +7,13 @@ export const dynamic = 'force-dynamic';
 
 export default async function StudentOnboardingPage() {
     const session = await auth();
-    if (!session?.user?.id || session.user.role !== 'student') {
+    if (!session?.user?.email || session.user.role !== 'student') {
         redirect('/login');
     }
 
     const state = await getStudentOnboardingState();
     if (state.completed) {
-        redirect('/dashboard/student');
+        redirect('/onboarding/student/lms-import');
     }
 
     return (

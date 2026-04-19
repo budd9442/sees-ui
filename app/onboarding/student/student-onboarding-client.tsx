@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { logoutAction } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +19,8 @@ import {
     ArrowRight, 
     Loader2, 
     UserCircle2,
-    Check
+    Check,
+    LogOut
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
@@ -38,6 +40,20 @@ export default function StudentOnboardingClient({ questions, initialMetadata }: 
         }
         return seed;
     });
+
+    // Automatically submit and proceed if there are no questions
+    useEffect(() => {
+        if (questions.length === 0 && !pending) {
+            startTransition(async () => {
+                try {
+                    await submitStudentOnboardingAnswers({});
+                    router.replace('/onboarding/student/lms-import');
+                } catch (e) {
+                    console.error('Failed to auto-skip onboarding:', e);
+                }
+            });
+        }
+    }, [questions.length, router, pending]);
 
     const requiredCount = useMemo(() => questions.filter((q) => q.required).length, [questions]);
     const answeredRequiredCount = useMemo(
@@ -61,7 +77,7 @@ export default function StudentOnboardingClient({ questions, initialMetadata }: 
             try {
                 await submitStudentOnboardingAnswers(answers);
                 toast.success('Onboarding completed');
-                router.replace('/dashboard/student');
+                router.replace('/onboarding/student/lms-import');
             } catch (e) {
                 toast.error(e instanceof Error ? e.message : 'Failed to save onboarding answers');
             }
@@ -70,6 +86,19 @@ export default function StudentOnboardingClient({ questions, initialMetadata }: 
 
     return (
         <div className="mx-auto max-w-2xl space-y-8 p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Top Bar with Logout */}
+            <div className="flex justify-end">
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => logoutAction()}
+                    className="text-muted-foreground hover:text-destructive flex items-center gap-2"
+                >
+                    <LogOut className="h-4 w-4" />
+                    Log Out
+                </Button>
+            </div>
+
             {/* Header Section */}
             <div className="space-y-4 text-center pb-2">
                 <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 text-primary mb-2">
@@ -109,8 +138,8 @@ export default function StudentOnboardingClient({ questions, initialMetadata }: 
                                 <p className="font-semibold">All caught up!</p>
                                 <p className="text-sm text-muted-foreground">No extra profile configuration is needed right now.</p>
                             </div>
-                            <Button onClick={() => router.replace('/dashboard/student')} className="rounded-xl">
-                                Go to Dashboard
+                            <Button onClick={() => router.replace('/onboarding/student/lms-import')} className="rounded-xl">
+                                Go to LMS Import
                             </Button>
                         </CardContent>
                     </Card>

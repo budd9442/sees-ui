@@ -398,9 +398,11 @@ export async function getHODReportsData() {
     if (!session?.user?.id) throw new Error("Unauthorized");
 
     // Robust User & Staff Lookup
-    const u = await prisma.user.findFirst({
-        where: { OR: [{ user_id: session.user.id }, { email: session.user.email || '' }] }
-    });
+    let userId = session.user.id;
+    let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+    if (!u && session.user.email) {
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
     if (!u) throw new Error("HOD unauthenticated");
 
     const staffRecord = await prisma.staff.findUnique({

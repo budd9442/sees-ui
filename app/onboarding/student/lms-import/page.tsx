@@ -6,12 +6,23 @@ import LmsImportClient from './lms-import-client';
 
 export default async function LmsImportPage() {
     const session = await auth();
-    if (!session?.user?.id || session.user.role !== 'student') {
+    if (!session?.user?.email || session.user.role !== 'student') {
+        redirect('/login');
+    }
+
+    let userId = session.user.id;
+    let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+
+    if (!u && session.user.email) {
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
+
+    if (!u) {
         redirect('/login');
     }
 
     const student = await prisma.student.findUnique({
-        where: { student_id: session.user.id as string },
+        where: { student_id: u.user_id },
         select: { onboarding_completed_at: true, metadata: true },
     });
 

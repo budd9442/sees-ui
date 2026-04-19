@@ -268,7 +268,10 @@ export async function getModuleRegistrationData() {
 
     let userId = session.user.id;
     let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
-    if (!u && session.user.email) u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!u && session.user.email) {
+        console.warn(`User ID ${userId} not found (Stale Session?). Recovering via email: ${session.user.email}`);
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
     if (!u) throw new Error("User not found");
     userId = u.user_id;
 
@@ -490,7 +493,10 @@ export async function registerForModules(moduleIds: string[]) {
 
     let userId = session.user.id;
     let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
-    if (!u && session.user.email) u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!u && session.user.email) {
+        console.warn(`User ID ${userId} not found (Stale Session?). Recovering via email: ${session.user.email}`);
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
     if (!u) throw new Error("User not found");
     userId = u.user_id;
 
@@ -648,7 +654,12 @@ export async function getStudentGrades() {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
 
-    const u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    let userId = session.user.id;
+    let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+    if (!u && session.user.email) {
+        console.warn(`User ID ${userId} not found (Stale Session?). Recovering via email: ${session.user.email}`);
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
     if (!u) throw new Error("User not found");
 
     const studentRecord = await prisma.student.findUnique({
@@ -695,7 +706,12 @@ export async function getStudentSchedule() {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
 
-    const u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    let userId = session.user.id;
+    let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+    if (!u && session.user.email) {
+        console.warn(`User ID ${userId} not found (Stale Session?). Recovering via email: ${session.user.email}`);
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
     if (!u) throw new Error("User not found");
 
     // Get enrolled modules for CURRENT semester
@@ -759,7 +775,12 @@ export async function getStudentGPAHistory() {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
 
-    const u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    let userId = session.user.id;
+    let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
+    if (!u && session.user.email) {
+        console.warn(`User ID ${userId} not found (Stale Session?). Recovering via email: ${session.user.email}`);
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
     if (!u) throw new Error("User not found");
 
     const studentRecord = await prisma.student.findUnique({
@@ -867,7 +888,10 @@ export async function getStudentGoalsSummary() {
 
     let userId = session.user.id;
     let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
-    if (!u && session.user.email) u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!u && session.user.email) {
+        console.warn(`User ID ${userId} not found (Stale Session?). Recovering via email: ${session.user.email}`);
+        u = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
     if (!u) throw new Error("User not found");
     userId = u.user_id;
 
@@ -920,9 +944,9 @@ export async function getStudentInterventions() {
     let userId = session.user.id;
     let u = userId ? await prisma.user.findUnique({ where: { user_id: userId } }) : null;
     if (!u && session.user.email) {
+        console.warn(`getStudentInterventions: User ID ${userId} not found (Stale Session?). Recovering via email: ${session.user.email}`);
         u = await prisma.user.findUnique({ where: { email: session.user.email } });
     }
-
     if (!u) throw new Error("User not found");
     userId = u.user_id;
 
