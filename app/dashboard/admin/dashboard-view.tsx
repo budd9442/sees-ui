@@ -131,7 +131,7 @@ export function AdminDashboardView({
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{status}</div>
-                        <p className="text-xs text-muted-foreground">Uptime: {systemMetrics.uptime}</p>
+                        <p className="text-xs text-muted-foreground">Uptime: {systemMetrics?.uptime ?? 'N/A'}</p>
                     </CardContent>
                     </Card>
                 </Link>
@@ -147,7 +147,7 @@ export function AdminDashboardView({
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{databaseSize}</div>
-                        <p className="text-xs text-muted-foreground">Last snapshot: {systemMetrics.lastBackup}</p>
+                        <p className="text-xs text-muted-foreground">Last snapshot: {systemMetrics?.lastBackup ?? 'N/A'}</p>
                     </CardContent>
                     </Card>
                 </Link>
@@ -191,16 +191,16 @@ export function AdminDashboardView({
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span className="flex items-center gap-2"><Cpu className="h-4 w-4" /> CPU Usage</span>
-                                        <span className="font-medium">{systemMetrics.cpuUsage}%</span>
+                                        <span className="font-medium">{systemMetrics?.cpuUsage ?? 0}%</span>
                                     </div>
-                                    <Progress value={systemMetrics.cpuUsage} className="h-2" />
+                                    <Progress value={systemMetrics?.cpuUsage ?? 0} className="h-2" />
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span className="flex items-center gap-2"><HardDrive className="h-4 w-4" /> Memory Usage</span>
-                                        <span className="font-medium">{systemMetrics.memoryUsage}%</span>
+                                        <span className="font-medium">{systemMetrics?.memoryUsage ?? 0}%</span>
                                     </div>
-                                    <Progress value={systemMetrics.memoryUsage} className="h-2" />
+                                    <Progress value={systemMetrics?.memoryUsage ?? 0} className="h-2" />
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-sm">

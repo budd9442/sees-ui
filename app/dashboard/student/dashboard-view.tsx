@@ -146,10 +146,10 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                                     <p className="text-sm font-medium text-muted-foreground">
                                         Active Goal
                                     </p>
-                                    <p className="text-base font-semibold">{goalsSummary.activeGoal?.title ?? 'No active goal'}</p>
+                                    <p className="text-base font-semibold">{goalsSummary?.activeGoal?.title ?? 'No active goal'}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {goalsSummary.completedGoals}/{goalsSummary.totalGoals} completed
-                                        {goalsSummary.overdueGoals > 0 ? ` • ${goalsSummary.overdueGoals} overdue` : ''}
+                                        {goalsSummary?.completedGoals ?? 0}/{goalsSummary?.totalGoals ?? 0} completed
+                                        {goalsSummary?.overdueGoals && goalsSummary.overdueGoals > 0 ? ` • ${goalsSummary.overdueGoals} overdue` : ''}
                                     </p>
                                 </div>
                                 <div className="p-3 rounded-full bg-primary/10">
@@ -217,10 +217,10 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                                     fillOpacity={1}
                                     fill="url(#colorGpa)"
                                 />
-                                {goalsSummary.graphTargets.gpaTargetLine.map((target) => (
+                                {goalsSummary?.graphTargets?.gpaTargetLine?.map((target) => (
                                     <ReferenceLine key={target.goalId} y={target.value} stroke="var(--color-chart-3)" strokeDasharray="6 4" />
                                 ))}
-                                {goalsSummary.graphTargets.cgpaImprovementLine.map((target) => (
+                                {goalsSummary?.graphTargets?.cgpaImprovementLine?.map((target) => (
                                     <ReferenceLine key={target.goalId} y={target.value} stroke="var(--color-chart-4)" strokeDasharray="3 3" />
                                 ))}
                             </AreaChart>
@@ -273,7 +273,7 @@ export function DashboardView({ student, notifications, schedules, pathwayDemand
                                     <span className="font-medium">{entry.value}</span>
                                 </div>
                             ))}
-                            {goalsSummary.graphTargets.creditsTargetLine.map((target) => (
+                            {goalsSummary?.graphTargets?.creditsTargetLine?.map((target) => (
                                 <div key={target.goalId} className="flex items-center justify-between text-sm">
                                     <span className="text-muted-foreground">Goal Target</span>
                                     <span className="font-medium">{target.value}</span>

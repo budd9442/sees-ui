@@ -921,9 +921,9 @@ export async function getStudentGoalsSummary() {
     };
 
     return {
-        totalGoals: goals.length,
-        completedGoals: completedCount,
-        overdueGoals: overdueCount,
+        totalGoals: goals.length || 0,
+        completedGoals: completedCount || 0,
+        overdueGoals: overdueCount || 0,
         activeGoal: activeGoal ? {
             id: activeGoal.goal_id,
             title: activeGoal.title,
@@ -933,7 +933,11 @@ export async function getStudentGoalsSummary() {
             moduleCode: activeGoal.module?.code ?? null,
             deadline: activeGoal.deadline ? activeGoal.deadline.toISOString() : null
         } : null,
-        graphTargets
+        graphTargets: graphTargets ?? {
+            gpaTargetLine: [],
+            creditsTargetLine: [],
+            cgpaImprovementLine: []
+        }
     };
 }
 
