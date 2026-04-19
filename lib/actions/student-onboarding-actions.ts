@@ -5,6 +5,7 @@ import type { Prisma } from '@prisma/client';
 import { auth, signOut } from '@/auth';
 import { prisma } from '@/lib/db';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import {
     normalizeOnboardingQuestions,
     ONBOARDING_QUESTIONS_SETTING_KEY,

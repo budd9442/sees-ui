@@ -12,13 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { submitStudentOnboardingAnswers } from '@/lib/actions/student-onboarding-actions';
 import type { OnboardingQuestion } from '@/lib/onboarding/question-schema';
-import { 
-    Sparkles, 
-    CheckCircle2, 
-    GraduationCap, 
-    ArrowRight, 
-    Loader2, 
-    UserCircle2,
+import {
+    Sparkles,
+    CheckCircle2,
+    GraduationCap,
+    ArrowRight,
+    Loader2,
     Check,
     LogOut
 } from 'lucide-react';
@@ -88,9 +87,9 @@ export default function StudentOnboardingClient({ questions, initialMetadata }: 
         <div className="mx-auto max-w-2xl space-y-8 p-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Top Bar with Logout */}
             <div className="flex justify-end">
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
+                <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => logoutAction()}
                     className="text-muted-foreground hover:text-destructive flex items-center gap-2"
                 >
@@ -198,8 +197,8 @@ export default function StudentOnboardingClient({ questions, initialMetadata }: 
                         ))}
 
                         <div className="pt-4 flex flex-col space-y-4">
-                            <Button 
-                                onClick={handleSubmit} 
+                            <Button
+                                onClick={handleSubmit}
                                 size="lg"
                                 disabled={pending || answeredRequiredCount < requiredCount}
                                 className="w-full h-12 rounded-xl text-md font-semibold shadow-lg shadow-primary/20 disabled:opacity-50 disabled:grayscale transition-all"
@@ -216,9 +215,7 @@ export default function StudentOnboardingClient({ questions, initialMetadata }: 
                                     </>
                                 )}
                             </Button>
-                            <p className="text-[10px] text-center text-muted-foreground font-medium uppercase tracking-widest px-8">
-                                Your data is protected. You can update these preferences anytime from your profile settings.
-                            </p>
+
                         </div>
                     </div>
                 )}
