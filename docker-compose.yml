@@ -4,14 +4,12 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: sees-postgres
-    # No need to expose ports to host in production if using nginx/standalone app, 
-    # but keeping it for external db access if user needs it.
     ports:
       - "5434:5432"
     environment:
-      POSTGRES_USER: sees_user
-      POSTGRES_PASSWORD: sees_password
-      POSTGRES_DB: sees_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -20,12 +18,11 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: sees-rabbitmq
     ports:
-      - "5672:5672"
-      - "15672:15672"
-      
+      - "5673:5672"
+      - "15673:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     restart: unless-stopped
 
   app:
@@ -35,8 +32,8 @@ services:
     ports:
       - "3080:3000"
     environment:
-      - DATABASE_URL=postgresql://sees_user:sees_password@postgres:5432/sees_db
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
       - NEXTAUTH_URL=https://sees.budd.codes
       - AUTH_TRUST_HOST=true
       - NODE_ENV=production
