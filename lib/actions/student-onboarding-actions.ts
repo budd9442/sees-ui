@@ -115,6 +115,12 @@ export async function getStudentOnboardingState() {
     if (!student) {
         // If no student profile exists, log out the user to prevent redirect loop.
         await signOut({ redirectTo: '/login' });
+        return {
+            completed: false,
+            completedAt: null,
+            questions: [],
+            metadata: {},
+        };
     }
     return {
         completed: !!student.onboarding_completed_at,
@@ -162,6 +168,7 @@ export async function submitStudentOnboardingAnswers(answersRaw: unknown) {
     });
     if (!student) {
         await signOut({ redirectTo: '/login' });
+        return { ok: false, metadata: {}, analyticsMetadata: {} };
     }
 
     const existing = (student.metadata ?? {}) as Record<string, unknown>;

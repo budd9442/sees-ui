@@ -104,6 +104,7 @@ export async function executeAnalyticsQuery(raw: unknown): Promise<AnalyticsQuer
                     };
 
                     if (groupBy !== 'none') {
+                        type Acc = { n: number; sumGpa: number };
                         const map = new Map<string, Acc>();
                         for (const s of students) {
                             const val = groupByField(s);

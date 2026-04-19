@@ -396,7 +396,7 @@ export function UserDialog({ open, onOpenChange, user, degreePrograms }: UserDia
                                                 <FormItem>
                                                     <FormLabel>Specialty Areas</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="eg: GPA recovery, internship planning, MIT pathway" {...field} />
+                                                        <Input placeholder="eg: GPA recovery, Career planning, MIT pathway" {...field} />
                                                     </FormControl>
                                                     <p className="text-xs text-muted-foreground">
                                                         Comma-separated list shown to students in Contact Advisors.

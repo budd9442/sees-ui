@@ -29,7 +29,7 @@ Visual Object Definition:
   "subtitle": "string",
   "datasetId": "string",
   "layout": { "i": "matches id", "x": 0-11, "y": number, "w": 1-12, "h": number },
-  "groupBy": "none" | "level" | "pathway" | "admission_year" | "enrollment_status" | "academic_class" | "module" | "academic_year" | "letter_grade" | "program" | "status" | "goal_type" | "month" | "company",
+  "groupBy": "none" | "level" | "pathway" | "admission_year" | "enrollment_status" | "academic_class" | "module" | "academic_year" | "letter_grade" | "program" | "status" | "goal_type" | "month",
   "encodings": { 
     "x": "field", "y": "field", "metric": "field", "category": "field", "value": "field", 
     "kpiAggregation": "avg"|"sum"|"count"|"min"|"max",
@@ -50,7 +50,7 @@ Available Datasets & Columns:
 - core_student_metrics: [student_id, name, email, gpa, level, program, admission_year, academic_class, enrollment_status]
 - core_module_metrics: [module_code, module_name, level, credits, academic_year, graded_count, avg_grade_point, pass_count, fail_count, pass_rate]
 - core_grade_distribution: [letter_grade, grade_point, module_code, level, pathway]
-- core_career_goals: [goal_type, total_goals, achieved_count, achievement_rate, avg_progress, status, company]
+- core_career_goals: [goal_type, total_goals, achieved_count, achievement_rate, avg_progress, status]
 
 Keep patches helpful and concise. If adding visuals, ensure they fit neatly. Do not leave visuals unsorted if the user asks for rankings.`;
 

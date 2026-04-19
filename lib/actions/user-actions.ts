@@ -439,7 +439,6 @@ export async function deleteUser(userId: string) {
                 await tx.academicGoal.deleteMany({ where: { student_id: userId } });
                 await tx.ranking.deleteMany({ where: { student_id: userId } });
                 await tx.anonymousReport.deleteMany({ where: { student_id: userId } });
-                await tx.internship.deleteMany({ where: { student_id: userId } });
             }
 
             if (user.staff) {

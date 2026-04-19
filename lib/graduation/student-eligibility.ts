@@ -63,6 +63,23 @@ export async function evaluateStudentEligibility(studentId: string): Promise<Eli
         },
     });
 
+    if (!student) {
+        return {
+            isEligible: false,
+            creditDetail: {
+                completed: 0,
+                required: 132,
+                remaining: 132,
+            },
+            gpa: 0,
+            totalGpaCredits: 0,
+            matchedDivisionId: null,
+            matchedLabel: 'Pass',
+            academicClass: 'Pass',
+            divisionEvaluations: [],
+        };
+    }
+
 
     const [grades, structureRows, settings] = await Promise.all([
         prisma.grade.findMany({

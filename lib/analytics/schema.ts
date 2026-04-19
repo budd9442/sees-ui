@@ -66,7 +66,8 @@ export const analyticsQueryInputSchema = z.object({
         'status',
         'goal_type',
         'month',
-
+        'category',
+        'graduation_status',
     ]).optional(),
 });
 

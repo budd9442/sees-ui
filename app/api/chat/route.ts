@@ -51,7 +51,6 @@ You MUST double-quote all table and column names in your SQL (e.g. "Module", "gr
 "ProgramStructure"     (structure_id uuid PK, program_id uuid FK→"DegreeProgram", specialization_id uuid, module_id uuid FK→"Module", academic_level text, semester_number int, module_type text, credits int)
 "Ranking"              (ranking_id uuid PK, student_id uuid FK→"Student", degree_path_id uuid, rank int, gpa float, weighted_average float, created_at timestamptz)
 "GPAHistory"           (gpa_history_id uuid PK, student_id uuid FK→"Student", calculation_date timestamptz, gpa float, academic_class text)
-"Internship"           (internship_id uuid PK, student_id uuid FK→"Student", company text, role text, start_date timestamptz, end_date timestamptz, status text, progress int)
 "AcademicGoal"         (goal_id uuid PK, student_id uuid FK→"Student", goal_type text, status text, progress int, target_gpa float, target_class text)
 "Specialization"       (specialization_id uuid PK, code text, name text, program_id uuid FK→"DegreeProgram", active bool)
 "SelectionRound"       (round_id uuid PK, academic_year_id uuid, type text, label text, status text, opens_at timestamptz, closes_at timestamptz)
