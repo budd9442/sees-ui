@@ -711,7 +711,8 @@ export async function getAdminAnonymousReportsData() {
         include: {
             student: {
                 include: { user: true }
-            }
+            },
+            category: true
         },
         orderBy: { created_at: 'desc' }
     });
@@ -719,21 +720,154 @@ export async function getAdminAnonymousReportsData() {
     const mappedReports = reports.map((r) => ({
         id: r.report_id,
         studentId: 'anonymous',
-        category: 'academic_misconduct',
-        title: r.content.substring(0, 50) + (r.content.length > 50 ? '...' : ''),
+        category: r.category?.name || 'Uncategorized',
+        categoryId: r.category_id,
+        title: r.subject || (r.content.substring(0, 50) + (r.content.length > 50 ? '...' : '')),
         description: r.content,
         attachments: [],
         status: anonymousReportStatusToUi(r.status),
         submittedAt: r.created_at.toISOString(),
         consentToContact: false,
         priority: r.priority.toLowerCase(),
-        assignedTo: r.assigned_to ?? '',
+        assignedTo: r.assigned_to ?? r.category?.assigned_to ?? '',
         responseNotes: r.admin_notes ?? '',
         reviewedAt: r.updated_at?.toISOString?.() ?? r.created_at.toISOString(),
     }));
 
-    return { reports: mappedReports };
+    const categories = await prisma.reportCategory.findMany({
+        where: { is_active: true }
+    });
+
+    const recipients = await prisma.user.findMany({
+        where: {
+            OR: [
+                { role: 'admin' },
+                { staff: { isNot: null } }
+            ]
+        },
+        orderBy: { firstName: 'asc' }
+    });
+
+    return { 
+        reports: mappedReports,
+        categories: categories.map(c => ({ id: c.id, name: c.name, assignedTo: c.assigned_to })),
+        staffMembers: recipients.map(u => ({
+            id: u.user_id,
+            name: `${u.firstName} ${u.lastName}`,
+            email: u.email
+        }))
+    };
 }
+
+
+
+
+export async function getAdminReportCategoriesData() {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== 'admin') throw new Error('Unauthorized');
+
+    const categories = await prisma.reportCategory.findMany({
+        orderBy: { name: 'asc' }
+    });
+
+    const recipients = await prisma.user.findMany({
+        where: {
+            OR: [
+                { role: 'admin' },
+                { staff: { isNot: null } }
+            ]
+        },
+        orderBy: { firstName: 'asc' }
+    });
+
+    return {
+        categories: categories.map(c => ({
+            id: c.id,
+            name: c.name,
+            description: c.description || '',
+            assignedTo: c.assigned_to || '',
+            isActive: c.is_active,
+            updatedAt: c.updated_at.toISOString()
+        })),
+        staffMembers: recipients.map(u => ({
+            id: u.user_id,
+            name: `${u.firstName} ${u.lastName}`,
+            email: u.email
+        }))
+    };
+}
+
+
+
+export async function upsertReportCategory(data: {
+    id?: string;
+    name: string;
+    description?: string;
+    assignedTo?: string;
+    isActive?: boolean;
+}) {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== 'admin') throw new Error('Unauthorized');
+
+    const categoryData: any = {
+        name: data.name,
+        description: data.description,
+        assigned_to: data.assignedTo || null,
+        is_active: data.isActive ?? true,
+    };
+
+    let result;
+    if (data.id) {
+        result = await prisma.reportCategory.update({
+            where: { id: data.id },
+            data: categoryData
+        });
+    } else {
+        result = await prisma.reportCategory.create({
+            data: {
+                ...categoryData,
+                id: randomUUID()
+            }
+        });
+    }
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: data.id ? 'ADMIN_REPORT_CATEGORY_UPDATE' : 'ADMIN_REPORT_CATEGORY_CREATE',
+        entityType: 'REPORT_CATEGORY',
+        entityId: result.id,
+        category: 'ADMIN',
+        metadata: { name: result.name }
+    });
+
+    revalidatePath('/dashboard/admin/config/reports');
+    return { success: true, data: result };
+}
+
+export async function deleteReportCategory(id: string) {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== 'admin') throw new Error('Unauthorized');
+
+    // Check if category in use
+    const inUse = await prisma.anonymousReport.count({ where: { category_id: id } });
+    if (inUse > 0) {
+        throw new Error('Category is in use and cannot be deleted. Disable it instead.');
+    }
+
+    await prisma.reportCategory.delete({ where: { id } });
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_REPORT_CATEGORY_DELETE',
+        entityType: 'REPORT_CATEGORY',
+        entityId: id,
+        category: 'ADMIN'
+    });
+
+    revalidatePath('/dashboard/admin/config/reports');
+    return { success: true };
+}
+
 
 /** Map DB status tokens to reports-review UI filter values. */
 function anonymousReportStatusToUi(db: string): string {
@@ -773,8 +907,7 @@ export async function updateAdminAnonymousReport(
         status?: string;
         responseNotes?: string;
         assignedTo?: string;
-        reviewedAt?: string;
-        reviewedBy?: string;
+        priority?: string;
     }
 ) {
     const session = await auth();
@@ -782,11 +915,7 @@ export async function updateAdminAnonymousReport(
         throw new Error('Unauthorized');
     }
 
-    const patch: {
-        status?: string;
-        admin_notes?: string | null;
-        assigned_to?: string | null;
-    } = {};
+    const patch: any = {};
 
     if (data.status !== undefined) {
         patch.status = anonymousReportStatusUiToDb(data.status);
@@ -797,10 +926,14 @@ export async function updateAdminAnonymousReport(
     if (data.assignedTo !== undefined) {
         patch.assigned_to = data.assignedTo.trim() || null;
     }
+    if (data.priority !== undefined) {
+        patch.priority = data.priority.toUpperCase();
+    }
 
     const updated = await prisma.anonymousReport.update({
         where: { report_id: reportId },
         data: patch,
+        include: { category: true }
     });
 
     await writeAuditLog({
@@ -809,7 +942,7 @@ export async function updateAdminAnonymousReport(
         entityType: 'ANONYMOUS_REPORT',
         entityId: reportId,
         category: 'ADMIN',
-        metadata: { status: patch.status ?? updated.status },
+        metadata: { status: updated.status, assigned_to: updated.assigned_to },
     });
 
     revalidatePath('/dashboard/admin/reports-review');
@@ -819,11 +952,12 @@ export async function updateAdminAnonymousReport(
             id: updated.report_id,
             status: anonymousReportStatusToUi(updated.status),
             responseNotes: updated.admin_notes ?? '',
-            assignedTo: updated.assigned_to ?? '',
+            assignedTo: updated.assigned_to ?? updated.category?.assigned_to ?? '',
             reviewedAt: updated.updated_at.toISOString(),
         },
     };
 }
+
 
 // GPA CONFIG ACTIONS
 

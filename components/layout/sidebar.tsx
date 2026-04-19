@@ -327,6 +327,13 @@ const navigationItems: NavItem[] = [
     roles: ['admin'],
   },
   {
+    title: 'Reports Config',
+    href: '/dashboard/admin/config/reports',
+    icon: Cog,
+    roles: ['admin'],
+  },
+
+  {
     title: 'Backup & Restore',
     href: '/dashboard/admin/backup',
     icon: Database,

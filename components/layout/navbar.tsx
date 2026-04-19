@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, LogOut, Settings, User } from 'lucide-react';
+import { Bell, LogOut, Settings, User, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,36 +20,81 @@ import { cn } from '@/lib/utils';
 import { LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { getPublicSystemInfo } from '@/lib/actions/system-settings-actions';
 import { getAcademicYears } from '@/lib/actions/academic-years';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { 
+  getUserNotifications, 
+  getUnreadNotificationCount, 
+  markNotificationAsRead, 
+  clearAllNotifications 
+} from '@/lib/actions/notification-actions';
+import { toast } from 'sonner';
 
 export function Navbar() {
   const { user, logout, activeRole, setActiveRole } = useAuthStore();
   const [systemInfo, setSystemInfo] = useState({ institutionName: 'SEES Platform', maintenanceMode: false });
   const [academicYears, setAcademicYears] = useState<any[]>([]);
-  const notifications: any[] = [];
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const router = useRouter();
+
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [notifs, count] = await Promise.all([
+        getUserNotifications(10),
+        getUnreadNotificationCount()
+      ]);
+      setNotifications(notifs);
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  }, [user]);
 
   useEffect(() => {
     getPublicSystemInfo().then(setSystemInfo);
 
-    // Fetch academic years for lightweight header context.
     if (user) {
       getAcademicYears().then(res => {
         if (res.success && res.data) {
           setAcademicYears(res.data);
         }
       });
+      
+      fetchNotifications();
+      
+      // Polling for new notifications every 60 seconds
+      const interval = setInterval(fetchNotifications, 60000);
+      return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user, fetchNotifications]);
 
   if (!user) return null;
-
-  const userNotifications = notifications.filter((n) => n.userId === user.id);
-  const unreadCount = userNotifications.filter((n) => !n.isRead).length;
 
   const handleLogout = async () => {
     await import('@/lib/actions').then(({ logoutAction }) => logoutAction());
     logout();
+  };
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await markNotificationAsRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      toast.error('Failed to mark notification as read');
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      await clearAllNotifications();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+      toast.success('All notifications cleared');
+    } catch (error) {
+      toast.error('Failed to clear notifications');
+    }
   };
 
   const isStaffOrAdmin = user.role !== 'student';
@@ -138,49 +183,79 @@ export function Navbar() {
                 <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full border border-transparent hover:border-border hover:bg-muted/70 transition-colors">
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute right-1 top-1 h-5 w-5 rounded-full p-0 text-[10px] flex items-center justify-center border-2 border-background"
-                    >
-                      {unreadCount}
-                    </Badge>
+                    <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-background animate-pulse" />
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 rounded-2xl p-0 overflow-hidden shadow-2xl border-muted-foreground/10">
-                <div className="p-4 bg-muted/5 border-b">
+              <DropdownMenuContent align="end" className="w-80 rounded-2xl p-0 overflow-hidden shadow-2xl border-muted-foreground/10 bg-background/95 backdrop-blur-md">
+                <div className="p-4 bg-muted/20 border-b flex items-center justify-between">
                     <DropdownMenuLabel className="p-0 text-sm font-bold">Notifications</DropdownMenuLabel>
+                    {unreadCount > 0 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleClearAll}
+                        className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" /> Clear All
+                      </Button>
+                    )}
                 </div>
                 <div className="max-h-[350px] overflow-y-auto">
-                  {userNotifications.slice(0, 5).length === 0 ? (
-                    <div className="p-8 text-center text-sm text-muted-foreground">
-                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-10" />
-                        <p className="font-medium">All caught up</p>
+                  {notifications.length === 0 ? (
+                    <div className="p-12 text-center text-sm text-muted-foreground bg-muted/5">
+                        <Bell className="h-10 w-10 mx-auto mb-3 opacity-20 text-primary" />
+                        <p className="font-semibold text-foreground/70 tracking-tight">Clean Slate</p>
+                        <p className="text-xs mt-1 text-muted-foreground/60 tracking-normal">No new notifications at the moment.</p>
                     </div>
                   ) : (
-                    userNotifications.slice(0, 5).map((notification) => (
+                    notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-4 border-b last:border-0 cursor-pointer hover:bg-muted/30 transition-colors ${!notification.isRead ? 'bg-primary/5' : ''
-                          }`}
+                        onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
+                        className={cn(
+                          "group p-4 border-b last:border-0 cursor-pointer transition-all duration-200",
+                          !notification.isRead ? "bg-primary/[0.03] hover:bg-primary/[0.06]" : "opacity-80 hover:bg-muted/30"
+                        )}
                       >
-                        <div className="flex items-start gap-3">
-                          <div className="flex-1">
-                            <p className="font-bold text-xs">
-                              {notification.title}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                        <div className="flex items-start gap-4">
+                          <div className={cn(
+                            "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm",
+                            !notification.isRead ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                          )}>
+                            <Bell className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex justify-between items-start gap-2">
+                                <p className={cn("text-xs font-bold leading-none", !notification.isRead ? "text-foreground" : "text-muted-foreground")}>
+                                {notification.title}
+                                </p>
+                                {!notification.isRead && (
+                                    <div className="h-1.5 w-1.5 rounded-full bg-primary mt-0.5" />
+                                )}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground/90 leading-relaxed font-medium line-clamp-2">
                               {notification.message}
                             </p>
+                            <p className="text-[9px] text-muted-foreground/50 font-bold uppercase tracking-wider mt-2">
+                                {new Date(notification.sentAt).toLocaleDateString()} at {new Date(notification.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
                           </div>
-                          {!notification.isRead && (
-                            <div className="h-2 w-2 rounded-full bg-primary mt-1" />
-                          )}
                         </div>
                       </div>
                     ))
                   )}
                 </div>
+                {notifications.length > 0 && (
+                  <div className="p-3 bg-muted/10 text-center border-t">
+                    <Link 
+                      href="/dashboard/notifications" 
+                      className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      View All Notifications
+                    </Link>
+                  </div>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 

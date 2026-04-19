@@ -1,0 +1,439 @@
+[
+  {
+    "code": "INTE 11213",
+    "name": "Fundamentals of Computing",
+    "prerequisites": []
+  },
+  {
+    "code": "INTE 11223",
+    "name": "Programming Concepts",
+    "prerequisites": []
+  },
+  {
+    "code": "INTE 12243",
+    "name": "Computer Networks",
+    "prerequisites": [
+      "INTE 11213"
+    ]
+  },
+  {
+    "code": "INTE 12213",
+    "name": "Object Oriented Programming",
+    "prerequisites": [
+      "INTE 11223"
+    ]
+  },
+  {
+    "code": "INTE 12223",
+    "name": "Database Design and Development",
+    "prerequisites": [
+      "INTE 11223"
+    ]
+  },
+  {
+    "code": "INTE 21213",
+    "name": "Information Systems Modelling",
+    "prerequisites": [
+      "INTE 11223",
+      "INTE 12213",
+      "INTE 12223"
+    ]
+  },
+  {
+    "code": "INTE 21313",
+    "name": "Business Information Systems",
+    "prerequisites": [
+      "INTE 11213"
+    ]
+  },
+  {
+    "code": "INTE 21323",
+    "name": "Web Applications Development",
+    "prerequisites": []
+  },
+  {
+    "code": "INTE 21333",
+    "name": "Event Driven Programming",
+    "prerequisites": [
+      "INTE 12223",
+      "INTE 12213"
+    ]
+  },
+  {
+    "code": "INTE 21343",
+    "name": "Software Engineering Concepts",
+    "prerequisites": [
+      "INTE 21213"
+    ]
+  },
+  {
+    "code": "INTE 21243",
+    "name": "Computer Architecture and Operating Systems",
+    "prerequisites": [
+      "INTE 11213",
+      "INTE 11223"
+    ]
+  },
+  {
+    "code": "INTE 22293",
+    "name": "Software Architecture and Process Models",
+    "prerequisites": [
+      "INTE 21213"
+    ]
+  },
+  {
+    "code": "INTE 22343",
+    "name": "Data Structures and Algorithms\nPrerequisites \tINTE 11223 - Programming Concepts\nINTE 12213 - Object Oriented Programming\nCo-requisites \tNone\nCredit Value \t3\nHourly Breakdown\n(Notional Hrs.)\nTheory \tPractical \tGuided Self-study\n45 \t30 \t75\nCourse Aim/Intended Learning Outcomes:\nAfter completing this module, the students should be able to,\n1. Identify the properties of a good algorithm and a good program\n2. Determine and analyse the efficiency of often used algorithms\n3. Design correct and efficient algorithms for solving real-world problems\n4. Implement data structures often used in computer programming\n5. Discuss the real-world applications of different data structures\n6. Apply data structures for solving real-world problem\n7. Design and develop efficient computer programs using data structures and algorithms\nCourse Content:\nAlgorithms and programs, correctness and efficiency of an algorithm, space complexity, time complexity, the\nbest, average and worst cases of time complexity, linear, logarithmic, linear logarithmic, quadratic,\npolynomial, exponential and factorial functions of time complexity, asymptotic notations, classical searching\nand sorting algorithms, divide-and-conquer approach, recursion, atomic and composite data types,\nfundamental data structures, advanced data structures, real-world applications.\nTeaching /Learning Methods:\nLectures, supervised hands on practical sessions, and guided self-study assignments\nAssessment Criteria:\nEnd semester examination and continuous assessments\nContinuous Assessment\n0 \u2013 25%\nFinal Assessment\n75 \u2013 100%\nDetails: quizzes, mid-term, assignments\n0 \u2013 25 %, 0 \u2013 25 %, 0 \u2013 25 %\nTheory (%)\n100%\nPractical (%)\n0%\nOther (%)\n(specify)\nRecommended Reading:\n1. Sartaj Sahni, (2004), Data Structures, Algorithms and Applications in C++, Silicon Press\n2. Richard F. Gilberg and Behrouz A. Forouzan, (2005), Data Structures: A Pseudocode Approach with C++,\n2nd edition, Course Technology\n3. Steven S. Skiena, (2020), The Algorithm Design Manual, 3rd Edition, Springer-Verlag\n4. Material provided in CAL.\n\n-- 23 of 92 --\n\n24\nYear of Study \t2\nSemester \t2\nCourse Code \tINTE 22253\nCourse Name \tDistributed Systems and Cloud Computing",
+    "prerequisites": [
+      "INTE 12213",
+      "INTE 21323"
+    ]
+  },
+  {
+    "code": "INTE 22263",
+    "name": "Embedded Systems Development",
+    "prerequisites": [
+      "INTE 11223",
+      "INTE 21243"
+    ]
+  },
+  {
+    "code": "INTE 22283",
+    "name": "Mobile Applications Development",
+    "prerequisites": [
+      "INTE 12213",
+      "INTE 21323"
+    ]
+  },
+  {
+    "code": "INTE 22313",
+    "name": "Software Design Patterns and Frameworks",
+    "prerequisites": [
+      "INTE 21213"
+    ]
+  },
+  {
+    "code": "INTE 31233",
+    "name": "Human Computer Interaction",
+    "prerequisites": [
+      "INTE 11213"
+    ]
+  },
+  {
+    "code": "INTE 31283",
+    "name": "Big Data and Data Warehousing",
+    "prerequisites": [
+      "INTE 12223"
+    ]
+  },
+  {
+    "code": "INTE 31356",
+    "name": "Software Development Project",
+    "prerequisites": []
+  },
+  {
+    "code": "INTE 31413",
+    "name": "Information Technology Infrastructure",
+    "prerequisites": [
+      "INTE 11213",
+      "INTE 12243"
+    ]
+  },
+  {
+    "code": "INTE 31243",
+    "name": "Software Quality Engineering",
+    "prerequisites": [
+      "INTE 21343"
+    ]
+  },
+  {
+    "code": "INTE 31393",
+    "name": "Information Security",
+    "prerequisites": [
+      "INTE 12243",
+      "INTE 21313"
+    ]
+  },
+  {
+    "code": "INTE 31403",
+    "name": "System Administration and Maintenance",
+    "prerequisites": [
+      "INTE 11213",
+      "INTE 12243"
+    ]
+  },
+  {
+    "code": "INTE 41403",
+    "name": "Advanced Databases",
+    "prerequisites": [
+      "INTE 12223"
+    ]
+  },
+  {
+    "code": "INTE 41413",
+    "name": "Internet of Things",
+    "prerequisites": [
+      "INTE 12243",
+      "INTE 22263"
+    ]
+  },
+  {
+    "code": "INTE 41393",
+    "name": "System Integration Technologies",
+    "prerequisites": [
+      "INTE 12213",
+      "INTE 21323",
+      "INTE 22313"
+    ]
+  },
+  {
+    "code": "INTE 44303",
+    "name": "Information Audit and Assurance",
+    "prerequisites": [
+      "INTE 21313",
+      "INTE 31393",
+      "INTE 12243"
+    ]
+  },
+  {
+    "code": "INTE 41283",
+    "name": "Information Systems Management and Strategy",
+    "prerequisites": [
+      "INTE 21313"
+    ]
+  },
+  {
+    "code": "MGTE 41363",
+    "name": "Digital Innovations Management",
+    "prerequisites": [
+      "INTE 21313"
+    ]
+  },
+  {
+    "code": "INTE 41373",
+    "name": "Image Processing",
+    "prerequisites": [
+      "INTE 11213",
+      "INTE 22343",
+      "PMAT 31212"
+    ]
+  },
+  {
+    "code": "INTE 41383",
+    "name": "Industrial Automation",
+    "prerequisites": []
+  },
+  {
+    "code": "INTE 42353",
+    "name": "Semantic Web and Ontological Engineering",
+    "prerequisites": [
+      "INTE 12213",
+      "INTE 21323"
+    ]
+  },
+  {
+    "code": "INTE 42333",
+    "name": "Complex Systems and Agent-Based Modeling",
+    "prerequisites": [
+      "INTE 11223",
+      "INTE 22303"
+    ]
+  },
+  {
+    "code": "MGTE 11233",
+    "name": "Business Statistics and Economics",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 11243",
+    "name": "Principles of Management & Organizational Behaviour",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 12253",
+    "name": "Accounting Concepts and Costing",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 12263",
+    "name": "Optimization Methods in Management Science",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 12273",
+    "name": "Industry and Technology",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 21243",
+    "name": "Marketing Management",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 21233",
+    "name": "Operations Management",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 22273",
+    "name": "Human Resource Management & Leadership Communication",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 22263",
+    "name": "Logistics and Supply Chain Management",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 31373",
+    "name": "Project Management",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 31383",
+    "name": "Research Methods",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 31403",
+    "name": "Management of Technology",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 31413",
+    "name": "Warehouse Management and Industrial Shipping\nPre-Requisites \tNone\nCo-Requisites \tNone\nCredit Value \t3\nHourly Breakdown\n(Notional Hrs.)\nTheory \tTutorial/ Practical \tGuided Self-study\n45 \t15 \t90\nCourse Aim/Intended Learning Outcomes:\nOn completion of this course, the student should be able to:\n1. Analyze the basic process of a warehouse operation\n2. Analyze the KPIs related to warehouse operation\n3. Evaluate warehouse operation models\n4. Evaluate shipping options for industrial cargo\n5. Analyze shipping markets and key indexes\n6. Evaluate main operations related to industrial shipping process\nCourse Content:\nWarehouse Process Management: Receiving, Put away, Storage, Order picking, Shipping, Distribution\nManagement, Network Design, Warehousing models, Warehouse activity profiling, Measuring and benchmarking\nwarehouse operations, Warehouse process pallet storage and retrieval systems, Store functions and\nresponsibilities, Store procedures and planning, Store System costs and rates, Materials - Handling considerations\nand systems, Computerizing warehouse operations, Warehouse layout planning, Warehouse safety and security,\nBest practices, Audits and compliance, Warehouse location selection, Inventory management\nShipping market and players, Liner shipping industry, Tramp shipping industry, Freight market, Baltic Freight Index\n(BFI), Vessel new building market, Demolition market, Sale and purchase market, Liner agency services, Strategic\nalliances, consortia, Merger and acquisitions, Shipping networks, Seaport operations, Route planning, Fleet\nmanagement, Port choice, Network design: Pendulum services, Round the world services, Ship owners, Insurance,\nCharter parties, Shippers and consignees, Freight forwarders, Chartering types, Voyage, time and bareboat\nchartering, Yard planning, Crew scheduling, Ship planning, Berth planning, Strategic, Port operating models,\nTactical and operational level issues\nTeaching /Learning Methods:\nLectures, interactive classroom sessions and case analysis\nAssessment Criteria:\nEnd of course unit examination and continuous assessments\nContinuous Assessment\n40%\nFinal Assessment\n60%\nDetails: Assignment%, Project\n0 - 20 %, 0 \u2013 20%\nTheory (%)\n10%- 90%\nPractical (%)\n0%\nOther (%)(Attendance)\n0%- 10%\nRecommended Reading:\n1. Edward, H F, (2004), World-Class Warehousing and material handling, TATA McGraw-Hill, New Delhi.\n2. Rahul, V A, (2005), Supply Chain Management: Concepts and Cases, PHI Learning, New Delhi.\n3. John, J C and Robert, A N, (2009), A Logistics Approach to Supply Chain Management, Cengage Learning.\n4. Joel, D W, Keong, L and KeahChoon, T, (2012), Principle of Supply Chain Management \u2013 A Balanced Approach,\nCengage Learning.\n5. Ronald, H B and Samir, K S, (2007), Business Logistics/ Supply Chain Management, Pearson Education.\n6. Paul R M, Donald F W, (2008), Contemporary Logistics, PH of India.\n7. Tompkins, JA, White, Y A, Bozer, EH and Frazer, (1996), Facilities Planning, Wiley.\n8. Peter Brodie, P. (2018) Commercial Shipping Handbook.\n9. Lun, Y.H.V., Lai. K-H. and Cheng. T.C.E. (2010) Shipping and Logistics Management. Springer Link.\n10. Levinson, M. (2008) The Box: How the Shipping Container Made the World Smaller and the World Economy\nBigger.\n11. Material provided in CAL.\n\n-- 62 of 92 --\n\n63\nYear of Study \t3\nSemester \t1\nCourse Code \tMGTE 31433\nCourse Name \tComputer Based Tools for Management Applications",
+    "prerequisites": [
+      "MGTE 12222"
+    ]
+  },
+  {
+    "code": "MGTE 31443",
+    "name": "Strategic Marketing and International Trade",
+    "prerequisites": [
+      "MGTE 21243"
+    ]
+  },
+  {
+    "code": "MGTE 31423",
+    "name": "Advanced Optimization Methods in Management Science",
+    "prerequisites": [
+      "MGTE 12263"
+    ]
+  },
+  {
+    "code": "MGTE 31293",
+    "name": "Computer Integrated Manufacturing",
+    "prerequisites": [
+      "MGTE 12273",
+      "MGTE 21233"
+    ]
+  },
+  {
+    "code": "MGTE 31303",
+    "name": "Procurement and Supply Management",
+    "prerequisites": [
+      "MGTE 21233",
+      "MGTE 22263"
+    ]
+  },
+  {
+    "code": "MGTE 31393",
+    "name": "Managerial Finance",
+    "prerequisites": [
+      "MGTE 12253"
+    ]
+  },
+  {
+    "code": "MGTE 41373",
+    "name": "Strategic Management",
+    "prerequisites": [
+      "MGTE 11233",
+      "MGTE 21243",
+      "MGTE 21233",
+      "MGTE 31393"
+    ]
+  },
+  {
+    "code": "MGTE 41323",
+    "name": "Professional Practices",
+    "prerequisites": [
+      "MGTE 11243"
+    ]
+  },
+  {
+    "code": "MGTE 41333",
+    "name": "Business Process Engineering",
+    "prerequisites": [
+      "MGTE 21233"
+    ]
+  },
+  {
+    "code": "MGTE 41313",
+    "name": "Statistical Data Modelling",
+    "prerequisites": [
+      "MGTE 11233"
+    ]
+  },
+  {
+    "code": "MGTE 41233",
+    "name": "Corporate Finance",
+    "prerequisites": [
+      "MGTE 31393"
+    ]
+  },
+  {
+    "code": "MGTE 41343",
+    "name": "Logistics System Analysis and Geomatics",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 41303",
+    "name": "Enterprise Systems",
+    "prerequisites": [
+      "INTE 21313"
+    ]
+  },
+  {
+    "code": "MGTE 41383",
+    "name": "Advanced Operations Management",
+    "prerequisites": [
+      "MGTE 21233"
+    ]
+  },
+  {
+    "code": "MGTE 41353",
+    "name": "Sustainability and Economics in Logistics and Supply Chain\nPrerequisites \tNone\nCo-requisites \tNone\nCredit Value \t3\nHourly Breakdown\n(Notional Hrs.)\nTheory \tTutorial/ Practical \tGuided Self-study\n45 \t30 \t75\nCourse Aim/Intended Learning Outcomes:\nOn completion of this course, the student should be able to:\n1. Recognize global sustainability issues associated with supply chain and logistics systems\n2. Discuss the approaches for economic, environmental, and social sustainability in logistics and supply chain\n3. Analyse and discuss measures to mitigate negative impacts from logistics and supply chain\n4. Identify KPIs for measuring sustainability aspects in logistics and supply chain\n5. Develop sustainable solutions for logistics systems\n6. Discuss economics implications in logistics and transport\n7. Comprehend the impacts of transport economics and policy on other industries and markets\n8. Discuss directions for transport policy, infrastructure development and related implications\nCourse Content:\nEnvironmental, economic and social impacts of logistics, Techniques adopted for assessing the environmental\nimpacts, Sustainability related KPIs, Pollution estimation methods, Negative externalities, Strategies for\nenvironmental sustainability, Equity issues in transport, Non-motorised transport, Park and Ride, Ride\nSharing, Mobility management, Health, safety and security issues in transport and logistics, Social exclusion,\nGreen supply chain management, Supply chain innovation, Sustainable development goals, Closed-loop\nsupply chain, Reverse logistics, Energy sources, Energy consumption, Emission calculation, Resource\nallocation, Rules and regulations for environmental sustainability, Transport economy: Utility theory,\nOpportunity cost, Elasticity of transport demand, Transport supply, Transport pricing and equity, Tax and\nsubsidy, Economic and diseconomy of scale, Generalized costs, Analysis on transport policy, Logistics and\ntransport market structures, Alliances, Transport infrastructure developments, Cost-benefit analysis,\nMarginal cost and Fixed cost pricing, Discriminatory pricing, Methods of financing transport infrastructure and\ninvestments, Investments risks, Ownership issues, Emission tax, Emission trading, Congestion pricing,\nBenefits/cost analysis of transport projects\nTeaching /Learning Methods:\nLectures, interactive classroom sessions and case analysis\nAssessment Criteria:\nEnd of course unit examination and continuous assessments\nContinuous Assessment\n40%\nFinal Assessment\n60%\nDetails: Assignment%, Project\n0 - 20 %, 0 \u2013 20%\nTheory (%)\n10%- 90%\nPractical (%)\n0%\nOther (%)\n(Attendance)\n0%- 10%\nRecommended Reading:\n1. Meng, L. and Bock, J.D. (2016) Sustainable Logistics and Supply Chains, Innovations and Integral\nApproaches, Springer Link.\n2. Grant, D.B., Trautrims, A. and Wong, C.Y (2015)Sustainable Logistics and Supply Chain Management\n(Revised Edition), Kogan Page Publishers.\n3. Material provided in the CAL\n\n-- 77 of 92 --\n\n78\nYear of Study \t4\nSemester \t2\nCourse Code \tMGTE 42213\nCourse Name \tIndustrial and Systems Engineering",
+    "prerequisites": [
+      "MGTE 21233"
+    ]
+  },
+  {
+    "code": "MGTE 42223",
+    "name": "Investment Management",
+    "prerequisites": [
+      "MGTE 41233"
+    ]
+  },
+  {
+    "code": "MGTE 42243",
+    "name": "Advanced Planning and Scheduling",
+    "prerequisites": [
+      "MGTE 12263"
+    ]
+  },
+  {
+    "code": "MGTE 42313",
+    "name": "Advanced Supply Chain and Logistics Applications\nPrerequisites \tAll compulsory modules for OSCM\nCo-requisites \tNone\nCredit Value \t3\nCompulsory/Optional \tCompulsory\nHourly Breakdown\n(Notional Hrs.)\nTheory \tPractical/Tutorial \tGuided Self-study\n45 \t15 \t90\nCourse Aim/Intended Learning Outcomes:\nAfter completing this module, the students should be able to,\n1. Plan a logistics system with its components\n2. Discuss integration of logistics functions\n3. Evaluate factors, different methods and analysis techniques used for logistics system\n4. Comprehend advanced concepts in Supply Chain Management\n5. Formulate and solve real-life supply chain and logistics related models\n6. Develop competency in logistics network planning and distribution networks\n7. Rationalize different techniques for managing physical distribution\n8. Develop and apply computer-based techniques of distribution planning and control\n9. Understand emerging trends, national and international laws and practices in logistics and supply chain\nCourse Content:\nLogistics system, Logistics activity profiles, Short, medium, and long term planning for logistics infrastructure,\nDemand planning, Scheduling, Forecasting, Facility design and operations, Demand and order management,\nAdvanced Inventory models, Logistics systems integration, Reverse logistics systems, Outsourcing levels - Third\nParty Logistics (3PL) Provider / Lead logistics Provider (LLP) (Linking to Logistics Ecosystems, 2PL, 4PL, 5PL, Drop\nshipping, Last Mile Logistics), Supply chain restructuring, Decision levels in a supply chain, Tripple A supply chain,\nFreight forwarding, Decision making for logistics systems, Derived demand in transport, Transport supply,\nInfrastructure planning, Design and layouts of infrastructure, Investments in transport infrastructure, Maritime,\nAviation, Land transport, Transport Demand and Supply, Formulation of mathematical models for solving issues\nin logistics systems, Aggregate and disaggregate planning, Facility location problems, Logistics network planning,\nGreen Supply Chain, Closed-loop supply chain, Introduction to Physical Distribution: Interfaces & environment;\nfunctional areas; Systems design & measurement; Decision making; Distribution planning and scheduling,\nOrganization and administrative costing; Components of physical distribution systems, Distribution\nRequirements Planning (DRP)systems, analysis and benefits of DRP; Distribution networks, Emerging trends in\nlogistics, National and international law in logistics, legislation, regulations, safety requirements, and\nprofessional standards\nTeaching /Learning Methods:\nLectures and case discussions\nAssessment Criteria:\nEnd of course unit examination and continuous assessments.\nContinuous Assessment\n25 - 50%\nFinal Assessment\n50 - 75%\nDetails: quizzes %, mid-term %, Assignments% 0 - 50\n%, 0 \u2013 50 % 0 \u2013 50 %\nTheory (%)\n100%\nPractical (%)\n0%\nOther (0-10%)\n(attendance)\nRecommended Reading:\n1. Ghiani, G., Laporte, G. and Musmanno, R. (2004) Introduction to Logistics Systems Planning and Control\n2. Langevin, A. and Riopel, D. (2005) Logistics Systems: Design and Optimization\n3. Farahani, R.Z., Rezapour, S. and Kardar, L. (2011) Logistics Operations and Management, Concepts and\nModels, Elsevier Inc.\n4. Rahul, V A, (2005), Supply Chain Management and Cases, PHI Learning, New Delhi.\n5. Chopra, S and Peter, M (2013) Supply Chain Management, Strategy, Planning, And Operation. Pearson\n6. Joel, D W, Keong, L and Keah Choon, T, (2012), Principle of Supply Chain Management \u2013 A Balanced Approach,\nCengage Learning.\n7. Ronald, H B, Samir, K S, (2007), Business Logistics/ Supply Chain Management, Pearson Education.\n8. Paul, R M and Donald, F W, (2008), Contemporary Logistics, PH of India.\n9. Material provided in CAL.\n\n-- 81 of 92 --\n\n82\nYear of Study \t4\nSemester \t2\nCourse Code \tMGTE 42323\nCourse Name \tStrategic Quality Management and Lean Six Sigma",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 42333",
+    "name": "Business and Information Technology Law",
+    "prerequisites": []
+  },
+  {
+    "code": "MGTE 44273",
+    "name": "Innovation and Entrepreneurship",
+    "prerequisites": []
+  }
+]

@@ -43,58 +43,94 @@ import {
     Shield,
     Flag,
     Send,
+    UserCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateAdminAnonymousReport } from '@/lib/actions/admin-actions';
 import { exportTabularData } from '@/lib/export';
 
-export default function ReportsReviewClient({ initialData }: { initialData: any }) {
+interface Report {
+    id: string;
+    studentId: string;
+    category: string;
+    categoryId?: string;
+    title: string;
+    description: string;
+    status: string;
+    submittedAt: string;
+    priority: string;
+    assignedTo: string;
+    responseNotes: string;
+    reviewedAt: string;
+}
+
+interface Category {
+    id: string;
+    name: string;
+    assignedTo: string;
+}
+
+interface Staff {
+    id: string;
+    name: string;
+    email: string;
+}
+
+interface PageData {
+    reports: Report[];
+    categories: Category[];
+    staffMembers: Staff[];
+}
+
+export default function ReportsReviewClient({ initialData }: { initialData: PageData }) {
     const { user } = useAuthStore();
 
     const [reports, setReports] = useState(initialData.reports || []);
     const [showReportDialog, setShowReportDialog] = useState(false);
-    const [selectedReport, setSelectedReport] = useState<any | null>(null);
+    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
     const [responseNotes, setResponseNotes] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleViewReport = (report: any) => {
+    const handleViewReport = (report: Report) => {
         setSelectedReport(report);
+        setResponseNotes(report.responseNotes || '');
         setShowReportDialog(true);
     };
 
     const handleUpdateStatus = async (reportId: string, status: string) => {
+        setLoading(true);
         try {
             const updateData = {
                 status,
-                reviewedAt: new Date().toISOString(),
-                reviewedBy: user?.name || 'Admin',
                 responseNotes: responseNotes || undefined,
             };
-            await updateAdminAnonymousReport(reportId, updateData);
+            const res = await updateAdminAnonymousReport(reportId, updateData);
 
-            setReports(reports.map((r: any) => r.id === reportId ? { ...r, ...updateData } : r));
-
-            toast.success(`Report status updated to ${status}`);
-            setShowReportDialog(false);
-            setResponseNotes('');
+            if (res.success) {
+                setReports(prev => prev.map((r: any) => r.id === reportId ? { ...r, ...res.data } : r));
+                toast.success(`Report updated successfully`);
+                setShowReportDialog(false);
+            }
         } catch (e: any) {
-            toast.error('Failed to update report.');
+            toast.error(e.message || 'Failed to update report.');
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleAssignReport = async (reportId: string, assignedTo: string) => {
         try {
-            const updateData = {
-                assignedTo,
-                reviewedAt: new Date().toISOString(),
-                reviewedBy: user?.name || 'Admin',
-            };
-            await updateAdminAnonymousReport(reportId, updateData);
-
-            setReports(reports.map((r: any) => r.id === reportId ? { ...r, ...updateData } : r));
-            toast.success(`Report assigned to ${assignedTo}`);
+            const res = await updateAdminAnonymousReport(reportId, { assignedTo });
+            if (res.success) {
+                setReports(prev => prev.map((r: any) => r.id === reportId ? { ...r, ...res.data } : r));
+                if (selectedReport?.id === reportId) {
+                    setSelectedReport(prev => prev ? { ...prev, ...res.data } : null);
+                }
+                toast.success(`Report assigned`);
+            }
         } catch (e: any) {
             toast.error('Failed to assign report.');
         }
@@ -119,51 +155,27 @@ export default function ReportsReviewClient({ initialData }: { initialData: any 
     };
 
     const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'submitted': return 'text-blue-600 bg-blue-50';
-            case 'in_review': return 'text-yellow-600 bg-yellow-50';
-            case 'in_progress': return 'text-orange-600 bg-orange-50';
-            case 'resolved': return 'text-green-600 bg-green-50';
-            case 'closed': return 'text-gray-600 bg-gray-50';
-            default: return 'text-gray-600 bg-gray-50';
-        }
-    };
-
-    const getCategoryColor = (category: string) => {
-        switch (category) {
-            case 'academic_misconduct': return 'text-red-600 bg-red-50';
-            case 'harassment': return 'text-purple-600 bg-purple-50';
-            case 'discrimination': return 'text-orange-600 bg-orange-50';
-            case 'safety_concern': return 'text-yellow-600 bg-yellow-50';
-            case 'facility_issue': return 'text-blue-600 bg-blue-50';
-            case 'other': return 'text-gray-600 bg-gray-50';
-            default: return 'text-gray-600 bg-gray-50';
+        switch (status.toLowerCase()) {
+            case 'submitted': return 'bg-blue-100 text-blue-700';
+            case 'in_review': return 'bg-yellow-100 text-yellow-700';
+            case 'in_progress': return 'bg-orange-100 text-orange-700';
+            case 'resolved': return 'bg-green-100 text-green-700';
+            case 'closed': return 'bg-gray-100 text-gray-700';
+            default: return 'bg-gray-100 text-gray-700';
         }
     };
 
     const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case 'urgent': return 'text-red-600 bg-red-50';
-            case 'high': return 'text-orange-600 bg-orange-50';
-            case 'medium': return 'text-yellow-600 bg-yellow-50';
-            case 'low': return 'text-green-600 bg-green-50';
-            default: return 'text-gray-600 bg-gray-50';
+        switch (priority.toLowerCase()) {
+            case 'urgent': return 'bg-red-100 text-red-700 border-red-200';
+            case 'high': return 'bg-orange-100 text-orange-700 border-orange-200';
+            case 'medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+            case 'low': return 'bg-green-100 text-green-700 border-green-200';
+            default: return 'bg-gray-100 text-gray-700';
         }
     };
 
-    const getCategoryIcon = (category: string) => {
-        switch (category) {
-            case 'academic_misconduct': return Flag;
-            case 'harassment': return AlertCircle;
-            case 'discrimination': return Shield;
-            case 'safety_concern': return AlertCircle;
-            case 'facility_issue': return MessageSquare;
-            case 'other': return FileText;
-            default: return FileText;
-        }
-    };
-
-    const filteredReports = reports.filter((report: any) => {
+    const filteredReports = reports.filter((report: Report) => {
         const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             report.description.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = filterCategory === 'all' || report.category === filterCategory;
@@ -173,9 +185,9 @@ export default function ReportsReviewClient({ initialData }: { initialData: any 
 
     const getReportStats = () => {
         const total = reports.length;
-        const submitted = reports.filter((r: any) => r.status === 'submitted').length;
-        const inReview = reports.filter((r: any) => r.status === 'in_review').length;
-        const resolved = reports.filter((r: any) => r.status === 'resolved').length;
+        const submitted = reports.filter((r: Report) => r.status === 'submitted').length;
+        const inReview = reports.filter((r: Report) => r.status === 'in_review').length;
+        const resolved = reports.filter((r: Report) => r.status === 'resolved').length;
         return { total, submitted, inReview, resolved };
     };
 
@@ -185,64 +197,119 @@ export default function ReportsReviewClient({ initialData }: { initialData: any 
         <div className="space-y-6">
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-3xl font-bold">Anonymous Reports Review</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Report Review</h1>
                     <p className="text-muted-foreground mt-1">Review and manage anonymous reports submitted by students</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => void handleExportReports('pdf')}><Download className="mr-2 h-4 w-4" /> Export Reports</Button>
+                    <Button variant="outline" size="sm" onClick={() => void handleExportReports('pdf')}>
+                        <Download className="mr-2 h-4 w-4" /> Export
+                    </Button>
                 </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Total Reports</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.total}</div><p className="text-xs text-muted-foreground">All reports</p></CardContent></Card>
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Submitted</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{stats.submitted}</div><p className="text-xs text-muted-foreground">Awaiting review</p></CardContent></Card>
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Under Review</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-yellow-600">{stats.inReview}</div><p className="text-xs text-muted-foreground">In progress</p></CardContent></Card>
-                <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium">Resolved</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{stats.resolved}</div><p className="text-xs text-muted-foreground">Completed</p></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium uppercase text-muted-foreground">Total Reports</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium uppercase text-muted-foreground">Pending</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{stats.submitted}</div></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium uppercase text-muted-foreground">In Review</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-yellow-600">{stats.inReview}</div></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-xs font-medium uppercase text-muted-foreground">Resolved</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{stats.resolved}</div></CardContent></Card>
             </div>
 
-            <Card>
-                <CardHeader><CardTitle>Report Management</CardTitle><CardDescription>Search, filter, and manage anonymous reports</CardDescription></CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-4">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input placeholder="Search reports..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Label htmlFor="category-filter">Category:</Label>
-                                <Select value={filterCategory} onValueChange={setFilterCategory}>
-                                    <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Categories</SelectItem>
-                                        <SelectItem value="academic_misconduct">Academic Misconduct</SelectItem>
-                                        <SelectItem value="harassment">Harassment</SelectItem>
-                                        <SelectItem value="discrimination">Discrimination</SelectItem>
-                                        <SelectItem value="safety_concern">Safety Concern</SelectItem>
-                                        <SelectItem value="facility_issue">Facility Issue</SelectItem>
-                                        <SelectItem value="other">Other</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Label htmlFor="status-filter">Status:</Label>
-                                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                                    <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Status</SelectItem>
-                                        <SelectItem value="submitted">Submitted</SelectItem>
-                                        <SelectItem value="in_review">In Review</SelectItem>
-                                        <SelectItem value="resolved">Resolved</SelectItem>
-                                        <SelectItem value="escalated">Escalated</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+            <Card className="border-none shadow-md">
+                <CardHeader>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <CardTitle>Management</CardTitle>
+                            <CardDescription>Search, filter, and respond to reports</CardDescription>
                         </div>
-
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="relative w-full md:w-64">
+                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    placeholder="Search content..." 
+                                    value={searchTerm} 
+                                    onChange={(e) => setSearchTerm(e.target.value)} 
+                                    className="pl-9 h-9" 
+                                />
+                            </div>
+                            <Select value={filterCategory} onValueChange={setFilterCategory}>
+                                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Category" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Categories</SelectItem>
+                                    {initialData.categories.map(c => (
+                                        <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select value={filterStatus} onValueChange={setFilterStatus}>
+                                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Status</SelectItem>
+                                    <SelectItem value="submitted">Submitted</SelectItem>
+                                    <SelectItem value="in_review">In Review</SelectItem>
+                                    <SelectItem value="resolved">Resolved</SelectItem>
+                                    <SelectItem value="closed">Closed</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="rounded-md border overflow-hidden">
                         <Table>
-                            <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Category</TableHead><TableHead>Priority</TableHead><TableHead>Status</TableHead><TableHead>Submitted</TableHead><TableHead>Assigned To</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                            <TableHeader className="bg-muted/50">
+                                <TableRow>
+                                    <TableHead className="w-[40%]">Content</TableHead>
+                                    <TableHead>Category</TableHead>
+                                    <TableHead>Priority</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Submitted</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
                             <TableBody>
-                                {filteredReports.map((report: any) => { const CategoryIcon = getCategoryIcon(report.category); return (<TableRow key={report.id}><TableCell><div><div className="font-medium">{report.title}</div><div className="text-sm text-muted-foreground">{report.description.substring(0, 100)}...</div>{report.attachments && report.attachments.length > 0 && (<div className="flex items-center gap-1 mt-1"><FileText className="h-3 w-3 text-muted-foreground" /><span className="text-xs text-muted-foreground">{report.attachments.length} attachment(s)</span></div>)}</div></TableCell><TableCell><Badge className={getCategoryColor(report.category)}><CategoryIcon className="h-3 w-3 mr-1" />{report.category.replace('_', ' ')}</Badge></TableCell><TableCell><Badge className={getPriorityColor(report.priority)}>{report.priority}</Badge></TableCell><TableCell><Badge className={getStatusColor(report.status)}>{report.status.replace('_', ' ')}</Badge></TableCell><TableCell><div className="text-sm"><div>{new Date(report.submittedAt).toLocaleDateString()}</div><div className="text-muted-foreground">{new Date(report.submittedAt).toLocaleTimeString()}</div></div></TableCell><TableCell><div className="text-sm">{report.assignedTo ? (<Badge variant="outline">{report.assignedTo}</Badge>) : (<span className="text-muted-foreground">Unassigned</span>)}</div></TableCell><TableCell><div className="flex gap-1"><Button variant="outline" size="sm" onClick={() => handleViewReport(report)}><Eye className="h-4 w-4" /></Button>{report.status === 'submitted' && (<Button variant="outline" size="sm" onClick={() => handleAssignReport(report.id, 'HR Department')}><Send className="h-4 w-4" /></Button>)}</div></TableCell></TableRow>); })}
+                                {filteredReports.length === 0 ? (
+                                    <TableRow><TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">No reports found matching criteria.</TableCell></TableRow>
+                                ) : (
+                                    filteredReports.map((report) => (
+                                        <TableRow key={report.id} className="group hover:bg-muted/30 transition-colors">
+                                            <TableCell>
+                                                <div className="space-y-1">
+                                                    <div className="font-semibold text-sm">{report.title}</div>
+                                                    <div className="text-xs text-muted-foreground line-clamp-1">{report.description}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="font-normal">{report.category}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className={`${getPriorityColor(report.priority)} font-bold text-[10px]`}>
+                                                    {report.priority}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className={`${getStatusColor(report.status)} font-medium`}>
+                                                    {report.status.replace('_', ' ')}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="text-[11px] leading-tight">
+                                                    <div className="font-medium">{new Date(report.submittedAt).toLocaleDateString()}</div>
+                                                    <div className="text-muted-foreground">{new Date(report.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => handleViewReport(report)}
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <Eye className="h-4 w-4 mr-2" /> View
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </div>
@@ -250,43 +317,125 @@ export default function ReportsReviewClient({ initialData }: { initialData: any 
             </Card>
 
             <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
-                <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader><DialogTitle>Report Details</DialogTitle><DialogDescription>Review anonymous report details and take action</DialogDescription></DialogHeader>
+                <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <div className="flex items-center gap-2 mb-2">
+                            <Badge className={getStatusColor(selectedReport?.status || '')}>
+                                {selectedReport?.status.replace('_', ' ')}
+                            </Badge>
+                            <Badge className={getPriorityColor(selectedReport?.priority || '')}>
+                                {selectedReport?.priority} Priority
+                            </Badge>
+                        </div>
+                        <DialogTitle className="text-xl">{selectedReport?.title}</DialogTitle>
+                        <DialogDescription>
+                            Submitted on {selectedReport && new Date(selectedReport.submittedAt).toLocaleString()}
+                        </DialogDescription>
+                    </DialogHeader>
                     {selectedReport && (
-                        <div className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2"><Label className="text-sm font-medium">Title</Label><div className="text-sm">{selectedReport.title}</div></div>
-                                <div className="space-y-2"><Label className="text-sm font-medium">Category</Label><Badge className={getCategoryColor(selectedReport.category)}>{selectedReport.category.replace('_', ' ')}</Badge></div>
-                                <div className="space-y-2"><Label className="text-sm font-medium">Priority</Label><Badge className={getPriorityColor(selectedReport.priority)}>{selectedReport.priority}</Badge></div>
-                                <div className="space-y-2"><Label className="text-sm font-medium">Status</Label><Badge className={getStatusColor(selectedReport.status)}>{selectedReport.status.replace('_', ' ')}</Badge></div>
-                                <div className="space-y-2"><Label className="text-sm font-medium">Submitted</Label><div className="text-sm">{new Date(selectedReport.submittedAt).toLocaleString()}</div></div>
-                                <div className="space-y-2"><Label className="text-sm font-medium">Consent to Contact</Label><div className="text-sm">{selectedReport.consentToContact ? 'Yes' : 'No'}</div></div>
+                        <div className="space-y-6 py-4">
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Category</Label>
+                                <div className="text-sm font-medium">{selectedReport.category}</div>
                             </div>
-                            <div className="space-y-2"><Label className="text-sm font-medium">Description</Label><div className="p-3 rounded-lg bg-muted text-sm whitespace-pre-wrap">{selectedReport.description}</div></div>
-                            {selectedReport.attachments && selectedReport.attachments.length > 0 && (
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Attachments</Label>
-                                    <div className="space-y-2">{selectedReport.attachments.map((attachment: any) => (<div key={attachment.id} className="flex items-center justify-between p-2 rounded border"><div className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" /><span className="text-sm">{attachment.fileName}</span><span className="text-xs text-muted-foreground">({(attachment.fileSize / 1024).toFixed(1)} KB)</span></div><Button variant="outline" size="sm"><Download className="h-4 w-4" /></Button></div>))}</div>
+                            
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Report Content</Label>
+                                <div className="p-4 rounded-xl border bg-muted/20 text-sm whitespace-pre-wrap leading-relaxed shadow-inner">
+                                    {selectedReport.description}
                                 </div>
-                            )}
-                            {selectedReport.reviewedAt && (
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Review Information</Label>
-                                    <div className="p-3 rounded-lg bg-muted">
-                                        <div className="text-sm"><strong>Reviewed by:</strong> {selectedReport.reviewedBy}</div>
-                                        <div className="text-sm"><strong>Reviewed at:</strong> {new Date(selectedReport.reviewedAt).toLocaleString()}</div>
-                                        {selectedReport.responseNotes && (<div className="text-sm mt-2"><strong>Response Notes:</strong><div className="mt-1 p-2 rounded bg-background text-sm">{selectedReport.responseNotes}</div></div>)}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Assignment</Label>
+                                    <div className="flex items-center gap-2 p-3 rounded-lg border bg-background">
+                                        <UserCircle className="h-4 w-4 text-primary" />
+                                        <div className="text-sm">
+                                            {selectedReport.assignedTo ? (
+                                                <span className="font-medium text-primary">{selectedReport.assignedTo}</span>
+                                            ) : (
+                                                <span className="text-muted-foreground italic text-xs">Awaiting automatic assignment or manual claim</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="pt-2">
+                                        <Label className="text-[10px] mb-1 block">Re-delegate to:</Label>
+                                        <Select 
+                                            onValueChange={(value) => handleAssignReport(selectedReport.id, value)}
+                                            defaultValue={selectedReport.assignedTo}
+                                        >
+                                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Assigned to..." /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="admin">System Admins</SelectItem>
+                                                {initialData.staffMembers.map(staff => (
+                                                    <SelectItem key={staff.id} value={staff.id}>
+                                                        {staff.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+
                                     </div>
                                 </div>
-                            )}
-                            <div className="space-y-2"><Label htmlFor="response-notes">Response Notes</Label><Textarea id="response-notes" value={responseNotes} onChange={(e) => setResponseNotes(e.target.value)} placeholder="Add internal notes about this report..." rows={3} /></div>
-                            <div className="space-y-2"><Label htmlFor="assign-to">Assign To</Label><Select onValueChange={(value) => handleAssignReport(selectedReport.id, value)}><SelectTrigger><SelectValue placeholder="Select department or person" /></SelectTrigger><SelectContent><SelectItem value="HR Department">HR Department</SelectItem><SelectItem value="Academic Affairs">Academic Affairs</SelectItem><SelectItem value="Security Team">Security Team</SelectItem><SelectItem value="Facilities Team">Facilities Team</SelectItem><SelectItem value="IT Support">IT Support</SelectItem></SelectContent></Select></div>
+
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Status Update</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button 
+                                            size="sm" 
+                                            variant={selectedReport.status === 'in_review' ? 'default' : 'outline'}
+                                            onClick={() => handleUpdateStatus(selectedReport.id, 'in_review')}
+                                            disabled={loading}
+                                        >
+                                            <Clock className="mr-2 h-3.5 w-3.5" /> Reviewing
+                                        </Button>
+                                        <Button 
+                                            size="sm" 
+                                            variant={selectedReport.status === 'resolved' ? 'default' : 'outline'}
+                                            onClick={() => handleUpdateStatus(selectedReport.id, 'resolved')}
+                                            disabled={loading}
+                                            className={selectedReport.status !== 'resolved' ? "border-green-200 text-green-700 hover:bg-green-50" : "bg-green-600 hover:bg-green-700"}
+                                        >
+                                            <CheckCircle2 className="mr-2 h-3.5 w-3.5" /> Resolve
+                                        </Button>
+                                        <Button 
+                                            size="sm" 
+                                            variant={selectedReport.status === 'closed' ? 'default' : 'outline'}
+                                            onClick={() => handleUpdateStatus(selectedReport.id, 'closed')}
+                                            disabled={loading}
+                                        >
+                                            Dismiss
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                                <Label htmlFor="response-notes" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Resolution Notes / Internal Remarks</Label>
+                                <Textarea 
+                                    id="response-notes" 
+                                    value={responseNotes} 
+                                    onChange={(e) => setResponseNotes(e.target.value)} 
+                                    placeholder="Document the actions taken or findings here..." 
+                                    rows={4} 
+                                    className="resize-none"
+                                />
+                                <div className="flex justify-end">
+                                    <Button 
+                                        size="sm" 
+                                        variant="ghost" 
+                                        onClick={() => handleUpdateStatus(selectedReport.id, selectedReport.status)}
+                                        disabled={loading || responseNotes === selectedReport.responseNotes}
+                                    >
+                                        Update Notes Only
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     )}
-                    <DialogFooter>
+                    <DialogFooter className="border-t pt-4">
                         <Button variant="outline" onClick={() => setShowReportDialog(false)}>Close</Button>
-                        {selectedReport?.status === 'submitted' && (<><Button variant="outline" onClick={() => handleUpdateStatus(selectedReport.id, 'in_review')}><Clock className="mr-2 h-4 w-4" /> Mark Under Review</Button><Button onClick={() => handleUpdateStatus(selectedReport.id, 'resolved')}><CheckCircle2 className="mr-2 h-4 w-4" /> Mark Resolved</Button></>)}
-                        {selectedReport?.status === 'in_review' && (<Button onClick={() => handleUpdateStatus(selectedReport.id, 'resolved')}><CheckCircle2 className="mr-2 h-4 w-4" /> Mark Resolved</Button>)}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

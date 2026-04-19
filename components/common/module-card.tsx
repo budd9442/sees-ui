@@ -66,13 +66,13 @@ export function ModuleCard({
                 size="sm"
                 variant={isSelected ? 'default' : 'outline'}
                 onClick={onToggleSelect}
-                disabled={!prerequisitesMet}
+                disabled={(!prerequisitesMet && !isSelected) || (module.isCompulsory && isSelected)}
                 className="ml-2"
               >
                 {isSelected ? (
                   <>
                     <Minus className="h-4 w-4 mr-1" />
-                    Remove
+                    {module.isCompulsory ? 'Mandatory' : 'Remove'}
                   </>
                 ) : (
                   <>

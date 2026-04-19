@@ -534,17 +534,36 @@ model NotificationDispatchLog {
 }
 
 model AnonymousReport {
-  report_id    String   @id @default(uuid())
+  report_id    String          @id @default(uuid())
   student_id   String
-  content      String
+  subject      String?
+  category_id  String?
+  content      String          @db.Text
   priority     String
-  status       String   @default("PENDING")
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-  admin_notes  String?  @db.Text
+  status       String          @default("PENDING")
+  created_at   DateTime        @default(now())
+  updated_at   DateTime        @updatedAt
+  admin_notes  String?         @db.Text
   assigned_to  String?
-  student      Student  @relation(fields: [student_id], references: [student_id])
+  category     ReportCategory? @relation(fields: [category_id], references: [id])
+  student      Student         @relation(fields: [student_id], references: [student_id])
+
+  @@map("anonymous_reports")
 }
+
+model ReportCategory {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  description String?
+  assigned_to String? // user_id of staff/admin
+  is_active   Boolean           @default(true)
+  created_at  DateTime          @default(now())
+  updated_at  DateTime          @updatedAt
+  reports     AnonymousReport[]
+
+  @@map("report_categories")
+}
+
 
 model LectureSchedule {
   schedule_id String   @id @default(uuid())

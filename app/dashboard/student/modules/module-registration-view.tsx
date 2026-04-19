@@ -155,7 +155,7 @@ export function ModuleRegistrationView({
             toast.error(registrationWindow.message || 'Module registration is closed.');
             return;
         }
-        // Validate ALL semesters
+        // 1. Validate Credits
         for (const sem of semesters) {
             const credits = getSemCredits(sem);
             if (credits < sem.rule.min_credits) {
@@ -163,6 +163,26 @@ export function ModuleRegistrationView({
                 setActiveTab(sem.semesterId);
                 return;
             }
+            if (credits > sem.rule.max_credits) {
+                toast.error(`${sem.label}: Maximum ${sem.rule.max_credits} credits exceeded`);
+                setActiveTab(sem.semesterId);
+                return;
+            }
+        }
+
+        // 2. Validate Prerequisites
+        const invalidModules = selectedModules
+            .map(id => {
+                const sem = semesters.find(s => s.modules.some(m => m.id === id));
+                const mod = sem?.modules.find(m => m.id === id);
+                return { mod, sem };
+            })
+            .filter(({ mod, sem }) => mod && sem && !checkPrerequisites(mod, sem.semesterNumber));
+
+        if (invalidModules.length > 0) {
+            const names = invalidModules.map(({ mod }) => mod.code).join(', ');
+            toast.error(`Prerequisite violation: Please check modules ${names}`);
+            return;
         }
 
         setIsSubmitting(true);
@@ -179,13 +199,14 @@ export function ModuleRegistrationView({
         }
     };
 
-    // Global Validity Check
     const isGlobalValid = semesters.every(sem => {
         const credits = getSemCredits(sem);
         return credits >= sem.rule.min_credits && credits <= sem.rule.max_credits;
     }) && selectedModules.every(id => {
-        const mod = semesters.flatMap(s => s.modules).find(m => m.id === id);
-        return mod ? checkPrerequisites(mod, mod.semesterNumber) : true;
+        const sem = semesters.find(s => s.modules.some(m => m.id === id));
+        if (!sem) return true;
+        const mod = sem.modules.find(m => m.id === id);
+        return mod ? checkPrerequisites(mod, sem.semesterNumber) : true;
     });
     const currentSelectionKey = buildSelectionKey(selectedModules);
     const hasUnsavedChanges = currentSelectionKey !== lastSavedSelectionKey;
@@ -241,12 +262,12 @@ export function ModuleRegistrationView({
                         </div>
                         <div className="h-8 w-px bg-primary/20" />
                         <Button
-                            className="font-bold shadow-lg shadow-primary/20"
+                            className={`font-bold shadow-lg ${!isGlobalValid ? 'bg-muted text-muted-foreground' : 'shadow-primary/20'}`}
                             size="sm"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !isGlobalValid}
                             onClick={handleSubmitRegistration}
                         >
-                            {isSubmitting ? 'Processing…' : hasUnsavedChanges ? 'Submit annual plan' : 'Update plan'}
+                            {isSubmitting ? 'Processing…' : !isGlobalValid ? 'Fix validation errors' : hasUnsavedChanges ? 'Submit annual plan' : 'Update plan'}
                         </Button>
                     </CardContent>
                 </Card>
