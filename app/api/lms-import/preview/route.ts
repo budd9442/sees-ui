@@ -15,7 +15,12 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json().catch(() => null);
+        const username = body?.username;
         const password = body?.password;
+
+        if (!username || typeof username !== 'string' || username.trim().length < 1) {
+            return NextResponse.json({ error: 'LMS username is required' }, { status: 400 });
+        }
         if (!password || typeof password !== 'string' || password.trim().length < 1) {
             return NextResponse.json({ error: 'LMS password is required' }, { status: 400 });
         }
@@ -31,8 +36,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Onboarding not completed' }, { status: 400 });
         }
 
-        // Per spec: LMS username is inferred as the student id.
-        const lmsUsername = studentId;
+        const lmsUsername = username.trim();
 
         const importSession = await prisma.lmsImportSession.create({
             data: {

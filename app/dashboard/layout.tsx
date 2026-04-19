@@ -41,9 +41,11 @@ export default async function DashboardLayout({
       ? 'student'
       : (dbUser as any)?.staff?.staff_type === 'ADMIN' || (dbUser as any)?.staff?.staff_type === 'REGISTRAR'
         ? 'admin'
-        : (dbUser as any)?.staff
-          ? 'staff'
-          : (session.user as any).role || 'student',
+        : (dbUser as any)?.staff?.hod
+          ? 'hod'
+          : (dbUser as any)?.staff
+            ? 'staff'
+            : (session.user as any).role || 'student',
     currentLevel: (dbUser as any)?.student?.current_level || undefined,
     degreeProgram: (dbUser as any)?.student?.degree_path?.code || undefined,
     specialization: (dbUser as any)?.student?.specialization?.code || undefined,

@@ -81,6 +81,20 @@ const DEFAULT_TEMPLATES: DefaultTpl[] = [
         body: '{{alertBody}}',
         placeholders: ['{{alertTitle}}', '{{alertBody}}'],
     },
+    {
+        name: 'New report submitted',
+        event_key: NotificationEventKey.REPORT_SUBMITTED,
+        subject: 'New Student Report: {{reportTitle}}',
+        body: 'Hello,\n\nA new student report has been submitted in the category "{{reportCategory}}".\n\nTitle: {{reportTitle}}\nPriority: {{reportPriority}}\n\nPlease log in to the SEES dashboard to review it.\n\n— SEES System',
+        placeholders: ['{{reportTitle}}', '{{reportCategory}}', '{{reportPriority}}'],
+    },
+    {
+        name: 'New report assigned',
+        event_key: NotificationEventKey.REPORT_ASSIGNED,
+        subject: 'Report Assignment: {{reportTitle}}',
+        body: 'Hello {{staffName}},\n\nYou have been assigned to review a student report.\n\nTitle: {{reportTitle}}\nCategory: {{reportCategory}}\nPriority: {{reportPriority}}\n\nPlease log in to your dashboard to take action.\n\n— SEES System',
+        placeholders: ['{{staffName}}', '{{reportTitle}}', '{{reportCategory}}', '{{reportPriority}}'],
+    },
 ];
 
 const DEFAULT_DEADLINE_CONFIG = { daysBeforeClose: [1, 3] as number[] };

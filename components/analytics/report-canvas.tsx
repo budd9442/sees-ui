@@ -88,7 +88,11 @@ export function ReportCanvas({
                 isDraggable={editable}
                 isResizable={editable}
                 draggableHandle=".drag-handle"
-                onLayoutChange={(next) => {
+                onDragStop={(next) => {
+                    if (!onDefinitionChange) return;
+                    onDefinitionChange(mergeLayout(definition, pageIndex, next as GridItem[]));
+                }}
+                onResizeStop={(next) => {
                     if (!onDefinitionChange) return;
                     onDefinitionChange(mergeLayout(definition, pageIndex, next as GridItem[]));
                 }}
@@ -109,7 +113,7 @@ export function ReportCanvas({
                             selectedVisualId === v.id ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
                         }`}
                     >
-                        <div className="drag-handle cursor-grab active:cursor-grabbing px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground border-b bg-muted/30 flex items-center justify-between gap-2">
+                        <div className="drag-handle cursor-grab active:cursor-grabbing px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground border-b bg-muted/30 flex items-center justify-between gap-2 no-print">
                             <span className="truncate">{v.title || v.type}</span>
                             {editable && (
                                 <span className="text-[9px] font-normal normal-case opacity-70">Drag to move</span>

@@ -1,15 +1,16 @@
 import { Suspense } from 'react';
 import { getAnonymousReportsData } from '@/lib/actions/admin-actions';
-import ReportsReviewClient from './_components/reports-review-client';
+import ReportsReviewClient from '../../admin/reports-review/_components/reports-review-client';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminReportsReviewPage() {
+export default async function StaffReportsReviewPage() {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== 'admin') {
+  const allowedRoles = ['staff', 'advisor', 'hod'];
+  if (!session?.user?.id || !allowedRoles.includes(session.user.role || '')) {
     redirect('/login');
   }
 

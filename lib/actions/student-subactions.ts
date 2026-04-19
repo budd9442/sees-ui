@@ -5,7 +5,7 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { assertStudentWriteAccess } from '@/lib/actions/student-access';
 import { AcademicEngine } from '@/lib/services/academic-engine';
-import { GrokService } from '@/lib/services/grok-service';
+import { AIService } from '@/lib/services/ai-service';
 import { createHash } from 'crypto';
 import { evaluateStudentEligibility } from '@/lib/graduation/student-eligibility';
 
@@ -526,190 +526,6 @@ export async function updateStudentSpecialization(specCode: string) {
 }
 
 // ----------------------------------------------------------------------
-// INTERNSHIP ACTIONS
-// ----------------------------------------------------------------------
-
-export async function getInternshipData() {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    const studentRecord = await prisma.student.findUnique({
-        where: { student_id: session.user.id },
-        include: {
-            internships: {
-                include: {
-                    milestones: { orderBy: { due_date: 'asc' } },
-                    documents: { orderBy: { uploaded_at: 'desc' } }
-                }
-            }
-        }
-    });
-
-    if (!studentRecord) throw new Error("Student profile not found");
-
-    // Internship eligibility: Level 3 or 4
-    const isEligible = studentRecord.current_level === 'Level 3' || studentRecord.current_level === 'Level 4';
-
-    const internship = studentRecord.internships.length > 0 ? studentRecord.internships[0] : null;
-
-    return {
-        isEligible,
-        internship: internship ? {
-            id: internship.internship_id,
-            company: internship.company,
-            role: internship.role,
-            startDate: internship.start_date.toISOString(),
-            endDate: internship.end_date.toISOString(),
-            status: internship.status as any,
-            supervisorName: internship.supervisorName,
-            supervisorEmail: internship.supervisor_email,
-            supervisorPhone: internship.supervisor_phone,
-            description: internship.description,
-            progress: internship.progress,
-            milestones: internship.milestones.map(m => ({
-                id: m.milestone_id,
-                title: m.title,
-                description: m.description,
-                dueDate: m.due_date.toISOString(),
-                completed: m.completed,
-                completedDate: m.completed_date ? m.completed_date.toISOString() : undefined,
-            })),
-            documents: internship.documents.map(d => ({
-                id: d.document_id,
-                name: d.name,
-                type: d.type as any,
-                uploadedAt: d.uploaded_at.toISOString(),
-                url: d.url
-            }))
-        } : null
-    };
-}
-
-export async function saveInternship(data: {
-    id?: string;
-    company: string;
-    role: string;
-    startDate: string;
-    endDate: string;
-    status: string;
-    supervisorName?: string;
-    supervisorEmail?: string;
-    supervisorPhone?: string;
-    description?: string;
-    progress: number;
-}) {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-    await assertStudentWriteAccess(session.user.id);
-
-    if (data.id) {
-        // Update existing
-        return await prisma.internship.update({
-            where: { internship_id: data.id },
-            data: {
-                company: data.company,
-                role: data.role,
-                start_date: new Date(data.startDate),
-                end_date: new Date(data.endDate),
-                status: data.status,
-                supervisorName: data.supervisorName,
-                supervisor_email: data.supervisorEmail,
-                supervisor_phone: data.supervisorPhone,
-                description: data.description,
-                progress: data.progress
-            }
-        });
-    } else {
-        // Create new
-        const newInt = await prisma.internship.create({
-            data: {
-                student_id: session.user.id,
-                company: data.company,
-                role: data.role,
-                start_date: new Date(data.startDate),
-                end_date: new Date(data.endDate),
-                status: data.status,
-                supervisorName: data.supervisorName,
-                supervisor_email: data.supervisorEmail,
-                supervisor_phone: data.supervisorPhone,
-                description: data.description,
-                progress: data.progress
-            }
-        });
-        return newInt;
-    }
-}
-
-export async function addInternshipMilestone(internshipId: string, data: {
-    title: string;
-    description?: string;
-    dueDate: string;
-}) {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-    await assertStudentWriteAccess(session.user.id);
-
-    // verify ownership
-    const internship = await prisma.internship.findUnique({ where: { internship_id: internshipId } });
-    if (!internship || internship.student_id !== session.user.id) throw new Error("Unauthorized");
-
-    return await prisma.internshipMilestone.create({
-        data: {
-            internship_id: internshipId,
-            title: data.title,
-            description: data.description,
-            due_date: new Date(data.dueDate),
-            completed: false
-        }
-    });
-}
-
-export async function toggleInternshipMilestone(milestoneId: string) {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-    await assertStudentWriteAccess(session.user.id);
-
-    const milestone = await prisma.internshipMilestone.findUnique({
-        where: { milestone_id: milestoneId },
-        include: { internship: true }
-    });
-
-    if (!milestone || milestone.internship.student_id !== session.user.id) throw new Error("Unauthorized");
-
-    const newCompleted = !milestone.completed;
-    return await prisma.internshipMilestone.update({
-        where: { milestone_id: milestoneId },
-        data: {
-            completed: newCompleted,
-            completed_date: newCompleted ? new Date() : null
-        }
-    });
-}
-
-export async function addInternshipDocument(internshipId: string, data: {
-    name: string;
-    type: string;
-    url: string;
-}) {
-    const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-    await assertStudentWriteAccess(session.user.id);
-
-    // verify ownership
-    const internship = await prisma.internship.findUnique({ where: { internship_id: internshipId } });
-    if (!internship || internship.student_id !== session.user.id) throw new Error("Unauthorized");
-
-    return await prisma.internshipDocument.create({
-        data: {
-            internship_id: internshipId,
-            name: data.name,
-            type: data.type,
-            url: data.url
-        }
-    });
-}
-
-// ----------------------------------------------------------------------
 // PROFILE ACTIONS
 // ----------------------------------------------------------------------
 
@@ -1048,7 +864,7 @@ export async function getPersonalizedAIFeedback(forceRegenerate = false) {
         };
     }
 
-    const aiFeedback = await GrokService.generatePersonalizedFeedback(feedbackContext);
+    const aiFeedback = await AIService.generatePersonalizedFeedback(feedbackContext);
     const reason =
         forceRegenerate ? 'USER_REEVALUATE'
             : shouldInvalidateByExpiry ? 'EXPIRED'

@@ -124,7 +124,7 @@ types/
 - System hardening and simulation-layer purification
 
 **⏳ In Progress**
-- Additional student screens (schedule, goals, messages, internship)
+- Additional student screens (schedule, goals, messages)
 - Staff grade management
 - Advisor intervention tools
 - HOD reports and analytics

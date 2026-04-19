@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Bar,
     BarChart,
@@ -81,16 +81,39 @@ function aggregateMetric(rows: Record<string, unknown>[], col: string, agg: KpiA
     return nums[0]!;
 }
 
-// ─── Sorting ──────────────────────────────────────────────────────────────────
-function sortRows(rows: Record<string, unknown>[], order: string | undefined, key: string | undefined): Record<string, unknown>[] {
-    if (!order || order === 'none' || !key) return rows;
-    const sorted = [...rows].sort((a, b) => {
-        const av = Number(a[key]);
-        const bv = Number(b[key]);
-        if (Number.isFinite(av) && Number.isFinite(bv)) return order === 'asc' ? av - bv : bv - av;
-        return String(a[key] ?? '').localeCompare(String(b[key] ?? ''));
-    });
-    return order === 'asc' ? sorted : sorted;
+// ─── Sorting & Limiting ───────────────────────────────────────────────────────
+function sortAndLimitRows(
+    rows: Record<string, unknown>[], 
+    order: string | undefined, 
+    key: string | undefined,
+    limit?: number
+): Record<string, unknown>[] {
+    let result = rows;
+    
+    if (order && order !== 'none' && key) {
+        result = [...rows].sort((a, b) => {
+            const av = a[key];
+            const bv = b[key];
+            
+            // Numeric sort
+            const an = Number(av);
+            const bn = Number(bv);
+            if (Number.isFinite(an) && Number.isFinite(bn)) {
+                return order === 'asc' ? an - bn : bn - an;
+            }
+            
+            // String sort
+            const as = String(av ?? '');
+            const bs = String(bv ?? '');
+            return order === 'asc' ? as.localeCompare(bs) : bs.localeCompare(as);
+        });
+    }
+
+    if (limit && limit > 0) {
+        result = result.slice(0, limit);
+    }
+    
+    return result;
 }
 
 // ─── Pivot ────────────────────────────────────────────────────────────────────
@@ -163,24 +186,40 @@ function EmptyCard({ visual, message }: { visual: VisualSpec; message: string })
 // ─── Main Component ───────────────────────────────────────────────────────────
 type Props = { visual: VisualSpec; filterContext?: AnalyticsQueryFilters };
 
-export function VisualRenderer({ visual, filterContext }: Props) {
+export const VisualRenderer = React.memo(function VisualRenderer({ visual, filterContext }: Props) {
     const [data, setData] = useState<AnalyticsQueryResult | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+
+    const queryKey = useMemo(() => ({
+        datasetId: visual.datasetId,
+        filters: visual.filters,
+        groupBy: visual.groupBy,
+        type: visual.type,
+        encodings: visual.encodings,
+        filterContext
+    }), [
+        visual.datasetId,
+        JSON.stringify(visual.filters),
+        visual.groupBy,
+        visual.type,
+        JSON.stringify(visual.encodings),
+        JSON.stringify(filterContext)
+    ]);
 
     useEffect(() => {
         let cancelled = false;
         setError(null);
         setLoading(true);
         runAnalyticsQueryAction({
-            datasetId: visual.datasetId,
-            filters: { ...filterContext, ...visual.filters },
-            groupBy: visual.groupBy ?? 'none',
+            datasetId: queryKey.datasetId,
+            filters: { ...queryKey.filterContext, ...queryKey.filters },
+            groupBy: queryKey.groupBy ?? 'none',
         })
             .then((r) => { if (!cancelled) { setData(r); setLoading(false); } })
             .catch((e: Error) => { if (!cancelled) { setError(e.message || 'Failed to load'); setLoading(false); } });
         return () => { cancelled = true; };
-    }, [visual, filterContext]);
+    }, [queryKey]);
 
     const rawData = useMemo(() => data?.rows ?? [], [data]);
     const colors = palette(visual.encodings?.colorScheme ?? undefined);
@@ -198,20 +237,23 @@ export function VisualRenderer({ visual, filterContext }: Props) {
     const metricCol = visual.encodings?.metric ?? visual.encodings?.value ?? visual.encodings?.y
         ?? (data?.columns.find((c) => rawData[0] && typeof rawData[0][c] === 'number') ?? data?.columns[1]);
 
+    const sortBy = visual.encodings?.sortBy || yKey || xKey || data?.columns[0];
+    const limit = visual.encodings?.limit;
+
     const chartData = useMemo(() => {
-        return sortRows(rawData, sortOrder, yKey ?? undefined);
-    }, [rawData, sortOrder, yKey]);
+        return sortAndLimitRows(rawData, sortOrder, sortBy ?? undefined, limit);
+    }, [rawData, sortOrder, sortBy, limit]);
 
     // Table display
     const tableDisplay = useMemo(() => {
         if (!data?.columns.length) return { columns: [] as string[], rows: [] as Record<string, unknown>[] };
         if (visual.type === 'matrix' && pivotEncodingValid(visual.encodings)) {
-            return buildPivot(rawData, visual.encodings.pivotRow, visual.encodings.pivotCol, visual.encodings.pivotValue);
+            return buildPivot(chartData, visual.encodings.pivotRow, visual.encodings.pivotCol, visual.encodings.pivotValue);
         }
         const tc = visual.encodings?.tableColumns?.filter((c) => data.columns.includes(c));
         const cols = tc?.length ? tc : data.columns;
-        return { columns: cols, rows: rawData };
-    }, [data, rawData, visual.type, visual.encodings]);
+        return { columns: cols, rows: chartData };
+    }, [data, chartData, visual.type, visual.encodings]);
 
     const [sorting, setSorting] = useState<SortingState>([]);
     const tableColumns = useMemo<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
@@ -318,7 +360,7 @@ export function VisualRenderer({ visual, filterContext }: Props) {
                     <CardTitle className="text-sm">{visual.title || (visual.type === 'matrix' ? 'Matrix' : 'Table')}</CardTitle>
                     {visual.subtitle && <CardDescription className="text-xs">{visual.subtitle}</CardDescription>}
                 </CardHeader>
-                <CardContent className="flex-1 overflow-auto text-xs p-0">
+                <CardContent className="flex-1 overflow-auto text-xs p-0 print-expand">
                     <table className="w-full border-collapse">
                         <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
                             {table.getHeaderGroups().map((hg) => (
@@ -535,4 +577,4 @@ export function VisualRenderer({ visual, filterContext }: Props) {
             </CardContent>
         </Card>
     );
-}
+});

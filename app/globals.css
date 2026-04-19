@@ -136,3 +136,73 @@
     -webkit-line-clamp: 2;
   }
 }
+
+/* Zen Mode Overrides */
+body.zen-mode-active nav,
+body.zen-mode-active aside {
+  display: none !important;
+}
+
+body.zen-mode-active main {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Print Overrides */
+@media print {
+  nav, aside, header, footer, 
+  [role="tablist"], 
+  .no-print, 
+  .drag-handle,
+  button:not(.print-only),
+  .dropdown-menu,
+  .sidebar-trigger,
+  .toolbar-container,
+  .inspector-panel {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    display: block !important;
+  }
+
+  .report-canvas-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 1040px !important; /* Standard desktop-ish width */
+    min-width: 1040px !important;
+    transform: scale(0.72); /* Scale to fit A4 width nicely */
+    transform-origin: top left;
+    height: auto !important;
+  }
+
+  .print-expand {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  /* Force background colors and images in print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    overflow: visible !important;
+  }
+
+  @page {
+    margin: 0.5cm;
+    size: A4 portrait;
+  }
+}

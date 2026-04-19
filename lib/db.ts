@@ -28,4 +28,10 @@ if (process.env.NODE_ENV !== 'production') {
             console.error('[QUEUE] Failed to auto-start LMS import worker:', err);
         });
     });
+
+    import('@/lib/queue/gpa-worker').then(worker => {
+        worker.startGPAWorker().catch(err => {
+            console.error('[QUEUE] Failed to auto-start GPA worker:', err);
+        });
+    });
 }

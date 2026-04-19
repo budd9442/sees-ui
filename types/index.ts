@@ -227,41 +227,6 @@ export interface DashboardStats {
 
 // New types for comprehensive features
 
-export interface Internship {
-  id: string;
-  studentId: string;
-  company: string;
-  role: string;
-  startDate: string;
-  endDate: string;
-  status: 'applied' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
-  supervisorName: string;
-  supervisorEmail: string;
-  supervisorPhone?: string;
-  description?: string;
-  progress: number; // 0-100
-  milestones: InternshipMilestone[];
-  documents: InternshipDocument[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface InternshipMilestone {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: string;
-  completed: boolean;
-  completedDate?: string;
-}
-
-export interface InternshipDocument {
-  id: string;
-  name: string;
-  type: 'report' | 'certificate' | 'evaluation' | 'other';
-  uploadedAt: string;
-  url?: string; // Document resource URL
-}
 
 export interface AnonymousReport {
   id: string;
@@ -394,6 +359,8 @@ export interface NotificationTemplate {
     | 'module_registration_opened'
     | 'pathway_selection_opened'
     | 'specialization_selection_opened'
+    | 'report_assigned'
+    | 'report_submitted'
     | 'system_alert';
   /** Persisted event key (optional on client until loaded from server). */
   eventKey?: string;

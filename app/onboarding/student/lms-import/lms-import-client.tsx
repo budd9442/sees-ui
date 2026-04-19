@@ -43,6 +43,7 @@ function stageLabel(stage: LmsImportStage | string | null) {
 
 export default function LmsImportClient() {
     const router = useRouter();
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [status, setStatus] = useState<LmsImportStatus | null>(null);
@@ -53,7 +54,7 @@ export default function LmsImportClient() {
 
     const isPreviewReady = status === 'PREVIEW_READY';
     const isFailed = status === 'FAILED';
-    const canStart = !busy && !sessionId && password.trim().length > 0;
+    const canStart = !busy && !sessionId && username.trim().length > 0 && password.trim().length > 0;
 
     const skipForNow = async () => {
         if (busy) return;
@@ -131,7 +132,7 @@ export default function LmsImportClient() {
             const res = await fetch('/api/lms-import/preview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password }),
+                body: JSON.stringify({ username, password }),
             });
 
             if (!res.ok) {
@@ -191,6 +192,17 @@ export default function LmsImportClient() {
                     {!sessionId && (
                         <>
                             <div className="space-y-2">
+                                <Label htmlFor="lmsUsername">LMS Username</Label>
+                                <Input
+                                    id="lmsUsername"
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    placeholder="Enter your LMS username (Student ID)"
+                                    autoComplete="username"
+                                />
+                            </div>
+                            <div className="space-y-2">
                                 <Label htmlFor="lmsPassword">LMS Password</Label>
                                 <Input
                                     id="lmsPassword"
@@ -200,8 +212,8 @@ export default function LmsImportClient() {
                                     placeholder="Enter your LMS password"
                                     autoComplete="current-password"
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                    Username is your student ID. (We never ask for username.)
+                                <p className="text-xs text-muted-foreground font-medium">
+                                    Your LMS credentials are used only for this sync and are never stored.
                                 </p>
                             </div>
                             <div className="flex flex-wrap items-center justify-end gap-2">

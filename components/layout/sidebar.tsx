@@ -114,12 +114,6 @@ const navigationItems: NavItem[] = [
     roles: ['student'],
   },
   {
-    title: 'Internship',
-    href: '/dashboard/student/internship',
-    icon: Briefcase,
-    roles: ['student'],
-  },
-  {
     title: 'Anonymous Reports',
     href: '/dashboard/student/reports',
     icon: AlertTriangle,
@@ -174,6 +168,12 @@ const navigationItems: NavItem[] = [
     href: '/dashboard/staff/messages',
     icon: MessageSquare,
     roles: ['staff', 'advisor', 'hod'],
+  },
+  {
+    title: 'Reports Review',
+    href: '/dashboard/staff/reports-review',
+    icon: Eye,
+    roles: ['staff', 'advisor'],
   },
 
 
@@ -230,6 +230,12 @@ const navigationItems: NavItem[] = [
     title: 'Batch management',
     href: '/dashboard/hod/batches',
     icon: Users,
+    roles: ['hod'],
+  },
+  {
+    title: 'Reports Review',
+    href: '/dashboard/hod/reports-review',
+    icon: Eye,
     roles: ['hod'],
   },
 

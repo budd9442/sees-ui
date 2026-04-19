@@ -20,6 +20,10 @@ export async function submitAnonymousReport(data: {
     });
     if (!student) throw new Error('Student record not found');
 
+    const category = await prisma.reportCategory.findUnique({
+        where: { id: data.categoryId }
+    });
+
     const report = await prisma.anonymousReport.create({
         data: {
             report_id: randomUUID(),
@@ -31,6 +35,33 @@ export async function submitAnonymousReport(data: {
             status: 'PENDING'
         }
     });
+
+    // Trigger notification for new report submission
+    try {
+        const { dispatchNotificationEmail } = await import('@/lib/notifications/dispatch');
+        const { NotificationEventKey } = await import('@/lib/notifications/events');
+
+        // Determine recipient (category owner or fallback to an admin-level notification)
+        // For now, if category has an assigned_to, use that, otherwise we could notify all admins
+        // But dispatchNotificationEmail handles one recipient. 
+        // We'll notify the category assigned_to if it exists.
+        if (category?.assigned_to) {
+             await dispatchNotificationEmail({
+                eventKey: NotificationEventKey.REPORT_SUBMITTED,
+                dedupeKey: `report-sub-${report.report_id}`,
+                to: category.assigned_to, // This might be an email or ID, we assume email for simple dispatch
+                entityType: 'ANONYMOUS_REPORT',
+                entityId: report.report_id,
+                vars: {
+                    reportTitle: report.subject || 'No Subject',
+                    reportCategory: category.name,
+                    reportPriority: report.priority,
+                }
+            });
+        }
+    } catch (e) {
+        console.error('Failed to dispatch report submission notification:', e);
+    }
 
     revalidatePath('/dashboard/student/reports');
     return { success: true, id: report.report_id };

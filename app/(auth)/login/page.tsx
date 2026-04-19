@@ -31,7 +31,7 @@ function LoginButton() {
 export default function LoginPage() {
     const [state, dispatch] = useActionState(authenticate, undefined);
     const [showPassword, setShowPassword] = useState(false);
-    
+
     const errorMessage = typeof state === 'string' ? state : state?.error;
     const show2FA = (errorMessage === '2FA_REQUIRED' || errorMessage === 'INVALID_2FA_CODE') && typeof state === 'object';
     const persistedEmail = typeof state === 'object' ? state?.email : '';
@@ -115,7 +115,7 @@ export default function LoginPage() {
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between">
                                                     <Label htmlFor="code">Two-Factor Code</Label>
-                                                    <button 
+                                                    <button
                                                         type="button"
                                                         onClick={() => window.location.reload()}
                                                         className="text-xs text-primary hover:underline"

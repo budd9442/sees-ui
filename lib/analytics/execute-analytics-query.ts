@@ -335,23 +335,6 @@ export async function executeAnalyticsQuery(raw: unknown): Promise<AnalyticsQuer
 
                 case 'core_career_goals': {
                     const goals = await prisma.academicGoal.findMany({ select: { goal_type: true, status: true, progress: true } });
-                    const internships = await prisma.internship.findMany({ select: { status: true, company: true } });
-
-                    if (f.metadataKey === 'internships') {
-                        const groupByField = (i: any): string => {
-                            if (groupBy === 'status') return i.status ?? 'Unknown';
-                            if (groupBy === 'company') return i.company ?? 'Unknown';
-                            return i.status ?? 'Unknown';
-                        };
-                        const map = new Map<string, number>();
-                        for (const i of internships) {
-                            const val = groupByField(i);
-                            map.set(val, (map.get(val) ?? 0) + 1);
-                        }
-                        const groupKey = groupBy === 'company' ? 'company' : 'status';
-                        const rows = [...map.entries()].sort(([,a], [,b]) => b - a).map(([key, count]) => ({ [groupKey]: key, count }));
-                        return { columns: [groupKey, 'count'], rows };
-                    }
 
                     // Default: goals
                     type Acc = { total: number; achieved: number; sumProgress: number };

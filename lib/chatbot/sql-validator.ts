@@ -50,9 +50,6 @@ const STUDENT_BLOCKED_TABLES = [
   '"Notification"',
   'anonymousreport',
   'anonymous_reports',
-  'internship', // individual student records
-  'internshipdocument',
-  'internshipmilestone',
 ];
 
 // ─── Public validator ─────────────────────────────────────────────────────────

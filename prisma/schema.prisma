@@ -82,7 +82,7 @@ model Student {
   anonymous_reports       AnonymousReport[]
   gpa_history             GPAHistory[]
   grades                  Grade[]
-  internships             Internship[]
+
   module_registrations    ModuleRegistration[]
   lms_import_sessions    LmsImportSession[]
   rankings                Ranking[]
@@ -688,46 +688,6 @@ model BulkEnrollmentRecord {
   @@map("bulk_enrollment_records")
 }
 
-model Internship {
-  internship_id    String                @id @default(uuid())
-  student_id       String
-  company          String
-  role             String
-  start_date       DateTime
-  end_date         DateTime
-  status           String                @default("applied")
-  supervisor_email String?
-  supervisor_phone String?
-  description      String?
-  progress         Int                   @default(0)
-  created_at       DateTime              @default(now())
-  updated_at       DateTime              @updatedAt
-  supervisorName   String?
-  student          Student               @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
-  documents        InternshipDocument[]
-  milestones       InternshipMilestone[]
-}
-
-model InternshipMilestone {
-  milestone_id   String     @id @default(uuid())
-  internship_id  String
-  title          String
-  description    String?
-  due_date       DateTime
-  completed      Boolean    @default(false)
-  completed_date DateTime?
-  internship     Internship @relation(fields: [internship_id], references: [internship_id], onDelete: Cascade)
-}
-
-model InternshipDocument {
-  document_id   String     @id @default(uuid())
-  internship_id String
-  name          String
-  type          String
-  url           String
-  uploaded_at   DateTime   @default(now())
-  internship    Internship @relation(fields: [internship_id], references: [internship_id], onDelete: Cascade)
-}
 
 model SystemSetting {
   setting_id  String   @id

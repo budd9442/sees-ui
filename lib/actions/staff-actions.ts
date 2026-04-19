@@ -771,6 +771,10 @@ export async function releaseModuleGrades(moduleId: string) {
 
     await notifyAcademicStandingChangesAfterGradeRelease(affectedStudentIds, standingBefore, releaseBatchId);
 
+    // [GPA SYNC] Queue background recalculation of denormalized GPA and Class fields
+    const { pushToQueue } = await import('@/lib/queue/queue-service');
+    await pushToQueue('gpa_recalculation', { studentIds: affectedStudentIds });
+
     await writeAuditLog({
         adminId: session.user.id,
         action: 'STAFF_MODULE_GRADES_RELEASE',

@@ -87,12 +87,6 @@ export function columnKindsForShape(
         }
 
         case 'core_career_goals': {
-            if (g === 'status' || g === 'company') {
-                return [
-                    { name: g, kind: 'string' },
-                    { name: 'count', kind: 'number' }
-                ];
-            }
             return [
                 { name: g === 'none' ? 'goal_type' : g, kind: 'string' },
                 { name: 'total_goals', kind: 'number' },
@@ -187,8 +181,7 @@ export function groupByOptionsForDataset(datasetId: AnalyticsDatasetId): { value
         case 'core_career_goals':
             return [
                 { value: 'none', label: 'By Goal Type' },
-                { value: 'status', label: 'By Internship/Goal Status' },
-                { value: 'company', label: 'By Internship Company' }
+                { value: 'status', label: 'By Goal Status' }
             ];
         case 'core_audit_logs':
             return [

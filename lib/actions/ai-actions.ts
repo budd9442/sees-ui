@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@/auth';
-import { GrokService } from '@/lib/services/grok-service';
+import { AIService } from '@/lib/services/ai-service';
 
 /**
  * AI Guidance Server Action
@@ -12,5 +12,5 @@ export async function getAIGuidance() {
     if (!session?.user?.id) throw new Error("Unauthorized");
 
     const studentId = session.user.id;
-    return await GrokService.generatePathwayAdvice(studentId);
+    return await AIService.generatePathwayAdvice(studentId);
 }

@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
-import { GrokService } from '@/lib/services/grok-service';
+import { AIService } from '@/lib/services/ai-service';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { assertStudentWriteAccess } from '@/lib/actions/student-access';
@@ -288,7 +288,7 @@ export async function getSpecializationGuidance() {
         marks: mr.grade?.marks ?? null,
     }));
 
-    const decision = await GrokService.generateSpecializationDecision({
+    const decision = await AIService.generateSpecializationDecision({
         currentGpa: gpa,
         pathway: student.degree_path.code,
         preferences: prefs,
@@ -299,7 +299,7 @@ export async function getSpecializationGuidance() {
         specializationScores.find((s) => s.code === decision.recommended_specialization) ??
         specializationScores[0];
 
-    const ai = await GrokService.generateSpecializationGuidanceExplanation({
+    const ai = await AIService.generateSpecializationGuidanceExplanation({
         currentGpa: gpa,
         recommendedSpec: recommended.code,
         score: decision.confidence,
@@ -318,11 +318,11 @@ export async function getSpecializationGuidance() {
         recommended_specialization: recommended.code,
         fit_score: decision.fit_score,
         skill_vector: decision.skill_vector ?? deterministicSkillVector,
-        skill_vector_source: decision.skill_vector ? 'GROK' : 'DETERMINISTIC_FALLBACK',
+        skill_vector_source: decision.skill_vector ? 'AI' : 'DETERMINISTIC_FALLBACK',
         reasons: [...decision.reasons, ...ai.reasons].slice(0, 5),
         insight: ai.insight,
         deterministic_breakdown: specializationScores,
-        decision_source: decision.modelUsed ? 'GROK' : 'DETERMINISTIC_FALLBACK',
+        decision_source: decision.modelUsed ? 'AI' : 'DETERMINISTIC_FALLBACK',
         decision_failure_reason: decision.failureReason,
     };
 }

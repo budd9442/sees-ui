@@ -703,11 +703,26 @@ export async function previewAdminNotificationTemplate(templateId: string) {
 
 // ANONYMOUS REPORTS ACTIONS
 
-export async function getAdminAnonymousReportsData() {
+export async function getAnonymousReportsData() {
     const session = await auth();
-    if (!session?.user?.id || session.user.role !== 'admin') throw new Error('Unauthorized');
+    const allowedRoles = ['admin', 'hod', 'staff', 'advisor'];
+    if (!session?.user?.id || !allowedRoles.includes(session.user.role || '')) {
+        throw new Error('Unauthorized');
+    }
+
+    const userRole = session.user.role;
+    const userId = session.user.id;
+
+    // Filtering logic:
+    // Admin and HOD see all reports.
+    // Staff and Advisor see only reports assigned to them.
+    const where: Prisma.AnonymousReportWhereInput = {};
+    if (userRole === 'staff' || userRole === 'advisor') {
+        where.assigned_to = userId;
+    }
 
     const reports = await prisma.anonymousReport.findMany({
+        where,
         include: {
             student: {
                 include: { user: true }
@@ -901,7 +916,7 @@ function anonymousReportStatusUiToDb(ui: string): string {
     return m[k] ?? ui.toUpperCase();
 }
 
-export async function updateAdminAnonymousReport(
+export async function updateAnonymousReport(
     reportId: string,
     data: {
         status?: string;
@@ -911,7 +926,8 @@ export async function updateAdminAnonymousReport(
     }
 ) {
     const session = await auth();
-    if (!session?.user?.id || session.user.role !== 'admin') {
+    const allowedRoles = ['admin', 'hod', 'staff', 'advisor'];
+    if (!session?.user?.id || !allowedRoles.includes(session.user.role || '')) {
         throw new Error('Unauthorized');
     }
 
@@ -936,6 +952,37 @@ export async function updateAdminAnonymousReport(
         include: { category: true }
     });
 
+    // Trigger notification if assignment changed
+    if (data.assignedTo !== undefined && data.assignedTo) {
+        try {
+            const assignee = await prisma.user.findUnique({
+                where: { user_id: data.assignedTo }
+            });
+
+            if (assignee?.email) {
+                const { dispatchNotificationEmail } = await import('@/lib/notifications/dispatch');
+                const { NotificationEventKey } = await import('@/lib/notifications/events');
+
+                await dispatchNotificationEmail({
+                    eventKey: NotificationEventKey.REPORT_ASSIGNED,
+                    dedupeKey: `report-assign-${reportId}-${data.assignedTo}`,
+                    to: assignee.email,
+                    recipientUserId: assignee.user_id,
+                    entityType: 'ANONYMOUS_REPORT',
+                    entityId: reportId,
+                    vars: {
+                        staffName: assignee.firstName || 'Staff',
+                        reportTitle: updated.subject || 'No Subject',
+                        reportCategory: updated.category?.name || 'Uncategorized',
+                        reportPriority: updated.priority,
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('Failed to dispatch report assignment notification:', e);
+        }
+    }
+
     await writeAuditLog({
         adminId: session.user.id,
         action: 'ADMIN_ANONYMOUS_REPORT_UPDATE',
@@ -946,6 +993,8 @@ export async function updateAdminAnonymousReport(
     });
 
     revalidatePath('/dashboard/admin/reports-review');
+    revalidatePath('/dashboard/staff/reports-review');
+    revalidatePath('/dashboard/hod/reports-review');
     return {
         success: true,
         data: {

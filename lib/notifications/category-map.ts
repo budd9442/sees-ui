@@ -13,6 +13,8 @@ export const CATEGORY_TO_EVENT_KEY: Record<NotificationTemplate['category'], Not
     pathway_selection_opened: NotificationEventKey.PATHWAY_SELECTION_OPENED,
     specialization_selection_opened: NotificationEventKey.SPECIALIZATION_SELECTION_OPENED,
     pathway_allocated: NotificationEventKey.PATHWAY_ALLOCATED,
+    report_assigned: NotificationEventKey.REPORT_ASSIGNED,
+    report_submitted: NotificationEventKey.REPORT_SUBMITTED,
     system_alert: NotificationEventKey.SYSTEM_ALERT,
 };
 
@@ -26,6 +28,8 @@ export const EVENT_KEY_TO_CATEGORY: Record<NotificationEventKeyType, Notificatio
     [NotificationEventKey.PATHWAY_SELECTION_OPENED]: 'pathway_selection_opened',
     [NotificationEventKey.SPECIALIZATION_SELECTION_OPENED]: 'specialization_selection_opened',
     [NotificationEventKey.PATHWAY_ALLOCATED]: 'pathway_allocated',
+    [NotificationEventKey.REPORT_ASSIGNED]: 'report_assigned',
+    [NotificationEventKey.REPORT_SUBMITTED]: 'report_submitted',
     [NotificationEventKey.SYSTEM_ALERT]: 'system_alert',
 };
 

@@ -2,7 +2,7 @@
 
 import { auth } from '@/auth';
 import { GPAMonitoringService } from '@/lib/services/gpa-monitoring';
-import { GrokService } from '@/lib/services/grok-service';
+import { AIService } from '@/lib/services/ai-service';
 import { prisma } from '@/lib/db';
 
 /**
@@ -40,7 +40,7 @@ export async function getAcademicRecoveryData() {
         advice = existing.advice_json;
     } else {
         // Generate fresh AI advice and persist it
-        advice = await GrokService.generateAcademicRecoveryAdvice(studentId, trend.dipAmount);
+        advice = await AIService.generateAcademicRecoveryAdvice(studentId, trend.dipAmount);
 
         await (prisma as any).academicRecoverySnapshot.create({
             data: {

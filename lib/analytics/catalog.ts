@@ -34,7 +34,7 @@ export const DATASET_DESCRIPTIONS: Record<AnalyticsDatasetId, string> = {
     core_student_metrics: 'Unified multi-dimensional student facts. Includes GPA, academic standing, and metadata questions. Group by level, pathway, admission_year, metadata, enrollment_status, etc to generate distributions.',
     core_module_metrics: 'Unified module performance facts. Includes pass rates, credit sizes, and grade averages. Group by academic_year or level to view module history.',
     core_grade_distribution: 'Highly granular grade facts spanning letters and point values. Group by letter_grade, module, pathway, or level to generate heatmaps and histograms.',
-    core_career_goals: 'Career engagement rollups including academic-goal states and student internship placements. Group by company, status, or goal_type.',
+    core_career_goals: 'Career engagement rollups including academic-goal states. Group by status or goal_type.',
     core_audit_logs: 'Security and activity audit trails. Track login history, profile changes, and administrative actions across the platform.',
     core_system_health: 'Platform performance and resource utilization metrics. Monitor CPU, memory, and active user concurrency trends.',
 };

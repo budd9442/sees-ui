@@ -46,14 +46,14 @@ import {
     UserCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { updateAdminAnonymousReport } from '@/lib/actions/admin-actions';
+import { updateAnonymousReport } from '@/lib/actions/admin-actions';
 import { exportTabularData } from '@/lib/export';
 
 interface Report {
     id: string;
     studentId: string;
     category: string;
-    categoryId?: string;
+    categoryId?: string | null;
     title: string;
     description: string;
     status: string;
@@ -67,7 +67,7 @@ interface Report {
 interface Category {
     id: string;
     name: string;
-    assignedTo: string;
+    assignedTo: string | null;
 }
 
 interface Staff {
@@ -107,7 +107,7 @@ export default function ReportsReviewClient({ initialData }: { initialData: Page
                 status,
                 responseNotes: responseNotes || undefined,
             };
-            const res = await updateAdminAnonymousReport(reportId, updateData);
+            const res = await updateAnonymousReport(reportId, updateData);
 
             if (res.success) {
                 setReports(prev => prev.map((r: any) => r.id === reportId ? { ...r, ...res.data } : r));
@@ -123,7 +123,7 @@ export default function ReportsReviewClient({ initialData }: { initialData: Page
 
     const handleAssignReport = async (reportId: string, assignedTo: string) => {
         try {
-            const res = await updateAdminAnonymousReport(reportId, { assignedTo });
+            const res = await updateAnonymousReport(reportId, { assignedTo });
             if (res.success) {
                 setReports(prev => prev.map((r: any) => r.id === reportId ? { ...r, ...res.data } : r));
                 if (selectedReport?.id === reportId) {
@@ -302,7 +302,7 @@ export default function ReportsReviewClient({ initialData }: { initialData: Page
                                                     variant="ghost" 
                                                     size="sm" 
                                                     onClick={() => handleViewReport(report)}
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="transition-colors hover:bg-primary/10 hover:text-primary"
                                                 >
                                                     <Eye className="h-4 w-4 mr-2" /> View
                                                 </Button>

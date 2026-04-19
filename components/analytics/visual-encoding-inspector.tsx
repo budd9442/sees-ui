@@ -664,6 +664,36 @@ export function VisualEncodingInspector({ selected, updateSelected, allowedDatas
                             </Select>
                         </div>
 
+                        <div className="space-y-1">
+                            <Label className="text-xs">Sort by field</Label>
+                            <Select
+                                value={selected.encodings?.sortBy ?? '__auto__'}
+                                onValueChange={(v) => mergeEnc({ sortBy: v === '__auto__' ? undefined : v })}
+                            >
+                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Automatic" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="__auto__" className="text-xs">Automatic</SelectItem>
+                                    {encodingColumns.map((c) => (
+                                        <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label className="text-xs">Data limit (Top N)</Label>
+                            <Input
+                                type="number"
+                                min={1}
+                                max={1000}
+                                value={selected.encodings?.limit ?? ''}
+                                placeholder="All results"
+                                className="h-8 text-xs"
+                                onChange={(e) => mergeEnc({ limit: e.target.value ? parseInt(e.target.value) : undefined })}
+                            />
+                            <p className="text-[9px] text-muted-foreground">Useful for "Top 10" style charts</p>
+                        </div>
+
                         <div className="flex items-center justify-between">
                             <Label className="text-xs">Show data labels</Label>
                             <Switch

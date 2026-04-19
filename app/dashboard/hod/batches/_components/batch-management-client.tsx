@@ -11,6 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { executeBatchTransition, getBatchDetailsForOperator, getBatchOverviewForOperator } from '@/lib/actions/academic-transition-actions';
 import { AlertCircle, ArrowUpCircle, GraduationCap, Loader2, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 type BatchLevel = 'L1' | 'L2' | 'L3' | 'L4' | 'GRADUATED';
 
@@ -63,6 +71,12 @@ export function BatchManagementClient({ initialOverview, initialDetail }: BatchM
     const [details, setDetails] = useState<BatchDetailsPayload | null>(initialDetail);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [transitionInFlight, setTransitionInFlight] = useState<BatchLevel | null>(null);
+    const [promotionDialog, setPromotionDialog] = useState<{
+        from: BatchLevel;
+        to: BatchLevel;
+        count: number;
+        targetCount: number;
+    } | null>(null);
 
     const overviewMap = useMemo(() => {
         return overview.reduce<Record<string, number>>((acc, row) => {
@@ -101,9 +115,16 @@ export function BatchManagementClient({ initialOverview, initialDetail }: BatchM
             toast.error(`No students found in ${from}.`);
             return;
         }
-        if (!confirm(`Promote ${population} students from ${from} to ${to}? This action is irreversible.`)) return;
+        const targetCount = overviewMap[to] ?? 0;
+        setPromotionDialog({ from, to, count: population, targetCount });
+    };
+
+    const executeTransition = async () => {
+        if (!promotionDialog) return;
+        const { from, to } = promotionDialog;
 
         setTransitionInFlight(from);
+        setPromotionDialog(null);
         try {
             const res = await executeBatchTransition(from, to);
             if (!res.success) {
@@ -145,7 +166,7 @@ export function BatchManagementClient({ initialOverview, initialDetail }: BatchM
                             <CardDescription>{level === 'GRADUATED' ? 'Graduates' : 'Current cohort'}</CardDescription>
                         </CardHeader>
                         <CardContent className="flex items-center justify-between">
-                            <span className="text-2xl font-black">{overviewMap[level] ?? 0}</span>
+                            <span className="text-2xl font-semibold">{overviewMap[level] ?? 0}</span>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardContent>
                     </Card>
@@ -214,19 +235,19 @@ export function BatchManagementClient({ initialOverview, initialDetail }: BatchM
                             <TabsContent value="summary" className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                                 <Card>
                                     <CardHeader className="pb-1"><CardDescription>Total Students</CardDescription></CardHeader>
-                                    <CardContent><p className="text-2xl font-black">{details.summary.totalStudents}</p></CardContent>
+                                    <CardContent><p className="text-2xl font-semibold">{details.summary.totalStudents}</p></CardContent>
                                 </Card>
                                 <Card>
                                     <CardHeader className="pb-1"><CardDescription>Promoted Ready</CardDescription></CardHeader>
-                                    <CardContent><p className="text-2xl font-black">{details.summary.promotedReadyCount}</p></CardContent>
+                                    <CardContent><p className="text-2xl font-semibold">{details.summary.promotedReadyCount}</p></CardContent>
                                 </Card>
                                 <Card>
                                     <CardHeader className="pb-1"><CardDescription>Exceptions</CardDescription></CardHeader>
-                                    <CardContent><p className="text-2xl font-black">{details.summary.exceptionsCount}</p></CardContent>
+                                    <CardContent><p className="text-2xl font-semibold">{details.summary.exceptionsCount}</p></CardContent>
                                 </Card>
                                 <Card>
                                     <CardHeader className="pb-1"><CardDescription>Graduates</CardDescription></CardHeader>
-                                    <CardContent><p className="text-2xl font-black">{details.summary.graduatesCount}</p></CardContent>
+                                    <CardContent><p className="text-2xl font-semibold">{details.summary.graduatesCount}</p></CardContent>
                                 </Card>
                             </TabsContent>
                             <TabsContent value="students">
@@ -264,6 +285,55 @@ export function BatchManagementClient({ initialOverview, initialDetail }: BatchM
                     )}
                 </CardContent>
             </Card>
+
+            {/* Promotion Confirmation Dialog */}
+            <Dialog open={!!promotionDialog} onOpenChange={(open) => !open && setPromotionDialog(null)}>
+                <DialogContent className="rounded-3xl max-w-md border-none shadow-2xl">
+                    <DialogHeader>
+                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center mb-4 ${promotionDialog?.targetCount && promotionDialog.targetCount > 0 && promotionDialog.to !== 'GRADUATED' ? 'bg-orange-100 text-orange-600' : 'bg-primary/10 text-primary'}`}>
+                            <ArrowUpCircle className="h-6 w-6" />
+                        </div>
+                        <DialogTitle className="text-2xl font-semibold">Confirm Batch Transition</DialogTitle>
+                        <DialogDescription className="pt-2">
+                            You are about to promote <span className="font-bold text-foreground">{promotionDialog?.count} students</span> from 
+                            <span className="px-2 py-0.5 mx-1 rounded bg-muted font-bold text-foreground">{promotionDialog?.from}</span> to 
+                            <span className="px-2 py-0.5 mx-1 rounded bg-muted font-bold text-foreground">{promotionDialog?.to}</span>.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {promotionDialog?.targetCount && promotionDialog.targetCount > 0 && promotionDialog.to !== 'GRADUATED' && (
+                        <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 space-y-2 mt-4">
+                            <div className="flex items-center gap-2 text-orange-800 font-semibold text-sm">
+                                <AlertCircle className="h-4 w-4" />
+                                <span>Destination Conflict Detected</span>
+                            </div>
+                            <p className="text-xs text-orange-700 leading-relaxed">
+                                There are already <span className="font-bold">{promotionDialog.targetCount} students</span> at level {promotionDialog.to}. 
+                                Proceeding will merge these batches together. 
+                                We recommend promoting the existing {promotionDialog.to} batch first.
+                            </p>
+                        </div>
+                    )}
+
+                    <div className="py-4 text-xs text-muted-foreground italic">
+                        * This action is permanent and will update the academic records of all eligible students.
+                    </div>
+
+                    <DialogFooter className="gap-3 sm:justify-between mt-2">
+                        <Button variant="ghost" onClick={() => setPromotionDialog(null)} className="rounded-xl flex-1 h-12">
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={executeTransition} 
+                            className={`rounded-xl flex-[2] h-12 shadow-lg transition-all ${promotionDialog?.targetCount && promotionDialog.targetCount > 0 && promotionDialog.to !== 'GRADUATED' 
+                                ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-200' 
+                                : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20'}`}
+                        >
+                            Proceed with Promotion
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

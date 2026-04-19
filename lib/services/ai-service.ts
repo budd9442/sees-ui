@@ -1,16 +1,17 @@
 import { prisma } from '@/lib/db';
 
 /**
- * GrokService
- * Handles communication with the x.ai Grok API for academic analysis.
+ * AIService
+ * Handles communication with the AI API for academic analysis.
  */
-export class GrokService {
+export class AIService {
     private static getApiKey() {
-        return process.env.XAI_API_KEY?.trim() ?? '';
+        return (process.env.XAI_API_KEY || process.env.GROK_API_KEY)?.trim() ?? '';
     }
 
     private static getApiUrl() {
-        return "https://api.x.ai/v1/responses";
+        // Most x.ai models use the chat/completions endpoint now
+        return "https://api.x.ai/v1/chat/completions";
     }
 
     private static getModel() {
@@ -18,12 +19,12 @@ export class GrokService {
     }
 
     /**
-     * Helper to call x.ai Responses API
+     * Helper to call AI API
      */
-    private static async callGrok(prompt: string, temperature = 0.2) {
+    private static async callAI(prompt: string, temperature = 0.2, jsonMode = false) {
         const apiKey = this.getApiKey();
         const apiUrl = this.getApiUrl();
-        if (!apiKey) throw new Error("XAI_API_KEY is not configured.");
+        if (!apiKey) throw new Error("AI API Key is not configured.");
 
         const response = await fetch(apiUrl, {
             method: "POST",
@@ -33,21 +34,20 @@ export class GrokService {
             },
             body: JSON.stringify({
                 model: this.getModel(),
-                input: prompt,
-                // The Responses API might not support temperature directly in some versions, 
-                // but we include it if expected. Adjusting if needed based on spec.
+                messages: [{ role: "user", content: prompt }],
+                temperature,
+                ...(jsonMode ? { response_format: { type: "json_object" } } : {})
             })
         });
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
-            throw new Error(`Grok API Error (${response.status}): ${err.error?.message || response.statusText}`);
+            throw new Error(`AI API Error (${response.status}): ${err.error?.message || response.statusText}`);
         }
 
         const result = await response.json();
-        // Format based on x.ai Responses API: result.output[0].content[0].text
-        const text = result?.output?.[0]?.content?.[0]?.text;
-        if (!text) throw new Error("Empty response from Grok");
+        const text = result?.choices?.[0]?.message?.content;
+        if (!text) throw new Error("Empty response from AI");
         return text;
     }
 
@@ -98,10 +98,10 @@ export class GrokService {
                 }
             `;
 
-            const raw = await this.callGrok(prompt);
+            const raw = await this.callAI(prompt, 0.2, true);
             return JSON.parse(raw);
         } catch (error) {
-            console.error("Grok Advice Generation Failed:", error);
+            console.error("AI Advice Generation Failed:", error);
             return this.getFallbackAdvice();
         }
     }
@@ -130,11 +130,11 @@ export class GrokService {
             fit_score: fallbackTop.score,
             skill_vector: null as null | { Technical: number; Strategic: number; Operations: number },
             supporting_reasons: [
-                'Grok decision unavailable; deterministic ranking used.',
+                'AI analysis unavailable; deterministic ranking used.',
                 `Top deterministic candidate: ${fallbackTop.code}.`,
             ],
             modelUsed: false,
-            failureReason: 'GROK_UNAVAILABLE',
+            failureReason: 'AI_UNAVAILABLE',
         };
 
         try {
@@ -159,7 +159,7 @@ Return strict JSON:
   "supporting_reasons": ["DIM-specific reason citing modules", "reason 2", "reason 3"]
 }
 `;
-            const raw = await this.callGrok(prompt, 0.2);
+            const raw = await this.callAI(prompt, 0.2, true);
             const parsed = JSON.parse(raw);
 
             const rec = parsed.primary_recommendation;
@@ -198,21 +198,9 @@ Return strict JSON:
 
         try {
             const prompt = `Student GPA: ${input.currentGpa}\nPathway: ${input.pathway}\nPreferences: ${JSON.stringify(input.preferences)}\nGrades: ${JSON.stringify(input.grades.slice(0, 5))}\n\nRecommend one specialization: BSE, OSCM, or IS. Return JSON with recommendation, confidence, insight, and supporting_reasons (string array).`;
-            const res = await fetch('https://api.x.ai/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.GROK_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: 'grok-beta',
-                    messages: [{ role: 'user', content: prompt }],
-                    response_format: { type: 'json_object' }
-                })
-            });
+            const raw = await this.callAI(prompt, 0.2, true);
+            const parsed = JSON.parse(raw);
 
-            const data = await res.json();
-            const parsed = JSON.parse(data.choices[0].message.content);
             return {
                 ...fallback,
                 ...parsed,
@@ -232,20 +220,7 @@ Return strict JSON:
     }) {
         try {
             const prompt = `Explain why ${input.recommendedSpec} is recommended for a student with ${input.currentGpa} GPA and these preferences: ${JSON.stringify(input.preferences)}. Keep it motivating and under 150 words.`;
-            const res = await fetch('https://api.x.ai/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.GROK_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: 'grok-beta',
-                    messages: [{ role: 'user', content: prompt }]
-                })
-            });
-
-            const data = await res.json();
-            return data.choices[0].message.content;
+            return await this.callAI(prompt, 0.4);
         } catch (error) {
             return `Based on your academic profile, ${input.recommendedSpec} aligns best with your specialization criteria and performance.`;
         }
@@ -277,7 +252,7 @@ Transcript: ${JSON.stringify(input.transcript)}
 Return JSON:
 { "insight": "2-3 sentence explanation", "supporting_reasons": ["reason 1", "reason 2"] }
 `;
-            const raw = await this.callGrok(prompt, 0.2);
+            const raw = await this.callAI(prompt, 0.2, true);
             const parsed = JSON.parse(raw);
             return {
                 insight: parsed.insight || fallback.insight,
@@ -320,7 +295,7 @@ Return JSON:
                     "reasons": ["DIM-aligned reason 1", "reason 2"]
                 }
             `;
-            const raw = await this.callGrok(prompt);
+            const raw = await this.callAI(prompt, 0.2, true);
             return JSON.parse(raw);
         } catch {
             return this.getFallbackSpecializationAdvice();
@@ -357,10 +332,10 @@ Return JSON:
                   "confidenceNotes": { "modelUsed": true, "summary": "Short internal summary" } 
                 }
             `;
-            const raw = await this.callGrok(prompt, 0.2);
+            const raw = await this.callAI(prompt, 0.4, true);
             return JSON.parse(raw);
         } catch (error) {
-            throw new Error("Grok failed to generate feedback.");
+            throw new Error("AI failed to generate feedback.");
         }
     }
 
@@ -389,7 +364,7 @@ Return JSON:
                   "support_resources": ["DIM Student Support", "Peer Mentoring Group"] 
                 }
             `;
-            const raw = await this.callGrok(prompt);
+            const raw = await this.callAI(prompt, 0.2, true);
             return JSON.parse(raw);
         } catch {
             return this.getFallbackRecoveryAdvice();

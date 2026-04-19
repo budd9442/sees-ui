@@ -8,7 +8,7 @@ import { executePlannerSQL } from '@/lib/chatbot/db-query-engine';
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const XAI_MODEL   = process.env.XAI_MODEL || 'grok-beta';
-const XAI_CHAT_URL = 'https://api.x.ai/v1/chat/completions';
+const AI_CHAT_URL = 'https://api.x.ai/v1/chat/completions';
 
 // ─── Guide-book context (curriculum facts, no DB needed) ─────────────────────
 
@@ -95,11 +95,11 @@ function roleSQLNotes(role: string): string {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function callGrok(
+async function callAI(
   messages: { role: string; content: string }[],
   jsonMode = false
 ): Promise<string> {
-  const res = await fetch(XAI_CHAT_URL, {
+  const res = await fetch(AI_CHAT_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
 
     // ── 5. Guide-book-only fallback (kill-switch) ─────────────────────────
     if (!dbAccessEnabled) {
-      const raw = await callGrok([
+      const raw = await callAI([
         {
           role: 'system',
           content: `You are the SEES Official Academic Virtual Assistant. Answer in plain text (no markdown), max 180 words.
@@ -212,7 +212,7 @@ Rules:
 
     let planRaw: string;
     try {
-      planRaw = await callGrok(
+      planRaw = await callAI(
         [
           { role: 'system', content: plannerSystem },
           ...safeHistory,
@@ -221,7 +221,7 @@ Rules:
         true
       );
     } catch (err) {
-      console.error('[Chat] Planner call failed:', err);
+      console.error('[Chat] AI call failed:', err);
       return NextResponse.json({
         response: "I'm having trouble connecting to my reasoning engine. Please try again.",
       });
@@ -240,7 +240,7 @@ Rules:
     // ── 7. Not answerable ─────────────────────────────────────────────────
     if (!plan.canAnswer) {
       if (plan.reason === 'GUIDE_ONLY') {
-        const raw = await callGrok([
+        const raw = await callAI([
           {
             role: 'system',
             content: `You are the SEES Official Academic Virtual Assistant. Answer in plain text (no markdown), max 180 words.
@@ -297,7 +297,7 @@ Curriculum context (for background): ${GUIDE_BOOK_CONTEXT}`;
 
     let answer: string;
     try {
-      answer = await callGrok([
+      answer = await callAI([
         { role: 'system', content: synthSystem },
         ...safeHistory,
         { role: 'user', content: synthUser },

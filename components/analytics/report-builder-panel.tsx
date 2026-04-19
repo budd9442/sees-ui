@@ -1,6 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,11 +50,12 @@ import {
 } from '@/lib/actions/analytics-actions';
 import { toast } from 'sonner';
 import {
-    Plus, Trash2, Copy, Save, RotateCcw, ChevronDown,
+    Plus, Trash2, Copy, Save, RotateCcw, ChevronDown, ChevronLeft, ChevronRight,
     LayoutTemplate, Layers, Database, Settings, FolderOpen,
     BarChart2, TrendingUp, Users, AlertTriangle, Target,
     PanelLeft, PanelRight, Eraser, Briefcase, GraduationCap,
     Award, Activity, BookOpen, Sigma, PieChart,
+    Maximize2, Minimize2, Printer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -145,24 +149,6 @@ const TEMPLATES: Template[] = [
                     { id: 'v1', type: 'bar', title: 'Pass Rate (%) by Module', datasetId: 'core_module_metrics', layout: { i: 'v1', x: 0, y: 0, w: 12, h: 6 }, groupBy: 'none', encodings: { x: 'module_code', y: 'pass_rate', colorScheme: 'green', sortOrder: 'asc' } },
                     { id: 'v2', type: 'bar', title: 'Avg Grade Point by Module', datasetId: 'core_module_metrics', layout: { i: 'v2', x: 0, y: 6, w: 8, h: 6 }, groupBy: 'none', encodings: { x: 'module_code', y: 'avg_grade_point', colorScheme: 'blue' } },
                     { id: 'v3', type: 'table', title: 'Module Stats', datasetId: 'core_module_metrics', layout: { i: 'v3', x: 8, y: 6, w: 4, h: 6 }, groupBy: 'none' },
-                ],
-            }],
-        },
-    },
-    {
-        id: 'tpl_career_tracker',
-        label: 'Career & Internship Hub',
-        description: 'Tracking internship placement diversity and career goal status.',
-        icon: Briefcase,
-        roles: ['admin', 'hod'],
-        definition: {
-            version: 1,
-            pages: [{
-                id: 'main', title: 'Career Outcomes',
-                visuals: [
-                    { id: 'v1', type: 'donut', title: 'Internship Status', datasetId: 'core_career_goals', layout: { i: 'v1', x: 0, y: 0, w: 4, h: 6 }, groupBy: 'status', filters: { goalType: 'INTERNSHIP' }, encodings: { category: 'status', value: 'count' } },
-                    { id: 'v2', type: 'bar', title: 'Top Hiring Companies', datasetId: 'core_career_goals', layout: { i: 'v2', x: 4, y: 0, w: 8, h: 6 }, groupBy: 'company', encodings: { x: 'company', y: 'count', colorScheme: 'cool', sortOrder: 'desc' } },
-                    { id: 'v3', type: 'kpi', title: 'Goal Achievement Rate', datasetId: 'core_career_goals', layout: { i: 'v3', x: 0, y: 6, w: 12, h: 4 }, groupBy: 'none', encodings: { metric: 'achievement_rate', kpiAggregation: 'avg' } },
                 ],
             }],
         },
@@ -390,6 +376,25 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
     const [showTemplates, setShowTemplates] = useState(false);
     const [leftPanel, setLeftPanel] = useState(true);
     const [rightPanel, setRightPanel] = useState(true);
+    const [zenMode, setZenMode] = useState(false);
+
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && zenMode) setZenMode(false);
+        };
+        window.addEventListener('keydown', handleEsc);
+
+        if (zenMode) {
+            document.body.classList.add('zen-mode-active');
+        } else {
+            document.body.classList.remove('zen-mode-active');
+        }
+
+        return () => {
+            window.removeEventListener('keydown', handleEsc);
+            document.body.classList.remove('zen-mode-active');
+        };
+    }, [zenMode]);
 
     const pageIndex = 0;
     const page = definition.pages[pageIndex];
@@ -410,7 +415,7 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
     const applyFromAssistant = useCallback((patch: ReportDefinitionPatch) => {
         if (patch.updateTitle) setReportTitle(patch.updateTitle);
         setDefinition((d) => applyReportDefinitionPatch(d, patch));
-        toast.success('Changes applied by Grok');
+        toast.success('AI Design Applied');
     }, []);
 
     const handleSave = () => {
@@ -484,6 +489,71 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
         toast.message('Reset to default template');
     };
 
+    const [exporting, setExporting] = useState(false);
+
+    const handleExportPDF = async () => {
+        const element = document.querySelector('.report-canvas-container') as HTMLElement;
+        if (!element) {
+            toast.error('Canvas container not found');
+            return;
+        }
+
+        setExporting(true);
+        const loadingToast = toast.loading('Generating high-res PDF...');
+
+        try {
+            // Wait for animations/rendering
+            await new Promise(r => setTimeout(r, 400));
+
+            // Use html-to-image for better modern CSS support 
+            const dataUrl = await toPng(element, {
+                quality: 1.0,
+                pixelRatio: 2, // Retina resolution
+                backgroundColor: '#ffffff',
+                filter: (node) => {
+                    const el = node as HTMLElement;
+                    if (el.classList?.contains('no-print')) return false;
+                    return true;
+                }
+            });
+
+            // Need an image to get calculated dimensions
+            const img = new Image();
+            img.src = dataUrl;
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = () => reject(new Error('Failed to load captured image'));
+            });
+
+            // Original dimensions in pixels (unscaled by pixelRatio)
+            const imgWidth = img.width / 2;
+            const imgHeight = img.height / 2;
+
+            // Convert to mm for jsPDF
+            const mmWidth = imgWidth * 0.264583;
+            const mmHeight = imgHeight * 0.264583;
+
+            // Create PDF with exact canvas dimensions
+            const pdf = new jsPDF({
+                orientation: mmWidth > mmHeight ? 'landscape' : 'portrait',
+                unit: 'mm',
+                format: [mmWidth, mmHeight]
+            });
+
+            pdf.addImage(dataUrl, 'PNG', 0, 0, mmWidth, mmHeight, undefined, 'FAST');
+            pdf.save(`${reportTitle.replace(/\s+/g, '_')}_Report.pdf`);
+
+            toast.dismiss(loadingToast);
+            toast.success('Report downloaded successfully');
+        } catch (e) {
+            console.error('[Export PDF] Error:', e);
+            toast.dismiss(loadingToast);
+            toast.error('PDF Export failed. Try again or use Print (Ctrl+P).');
+        } finally {
+            setExporting(false);
+        }
+    };
+
     const applyTemplate = (tpl: Template) => {
         setDefinition(cloneDef(tpl.definition));
         setReportTitle(tpl.label);
@@ -550,9 +620,12 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
     const availableTemplates = TEMPLATES.filter((t) => t.roles.includes(builderRole));
 
     return (
-        <div className="flex flex-col h-full flex-1 overflow-hidden">
+        <div className={cn(
+            "flex flex-col h-full flex-1 overflow-hidden transition-all duration-300",
+            zenMode && "fixed inset-0 z-[45] bg-background p-6"
+        )}>
             {/* ── Toolbar ───────────────────────────────────────────────────── */}
-            <div className="flex items-center gap-2 pb-3 flex-wrap border-b mb-3">
+            <div className="flex items-center gap-2 pb-3 flex-wrap border-b mb-3 no-print toolbar-container">
                 <div className="flex-1 min-w-0 max-w-xs">
                     <Input
                         value={reportTitle}
@@ -569,6 +642,9 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
                     </Button>
                     <Button type="button" size="icon" variant={rightPanel ? 'secondary' : 'ghost'} className="h-8 w-8" onClick={() => setRightPanel((p) => !p)} title="Toggle inspector">
                         <PanelRight className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" size="icon" variant={zenMode ? 'secondary' : 'ghost'} className="h-8 w-8 ml-1" onClick={() => setZenMode((p) => !p)} title={zenMode ? 'Exit Zen Mode' : 'Enter Zen Mode'}>
+                        {zenMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                     </Button>
 
                     <Separator orientation="vertical" className="h-6" />
@@ -603,6 +679,25 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
                     <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={clearCanvas}>
                         <Eraser className="h-3.5 w-3.5" />
                         Clear
+                    </Button>
+
+                    <Separator orientation="vertical" className="h-6" />
+
+                    {/* Export */}
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1"
+                        onClick={handleExportPDF}
+                        disabled={exporting || pending}
+                    >
+                        {exporting ? (
+                            <div className="h-3.5 w-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                        ) : (
+                            <Printer className="h-3.5 w-3.5" />
+                        )}
+                        {exporting ? 'Exporting...' : 'Export'}
                     </Button>
 
                     <Separator orientation="vertical" className="h-6" />
@@ -669,23 +764,48 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
             </div>
 
             {/* ── 3-Panel Layout ──────────────────────────────────────────── */}
-            <div className="flex flex-1 gap-3 h-0 overflow-hidden">
+            <div className="flex flex-1 gap-3 h-0 overflow-hidden relative">
                 {/* Left: Dataset browser */}
-                {leftPanel && (
-                    <div className="w-64 shrink-0 flex flex-col rounded-xl border bg-card shadow-sm h-full min-h-0 overflow-hidden">
-                        <DatasetBrowserSidebar
-                            builderRole={builderRole}
-                            onAddVisual={(dsId) => addVisualFromDataset(dsId)}
-                        />
-                    </div>
-                )}
+                <AnimatePresence mode="popLayout">
+                    {leftPanel ? (
+                        <motion.div
+                            key="left-panel"
+                            initial={{ x: -250, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: -250, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="w-64 shrink-0 flex flex-col rounded-xl border bg-card shadow-sm h-full min-h-0 overflow-hidden relative"
+                        >
+                            <div className="absolute top-3 right-3 z-10">
+                                <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => setLeftPanel(false)}>
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <DatasetBrowserSidebar
+                                builderRole={builderRole}
+                                onAddVisual={(dsId) => addVisualFromDataset(dsId)}
+                            />
+                        </motion.div>
+                    ) : (
+                        <motion.button
+                            key="left-trigger"
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            className="w-6 shrink-0 h-full border rounded-l-md bg-muted/30 hover:bg-primary/5 flex items-center justify-center group transition-colors"
+                            onClick={() => setLeftPanel(true)}
+                            title="Expand datasets"
+                        >
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                        </motion.button>
+                    )}
+                </AnimatePresence>
 
                 {/* Centre: Canvas */}
                 <div className="flex-1 min-w-0 flex flex-col gap-2 h-full">
                     <p className="text-[10px] text-muted-foreground px-1 shrink-0">
                         Drag tiles to rearrange · Resize from corners · Click a tile to edit
                     </p>
-                    <div className="flex-1 overflow-y-auto pr-1">
+                    <div className="flex-1 overflow-y-auto pr-1 report-canvas-container">
                         <ReportCanvas
                             definition={definition}
                             pageIndex={pageIndex}
@@ -698,67 +818,97 @@ export function ReportBuilderPanel({ defaultDefinition, filterContext, builderRo
                 </div>
 
                 {/* Right: Inspector */}
-                {rightPanel && (
-                    <div className="w-80 shrink-0 flex flex-col rounded-xl border bg-card shadow-sm h-full min-h-0 overflow-hidden">
-                        <Tabs defaultValue="visual" className="flex flex-col h-full overflow-hidden">
-                            <div className="px-3 pt-3 pb-0 border-b shrink-0">
-                                <TabsList className="h-8 w-full bg-muted/50 p-1">
-                                    <TabsTrigger value="visual" className="flex-1 text-[10px] h-6 data-[state=active]:bg-background">
-                                        <Settings className="h-3 w-3 mr-1" />
-                                        Visual
-                                    </TabsTrigger>
-                                    <TabsTrigger value="assistant" className="flex-1 text-[10px] h-6 data-[state=active]:bg-background">
-                                        ✨ AI Assistant
-                                    </TabsTrigger>
-                                </TabsList>
+                <AnimatePresence mode="popLayout">
+                    {rightPanel ? (
+                        <motion.div
+                            key="right-panel"
+                            initial={{ x: 300, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: 300, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="w-80 shrink-0 flex flex-col rounded-xl border bg-card shadow-sm h-full min-h-0 overflow-hidden relative inspector-panel"
+                        >
+                            <div className="absolute top-3 right-3 z-10">
+                                <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => setRightPanel(false)}>
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
                             </div>
+                            <Tabs defaultValue="visual" className="flex flex-col h-full overflow-hidden">
+                                <div className="px-3 pt-3 pb-0 border-b shrink-0 pr-10">
+                                    <TabsList className="h-8 w-full bg-muted/50 p-1">
+                                        <TabsTrigger value="visual" className="flex-1 text-[10px] h-6 data-[state=active]:bg-background">
+                                            <Settings className="h-3 w-3 mr-1" />
+                                            Visual
+                                        </TabsTrigger>
+                                        <TabsTrigger value="assistant" className="flex-1 text-[10px] h-6 data-[state=active]:bg-background">
+                                            Design with AI
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </div>
 
-                            <TabsContent value="visual" className="flex-1 overflow-hidden m-0 p-3">
-                                {!selected ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-center gap-3 text-muted-foreground/60">
-                                        <div className="p-3 rounded-full bg-muted/30">
-                                            <Layers className="h-8 w-8 opacity-40" />
+                                <TabsContent value="visual" className="flex-1 overflow-hidden m-0 p-3">
+                                    {!selected ? (
+                                        <div className="flex flex-col items-center justify-center h-full text-center gap-3 text-muted-foreground/60">
+                                            <div className="p-3 rounded-full bg-muted/30">
+                                                <Layers className="h-8 w-8 opacity-40" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold">No visual selected</p>
+                                                <p className="text-[10px] mt-1">Select a tile on the canvas or<br />add a new one from the sidebar.</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-xs font-semibold">No visual selected</p>
-                                            <p className="text-[10px] mt-1">Select a tile on the canvas or<br/>add a new one from the sidebar.</p>
+                                    ) : (
+                                        <div className="flex flex-col h-full overflow-hidden">
+                                            <div className="flex items-center gap-2 mb-4 shrink-0 px-1">
+                                                <Badge variant="secondary" className="text-[9px] font-mono uppercase tracking-wider bg-primary/10 text-primary border-none">
+                                                    {selected.type}
+                                                </Badge>
+                                                <span className="text-xs font-medium text-foreground truncate flex-1">{selected.title ?? selected.id}</span>
+                                            </div>
+                                            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                                                <VisualEncodingInspector
+                                                    selected={selected}
+                                                    updateSelected={updateSelected}
+                                                    allowedDatasets={allowedDatasets}
+                                                />
+                                            </div>
+                                            <div className="flex gap-2 pt-4 border-t mt-4 shrink-0">
+                                                <Button type="button" size="sm" variant="outline" className="flex-1 h-8 text-[10px]" onClick={duplicateVisual}>
+                                                    <Copy className="h-3 w-3 mr-1.5" />
+                                                    Duplicate
+                                                </Button>
+                                                <Button type="button" size="sm" variant="destructive" className="flex-1 h-8 text-[10px]" onClick={removeVisual}>
+                                                    <Trash2 className="h-3 w-3 mr-1.5" />
+                                                    Delete
+                                                </Button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col h-full overflow-hidden">
-                                        <div className="flex items-center gap-2 mb-4 shrink-0 px-1">
-                                            <Badge variant="secondary" className="text-[9px] font-mono uppercase tracking-wider bg-primary/10 text-primary border-none">
-                                                {selected.type}
-                                            </Badge>
-                                            <span className="text-xs font-medium text-foreground truncate flex-1">{selected.title ?? selected.id}</span>
-                                        </div>
-                                        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                                            <VisualEncodingInspector
-                                                selected={selected}
-                                                updateSelected={updateSelected}
-                                                allowedDatasets={allowedDatasets}
-                                            />
-                                        </div>
-                                        <div className="flex gap-2 pt-4 border-t mt-4 shrink-0">
-                                            <Button type="button" size="sm" variant="outline" className="flex-1 h-8 text-[10px]" onClick={duplicateVisual}>
-                                                <Copy className="h-3 w-3 mr-1.5" />
-                                                Duplicate
-                                            </Button>
-                                            <Button type="button" size="sm" variant="destructive" className="flex-1 h-8 text-[10px]" onClick={removeVisual}>
-                                                <Trash2 className="h-3 w-3 mr-1.5" />
-                                                Delete
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
-                            </TabsContent>
+                                    )}
+                                </TabsContent>
 
-                            <TabsContent value="assistant" className="flex-1 overflow-hidden m-0 p-0 h-full">
-                                <AnalyticsAssistantPanel aggregatesSummary={aggregatesSummary} onApplyPatch={applyFromAssistant} currentVisualIds={definition.pages[0]?.visuals.map(v => v.id) || []} />
-                            </TabsContent>
-                        </Tabs>
-                    </div>
-                )}
+                                <TabsContent value="assistant" className="flex-1 overflow-hidden m-0 p-3 h-full">
+                                    <AnalyticsAssistantPanel
+                                        aggregatesSummary={aggregatesSummary}
+                                        onApplyPatch={applyFromAssistant}
+                                        currentVisualIds={definition.pages[0]?.visuals.map(v => v.id) || []}
+                                        definition={definition}
+                                    />
+                                </TabsContent>
+                            </Tabs>
+                        </motion.div>
+                    ) : (
+                        <motion.button
+                            key="right-trigger"
+                            initial={{ x: 20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            className="w-6 shrink-0 h-full border rounded-r-md bg-muted/30 hover:bg-primary/5 flex items-center justify-center group transition-colors"
+                            onClick={() => setRightPanel(true)}
+                            title="Expand properties"
+                        >
+                            <ChevronLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                        </motion.button>
+                    )}
+                </AnimatePresence>
             </div>
 
 

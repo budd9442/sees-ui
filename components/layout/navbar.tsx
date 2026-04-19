@@ -21,11 +21,11 @@ import { LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { getPublicSystemInfo } from '@/lib/actions/system-settings-actions';
 import { getAcademicYears } from '@/lib/actions/academic-years';
 import { useEffect, useState, useCallback } from 'react';
-import { 
-  getUserNotifications, 
-  getUnreadNotificationCount, 
-  markNotificationAsRead, 
-  clearAllNotifications 
+import {
+  getUserNotifications,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+  clearAllNotifications
 } from '@/lib/actions/notification-actions';
 import { toast } from 'sonner';
 
@@ -60,9 +60,9 @@ export function Navbar() {
           setAcademicYears(res.data);
         }
       });
-      
+
       fetchNotifications();
-      
+
       // Polling for new notifications every 60 seconds
       const interval = setInterval(fetchNotifications, 60000);
       return () => clearInterval(interval);
@@ -113,68 +113,68 @@ export function Navbar() {
                 <ShieldCheck className="h-4 w-4" />
               </div>
               <div>
-                <h1 className="text-xl font-extrabold tracking-tight text-foreground">{systemInfo.institutionName}</h1>
+                <h1 className="text-xl font-extrabold tracking-tight text-foreground">Student Information System</h1>
                 <p className="text-xs text-muted-foreground uppercase tracking-[0.16em] font-semibold">
-                  Academic Intelligence
+                  Department of Industrial Management
                 </p>
               </div>
             </div>
 
             {/* HOD Perspective Toggle - Premium Pill Design */}
             {user.isHOD && (
-                <div className="hidden xl:flex items-center ml-4 relative bg-muted/50 p-1 rounded-full border border-border shadow-sm">
-                    <div className="relative flex">
-                        <button
-                            onClick={() => {
-                                setActiveRole('staff');
-                                router.push('/dashboard/staff');
-                            }}
-                            className={cn(
-                                "relative z-10 px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors duration-300 flex items-center gap-2",
-                                activeRole === 'staff' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            <LayoutDashboard className="h-3 w-3" />
-                            Academic View
-                        </button>
-                        <button
-                            onClick={() => {
-                                setActiveRole('hod');
-                                router.push('/dashboard/hod');
-                            }}
-                            className={cn(
-                                "relative z-10 px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors duration-300 flex items-center gap-2",
-                                activeRole === 'hod' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            <ShieldCheck className="h-3 w-3" />
-                            Dept. Head View
-                        </button>
+              <div className="hidden xl:flex items-center ml-4 relative bg-muted/50 p-1 rounded-full border border-border shadow-sm">
+                <div className="relative flex">
+                  <button
+                    onClick={() => {
+                      setActiveRole('staff');
+                      router.push('/dashboard/staff');
+                    }}
+                    className={cn(
+                      "relative z-10 px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors duration-300 flex items-center gap-2",
+                      activeRole === 'staff' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <LayoutDashboard className="h-3 w-3" />
+                    Academic View
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveRole('hod');
+                      router.push('/dashboard/hod');
+                    }}
+                    className={cn(
+                      "relative z-10 px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors duration-300 flex items-center gap-2",
+                      activeRole === 'hod' ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <ShieldCheck className="h-3 w-3" />
+                    Dept. Head View
+                  </button>
 
-                        <AnimatePresence>
-                            <motion.div
-                                layoutId="perspective-indicator"
-                                className="absolute inset-y-0 rounded-full shadow-md bg-primary shadow-primary/30"
-                                initial={false}
-                                animate={{
-                                    x: activeRole === 'hod' ? '100%' : '0%',
-                                    width: '50%'
-                                }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            />
-                        </AnimatePresence>
-                    </div>
+                  <AnimatePresence>
+                    <motion.div
+                      layoutId="perspective-indicator"
+                      className="absolute inset-y-0 rounded-full shadow-md bg-primary shadow-primary/30"
+                      initial={false}
+                      animate={{
+                        x: activeRole === 'hod' ? '100%' : '0%',
+                        width: '50%'
+                      }}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  </AnimatePresence>
                 </div>
+              </div>
             )}
           </div>
 
           <div className="flex items-center gap-4">
             {/* Desktop Quick Indicator for Students */}
             {!isStaffOrAdmin && (
-                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full border text-xs font-semibold uppercase tracking-wide text-foreground/80">
-                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                    {activeAcademicYearLabel}
-                </div>
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full border text-xs font-semibold uppercase tracking-wide text-foreground/80">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                {activeAcademicYearLabel}
+              </div>
             )}
 
             {/* Notifications */}
@@ -189,24 +189,24 @@ export function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 rounded-2xl p-0 overflow-hidden shadow-2xl border-muted-foreground/10 bg-background/95 backdrop-blur-md">
                 <div className="p-4 bg-muted/20 border-b flex items-center justify-between">
-                    <DropdownMenuLabel className="p-0 text-sm font-bold">Notifications</DropdownMenuLabel>
-                    {unreadCount > 0 && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleClearAll}
-                        className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" /> Clear All
-                      </Button>
-                    )}
+                  <DropdownMenuLabel className="p-0 text-sm font-bold">Notifications</DropdownMenuLabel>
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearAll}
+                      className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" /> Clear All
+                    </Button>
+                  )}
                 </div>
                 <div className="max-h-[350px] overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="p-12 text-center text-sm text-muted-foreground bg-muted/5">
-                        <Bell className="h-10 w-10 mx-auto mb-3 opacity-20 text-primary" />
-                        <p className="font-semibold text-foreground/70 tracking-tight">Clean Slate</p>
-                        <p className="text-xs mt-1 text-muted-foreground/60 tracking-normal">No new notifications at the moment.</p>
+                      <Bell className="h-10 w-10 mx-auto mb-3 opacity-20 text-primary" />
+                      <p className="font-semibold text-foreground/70 tracking-tight">Clean Slate</p>
+                      <p className="text-xs mt-1 text-muted-foreground/60 tracking-normal">No new notifications at the moment.</p>
                     </div>
                   ) : (
                     notifications.map((notification) => (
@@ -227,18 +227,18 @@ export function Navbar() {
                           </div>
                           <div className="flex-1 space-y-1">
                             <div className="flex justify-between items-start gap-2">
-                                <p className={cn("text-xs font-bold leading-none", !notification.isRead ? "text-foreground" : "text-muted-foreground")}>
+                              <p className={cn("text-xs font-bold leading-none", !notification.isRead ? "text-foreground" : "text-muted-foreground")}>
                                 {notification.title}
-                                </p>
-                                {!notification.isRead && (
-                                    <div className="h-1.5 w-1.5 rounded-full bg-primary mt-0.5" />
-                                )}
+                              </p>
+                              {!notification.isRead && (
+                                <div className="h-1.5 w-1.5 rounded-full bg-primary mt-0.5" />
+                              )}
                             </div>
                             <p className="text-[11px] text-muted-foreground/90 leading-relaxed font-medium line-clamp-2">
                               {notification.message}
                             </p>
                             <p className="text-[9px] text-muted-foreground/50 font-bold uppercase tracking-wider mt-2">
-                                {new Date(notification.sentAt).toLocaleDateString()} at {new Date(notification.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(notification.sentAt).toLocaleDateString()} at {new Date(notification.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
                         </div>
@@ -248,8 +248,8 @@ export function Navbar() {
                 </div>
                 {notifications.length > 0 && (
                   <div className="p-3 bg-muted/10 text-center border-t">
-                    <Link 
-                      href="/dashboard/notifications" 
+                    <Link
+                      href="/dashboard/notifications"
                       className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
                     >
                       View All Notifications
@@ -288,7 +288,7 @@ export function Navbar() {
                 <DropdownMenuSeparator className="my-1" />
                 <DropdownMenuItem onClick={handleLogout} className="rounded-xl cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
                   <LogOut className="mr-3 h-4 w-4" />
-                  Terminated Session
+                  Log Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

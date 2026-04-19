@@ -32,7 +32,7 @@ export const analyticsQueryFiltersSchema = z.object({
     letterGrade: z.string().optional(),
     // Engagement / Career
     status: z.string().optional(),
-    company: z.string().optional(),
+
     // Staff scope
     department: z.string().optional(),
     staffType: z.string().optional(),
@@ -66,7 +66,7 @@ export const analyticsQueryInputSchema = z.object({
         'status',
         'goal_type',
         'month',
-        'company',
+
     ]).optional(),
 });
 
@@ -113,6 +113,10 @@ export const visualEncodingsSchema = z.object({
     colorScheme: colorSchemeSchema.default('default').optional(),
     showDataLabels: z.boolean().optional(),
     sortOrder: z.enum(['none', 'asc', 'desc']).optional(),
+    /** Field to sort by (defaults to primary metric if not set). */
+    sortBy: z.string().optional(),
+    /** Limit the number of records/groups returned. */
+    limit: z.coerce.number().int().positive().optional(),
     /** KPI trend indicator column name (numeric, compared to metric) */
     trendCol: z.string().optional(),
     /** Calculated measure expression using [field] syntax, e.g. "[pass_rate] * 100" */

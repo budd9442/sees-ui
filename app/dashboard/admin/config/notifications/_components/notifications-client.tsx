@@ -466,10 +466,7 @@ export default function NotificationsClient({ initialData }: { initialData: Noti
                                 onBlur={(e) => saveDeadlineDays(e.target.value)}
                             />
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            Cron should call <code className="text-xs">/api/cron/deadline-reminders</code> daily (with{' '}
-                            <code>CRON_SECRET</code>).
-                        </p>
+
                     </div>
                 </CardContent>
             </Card>
@@ -528,9 +525,8 @@ export default function NotificationsClient({ initialData }: { initialData: Noti
                                         </TableCell>
                                         <TableCell>
                                             <span
-                                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                    template.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                                                }`}
+                                                className={`px-2 py-1 rounded-full text-xs font-medium ${template.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                                    }`}
                                             >
                                                 {template.isActive ? 'Active' : 'Inactive'}
                                             </span>
