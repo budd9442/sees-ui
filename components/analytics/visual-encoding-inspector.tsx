@@ -542,10 +542,24 @@ export function VisualEncodingInspector({ selected, updateSelected, allowedDatas
                         )}
 
                         {/* Audit / Career filters */}
-                        {(selected.datasetId === 'core_career_goals' || selected.datasetId === 'core_audit_logs') && (
+                        {/* Career goals filters */}
+                        {selected.datasetId === 'core_career_goals' && (
+                            <div className="space-y-1">
+                                <Label className="text-xs">Status</Label>
+                                <Input
+                                    value={selected.filters?.status ?? ''}
+                                    placeholder="e.g. IN_PROGRESS"
+                                    className="h-8 text-xs"
+                                    onChange={(e) => mergeFilters({ status: e.target.value || undefined })}
+                                />
+                            </div>
+                        )}
+
+                        {/* Audit log filters */}
+                        {selected.datasetId === 'core_audit_logs' && (
                             <>
                                 <div className="space-y-1">
-                                    <Label className="text-xs">{selected.datasetId === 'core_audit_logs' ? 'Action Type' : 'Status'}</Label>
+                                    <Label className="text-xs">Action Type</Label>
                                     <Input
                                         value={selected.filters?.status ?? ''}
                                         placeholder="e.g. LOGIN"
@@ -554,16 +568,12 @@ export function VisualEncodingInspector({ selected, updateSelected, allowedDatas
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-xs">Company / Category</Label>
+                                    <Label className="text-xs">Category</Label>
                                     <Input
-                                        value={selected.filters?.company ?? selected.filters?.metadataKey ?? ''}
-                                        placeholder="e.g. Google"
+                                        value={selected.filters?.metadataKey ?? ''}
+                                        placeholder="e.g. AUTH"
                                         className="h-8 text-xs"
-                                        onChange={(e) => {
-                                            const val = e.target.value || undefined;
-                                            if (selected.datasetId === 'core_audit_logs') mergeFilters({ metadataKey: val });
-                                            else mergeFilters({ company: val });
-                                        }}
+                                        onChange={(e) => mergeFilters({ metadataKey: e.target.value || undefined })}
                                     />
                                 </div>
                             </>
