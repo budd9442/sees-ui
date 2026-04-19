@@ -4,8 +4,10 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: sees-postgres
+    # No need to expose ports to host in production if using nginx/standalone app, 
+    # but keeping it for external db access if user needs it.
     ports:
-      - "5433:5432"
+      - "5434:5432"
     environment:
       POSTGRES_USER: sees_user
       POSTGRES_PASSWORD: sees_password
@@ -25,6 +27,26 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     restart: unless-stopped
+
+  app:
+    build: .
+    container_name: sees-app
+    restart: unless-stopped
+    ports:
+      - "3080:3000"
+    environment:
+      - DATABASE_URL=postgresql://sees_user:sees_password@postgres:5432/sees_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - NEXTAUTH_URL=https://sees.budd.codes
+      - AUTH_TRUST_HOST=true
+      - NODE_ENV=production
+    env_file:
+      - .env
+    command: >
+      sh -c "npx prisma migrate deploy && node server.js"
+    depends_on:
+      - postgres
+      - rabbitmq
 
 volumes:
   postgres_data:
