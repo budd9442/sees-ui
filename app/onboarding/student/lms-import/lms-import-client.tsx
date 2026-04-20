@@ -169,7 +169,7 @@ export default function LmsImportClient() {
                 throw new Error(data?.error || 'Failed to commit import');
             }
 
-            toast.success('LMS import committed successfully.');
+            toast.success('FIS import committed successfully.');
             router.replace('/dashboard/student');
         } catch (e: any) {
             toast.error(e.message || 'Commit failed');
@@ -196,9 +196,9 @@ export default function LmsImportClient() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Import Module Registrations from LMS</CardTitle>
+                    <CardTitle>Import Module Registrations from Faculty Information system</CardTitle>
                     <CardDescription>
-                        Enter your LMS password to sync your module registrations and released grades into SEES.
+                        Enter your FIS password to sync your module registrations and released grades into SEES.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -216,7 +216,7 @@ export default function LmsImportClient() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="lmsPassword">LMS Password</Label>
+                                <Label htmlFor="lmsPassword">FIS Password</Label>
                                 <Input
                                     id="lmsPassword"
                                     type="password"

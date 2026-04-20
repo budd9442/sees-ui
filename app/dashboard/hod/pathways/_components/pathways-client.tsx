@@ -871,9 +871,7 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                             <div className="grid gap-3 md:grid-cols-3">
                                 {roundDetail.slotStats?.map((slot: any) => {
                                     const isSpecialization = roundDetail.type === 'SPECIALIZATION';
-                                    const pct = isSpecialization
-                                        ? Math.min(100, Math.round((slot.allocated / slot.capacity) * 100))
-                                        : Math.min(100, Math.round((slot.allocated / slot.capacity) * 100));
+                                    const pct = Math.min(100, Math.round(((slot.allocated + slot.pending) / slot.capacity) * 100));
                                     const viabilityIssue = isSpecialization && slot.allocated < slot.capacity;
 
                                     return (
@@ -890,6 +888,7 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                                                 <Progress value={pct} className="h-1.5" />
                                                 <div className="flex justify-between text-[10px] text-muted-foreground">
                                                     <span className="font-semibold text-green-600">{slot.allocated} allocated</span>
+                                                    {slot.pending > 0 && <span className="text-blue-600">{slot.pending} pending</span>}
                                                     <span className="text-amber-600">{slot.waitlisted} waitlisted</span>
                                                     <span>{isSpecialization ? `Min: ${slot.capacity}` : `Cap: ${slot.capacity}`}</span>
                                                 </div>

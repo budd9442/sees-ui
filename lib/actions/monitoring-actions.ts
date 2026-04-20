@@ -81,3 +81,28 @@ export async function getAcademicRecoveryData() {
         advisor: activeAdvisor
     };
 }
+
+/**
+ * Force-regenerate AI advice for the current GPA dip.
+ * Deletes the existing cached snapshot and triggers a fresh generation.
+ */
+export async function regenerateAcademicRecoveryPlan() {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    const studentId = session.user.id;
+
+    // We need to know the fingerprint to delete the correct one
+    const trend = await GPAMonitoringService.getStudentGPAGraph(studentId);
+    if (!trend.dipDetected) return { success: false, message: "No dip detected" };
+
+    const dipFingerprint = `${trend.previousGPA.toFixed(2)}_${trend.currentGPA.toFixed(2)}`;
+
+    // Delete the existing snapshot
+    await (prisma as any).academicRecoverySnapshot.deleteMany({
+        where: { student_id: studentId, dip_fingerprint: dipFingerprint }
+    });
+
+    // Re-fetch (which will trigger fresh generation)
+    return getAcademicRecoveryData();
+}

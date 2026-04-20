@@ -5,14 +5,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertTriangle, CheckCircle2, Lightbulb, Mail, ShieldAlert, TrendingDown } from 'lucide-react';
-import { getAcademicRecoveryData } from '@/lib/actions/monitoring-actions';
+import { AlertTriangle, CheckCircle2, Lightbulb, Mail, RefreshCw, ShieldAlert, TrendingDown } from 'lucide-react';
+import { getAcademicRecoveryData, regenerateAcademicRecoveryPlan } from '@/lib/actions/monitoring-actions';
+import { toast } from 'sonner';
 
 export function AcademicRecoveryCard() {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
     const [open, setOpen] = useState(false);
     const [dismissed, setDismissed] = useState(false);
+    const [regenerating, setRegenerating] = useState(false);
 
     useEffect(() => {
         async function fetchSupport() {
@@ -53,6 +55,26 @@ export function AcademicRecoveryCard() {
         }
     };
 
+    const handleRegenerate = async () => {
+        if (regenerating) return;
+        setRegenerating(true);
+        const tId = toast.loading('Regenerating support plan...');
+        try {
+            const newData = await regenerateAcademicRecoveryPlan();
+            if (newData.dipDetected) {
+                setData(newData);
+                toast.success('Fresh recovery plan generated!', { id: tId });
+            } else {
+                toast.error('Could not regenerate plan.', { id: tId });
+            }
+        } catch (err) {
+            console.error('Regeneration failed', err);
+            toast.error('Failed to regenerate plan.', { id: tId });
+        } finally {
+            setRegenerating(false);
+        }
+    };
+
     return (
         <>
             {/* Simple Horizontal Banner */}
@@ -86,10 +108,22 @@ export function AcademicRecoveryCard() {
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <ShieldAlert className="h-5 w-5 text-amber-600" />
-                            Academic Recovery Plan
-                        </DialogTitle>
+                        <div className="flex items-center justify-between">
+                            <DialogTitle className="flex items-center gap-2">
+                                <ShieldAlert className="h-5 w-5 text-amber-600" />
+                                Academic Recovery Plan
+                            </DialogTitle>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={handleRegenerate} 
+                                disabled={regenerating}
+                                className="h-8 gap-2 text-muted-foreground hover:text-amber-600"
+                            >
+                                <RefreshCw className={`h-3.5 w-3.5 ${regenerating ? 'animate-spin' : ''}`} />
+                                <span className="text-xs">Regenerate</span>
+                            </Button>
+                        </div>
                         <DialogDescription>
                             Guidance generated based on your latest academic performance.
                         </DialogDescription>
