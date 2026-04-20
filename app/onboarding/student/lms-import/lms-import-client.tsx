@@ -138,7 +138,7 @@ export default function LmsImportClient() {
 
             if (!res.ok) {
                 const data = await res.json().catch(() => null);
-                throw new Error(data?.error || 'Failed to start LMS import');
+                throw new Error(data?.error || 'Failed to start FIS import');
             }
 
             const data = await res.json();
@@ -146,9 +146,9 @@ export default function LmsImportClient() {
             setStatus('RUNNING');
             setStage('LOGIN');
             setProgressPct(5);
-            toast.success('LMS import started. Creating preview...');
+            toast.success('FIS import started. Fetching...');
         } catch (e: any) {
-            toast.error(e.message || 'Failed to start LMS import');
+            toast.error(e.message || 'Failed to start FIS import');
         } finally {
             setBusy(false);
         }
@@ -183,9 +183,9 @@ export default function LmsImportClient() {
     return (
         <div className="mx-auto max-w-4xl space-y-6 p-6">
             <div className="flex justify-end">
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
+                <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => logoutAction()}
                     className="text-muted-foreground hover:text-destructive flex items-center gap-2"
                 >
@@ -205,13 +205,13 @@ export default function LmsImportClient() {
                     {!sessionId && (
                         <>
                             <div className="space-y-2">
-                                <Label htmlFor="lmsUsername">LMS Username</Label>
+                                <Label htmlFor="lmsUsername">FIS Username</Label>
                                 <Input
                                     id="lmsUsername"
                                     type="text"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    placeholder="Enter your LMS username (Student ID)"
+                                    placeholder="Enter your (Student Number)"
                                     autoComplete="username"
                                 />
                             </div>
@@ -222,11 +222,11 @@ export default function LmsImportClient() {
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Enter your LMS password"
+                                    placeholder="Enter your FIS password"
                                     autoComplete="current-password"
                                 />
                                 <p className="text-xs text-muted-foreground font-medium">
-                                    Your LMS credentials are used only for this sync and are never stored.
+                                    Your Faculty information system credentials are used only for this sync and are never stored.
                                 </p>
                             </div>
                             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -240,7 +240,7 @@ export default function LmsImportClient() {
                                             Starting...
                                         </>
                                     ) : (
-                                        'Start LMS Import (Preview)'
+                                        'Start FIS Import'
                                     )}
                                 </Button>
                             </div>
