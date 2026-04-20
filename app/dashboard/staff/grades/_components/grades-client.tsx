@@ -108,8 +108,15 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
         const reader = new FileReader();
         reader.onload = (e) => {
             const text = e.target?.result as string;
-            const lines = text.split('\\n');
-            const headers = lines[0].split(',').map(h => h.trim());
+            const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const lines = normalized.split('\n').filter(l => l.trim().length > 0);
+            
+            if (lines.length === 0) {
+                setUploadErrors([{ row: 0, studentId: '', field: 'general', error: 'File is empty' }]);
+                return;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, ''));
 
             const errors: any[] = [];
             const data: any[] = [];
@@ -122,7 +129,7 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                 const rowData: any = {};
 
                 headers.forEach((header, index) => {
-                    rowData[header.toLowerCase().replace(/\\s+/g, '')] = values[index];
+                    rowData[header] = values[index];
                 });
 
                 const rowErrors: string[] = [];

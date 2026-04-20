@@ -90,6 +90,13 @@ export async function createModuleRegistrationRound(data: {
         if (!mrr) {
             return { success: false, error: 'Server configuration error (Prisma client).' };
         }
+        if (data.opens_at && data.closes_at && data.opens_at >= data.closes_at) {
+            return { success: false, error: 'Opening date must be before closing date.' };
+        }
+        if (data.closes_at && data.closes_at < new Date()) {
+            return { success: false, error: 'Closing date cannot be in the past.' };
+        }
+
         const round = await mrr.create({
             data: {
                 academic_year_id: data.academic_year_id,
@@ -135,6 +142,16 @@ export async function updateModuleRegistrationRoundMeta(
         if (existing.status === 'FINALIZED') {
             return { success: false, error: 'Cannot edit a finalized round.' };
         }
+        const opensAt = data.opens_at !== undefined ? data.opens_at : existing.opens_at;
+        const closesAt = data.closes_at !== undefined ? data.closes_at : existing.closes_at;
+
+        if (opensAt && closesAt && opensAt >= closesAt) {
+            return { success: false, error: 'Opening date must be before closing date.' };
+        }
+        if (closesAt && closesAt < new Date() && closesAt !== existing.closes_at) {
+            return { success: false, error: 'Closing date cannot be in the past.' };
+        }
+
         const round = await mrr.update({
             where: { round_id: roundId },
             data: {

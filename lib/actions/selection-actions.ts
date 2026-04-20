@@ -459,6 +459,16 @@ export async function createSelectionRound(data: {
                 return { success: false, error: 'Target program is invalid or inactive.' };
             }
         }
+        const opensAt = data.opens_at ? new Date(data.opens_at) : null;
+        const closesAt = data.closes_at ? new Date(data.closes_at) : null;
+
+        if (opensAt && closesAt && opensAt >= closesAt) {
+            return { success: false, error: 'Opening date must be before closing date.' };
+        }
+        if (closesAt && closesAt < new Date()) {
+            return { success: false, error: 'Closing date cannot be in the past.' };
+        }
+
         const round = await prisma.selectionRound.create({
             data: {
                 academic_year_id: data.academic_year_id,
@@ -468,8 +478,8 @@ export async function createSelectionRound(data: {
                 target_program_id: normalizedTargetProgramId,
                 selection_mode: data.selection_mode,
                 allocation_change_grace_days: data.allocation_change_grace_days ?? 0,
-                opens_at: data.opens_at ? new Date(data.opens_at) : null,
-                closes_at: data.closes_at ? new Date(data.closes_at) : null,
+                opens_at: opensAt,
+                closes_at: closesAt,
                 configs: {
                     create: data.configs.map(c => ({
                         program_id: c.program_id || null,
@@ -581,12 +591,27 @@ export async function updateSelectionRoundMeta(
         }
         const round = await prisma.selectionRound.findUnique({
             where: { round_id: roundId },
-            select: { status: true, level: true, target_program_id: true },
+            select: { status: true, level: true, target_program_id: true, opens_at: true, closes_at: true },
         });
         if (!round) return { success: false, error: 'Round not found' };
         if (round.status === 'APPROVED') {
             return { success: false, error: 'Cannot edit an approved round' };
         }
+
+        const opensAt = data.opens_at !== undefined
+            ? (data.opens_at ? new Date(data.opens_at) : null)
+            : round.opens_at;
+        const closesAt = data.closes_at !== undefined
+            ? (data.closes_at ? new Date(data.closes_at) : null)
+            : round.closes_at;
+
+        if (opensAt && closesAt && opensAt >= closesAt) {
+            return { success: false, error: 'Opening date must be before closing date.' };
+        }
+        if (closesAt && closesAt < new Date() && (!round.closes_at || closesAt.getTime() !== round.closes_at.getTime())) {
+            return { success: false, error: 'Closing date cannot be in the past.' };
+        }
+
         const targetLevel =
             data.level !== undefined ? (data.level?.trim() || null) : round.level;
         const targetProgramId =

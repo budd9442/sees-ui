@@ -238,6 +238,19 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
             toast.error('Set at least a target level or a target program');
             return;
         }
+
+        const opensAt = newRound.opens_at ? new Date(newRound.opens_at) : null;
+        const closesAt = newRound.closes_at ? new Date(newRound.closes_at) : null;
+
+        if (opensAt && closesAt && opensAt >= closesAt) {
+            toast.error('Opening date must be before closing date.');
+            return;
+        }
+        if (closesAt && closesAt < new Date()) {
+            toast.error('Closing date cannot be in the past.');
+            return;
+        }
+
         startTransition(async () => {
             const result = await createSelectionRound({
                 ...newRound,
@@ -355,6 +368,25 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
             toast.error('Set at least a target level or a target program');
             return;
         }
+
+        const opensAt = settingsMeta.opens_at ? new Date(settingsMeta.opens_at) : null;
+        const closesAt = settingsMeta.closes_at ? new Date(settingsMeta.closes_at) : null;
+
+        if (opensAt && closesAt && opensAt >= closesAt) {
+            toast.error('Opening date must be before closing date.');
+            return;
+        }
+
+        // Only check future if closes_at changed
+        const currentRound = allRounds.find((r: any) => r.round_id === settingsRoundId);
+        const currentClosesAt = currentRound?.closes_at ? new Date(currentRound.closes_at) : null;
+        const closesAtChanged = !currentClosesAt || (closesAt && closesAt.getTime() !== currentClosesAt.getTime());
+
+        if (closesAt && closesAt < new Date() && closesAtChanged) {
+            toast.error('Closing date cannot be in the past.');
+            return;
+        }
+
         startTransition(async () => {
             const metaRes = await updateSelectionRoundMeta(settingsRoundId, {
                 label: settingsMeta.label,

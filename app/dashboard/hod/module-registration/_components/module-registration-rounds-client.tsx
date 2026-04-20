@@ -98,6 +98,19 @@ export function ModuleRegistrationRoundsClient({
             toast.error('Choose an academic year and enter a label.');
             return;
         }
+
+        const opensAt = form.opens_at ? new Date(form.opens_at) : null;
+        const closesAt = form.closes_at ? new Date(form.closes_at) : null;
+
+        if (opensAt && closesAt && opensAt >= closesAt) {
+            toast.error('Opening date must be before closing date.');
+            return;
+        }
+        if (closesAt && closesAt < new Date()) {
+            toast.error('Closing date cannot be in the past.');
+            return;
+        }
+
         startTransition(async () => {
             const res = await createModuleRegistrationRound({
                 academic_year_id: form.academic_year_id,
