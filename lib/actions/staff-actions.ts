@@ -747,7 +747,8 @@ export async function releaseModuleGrades(moduleId: string) {
         },
     });
 
-    await Promise.all(gradesToRelease.map(async (g) => {
+    // Fire and forget emails to prevent UI stalls and connection pool exhaustion
+    Promise.all(gradesToRelease.map(async (g) => {
         const email = g.student.user?.email;
         if (!email) return;
         const studentName = `${g.student.user.firstName} ${g.student.user.lastName}`.trim();
@@ -767,7 +768,7 @@ export async function releaseModuleGrades(moduleId: string) {
                 letterGrade: g.letter_grade,
             },
         });
-    }));
+    })).catch(err => console.error('[GRADING] Background email dispatch failed:', err));
 
     await notifyAcademicStandingChangesAfterGradeRelease(affectedStudentIds, standingBefore, releaseBatchId);
 

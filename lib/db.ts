@@ -7,7 +7,12 @@ const connectionString = `${process.env.DATABASE_URL}`;
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 // Initialize pool and adapter exactly as in auth.ts
-const pool = new Pool({ connectionString });
+const pool = new Pool({ 
+    connectionString,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+});
 const adapter = new PrismaPg(pool);
 
 export const prisma = globalForPrisma.prisma || new PrismaClient({ adapter });

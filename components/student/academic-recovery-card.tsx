@@ -61,7 +61,7 @@ export function AcademicRecoveryCard() {
         const tId = toast.loading('Regenerating support plan...');
         try {
             const newData = await regenerateAcademicRecoveryPlan();
-            if (newData.dipDetected) {
+            if ('dipDetected' in newData && newData.dipDetected) {
                 setData(newData);
                 toast.success('Fresh recovery plan generated!', { id: tId });
             } else {

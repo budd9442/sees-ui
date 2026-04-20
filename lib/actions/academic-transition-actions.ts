@@ -225,9 +225,14 @@ export async function executeBatchTransition(sourceLevel: string, targetLevel: s
             });
 
             return updateCount.count;
+        }, {
+            maxWait: 10000, // 10s to get a connection
+            timeout: 20000, // 20s for the transaction to complete
         });
 
-        await Promise.all(studentsToPromote.map(async (s) => {
+        // Fire and forget emails to keep the UI responsive and prevent pool exhaustion
+        // dispatchNotificationEmail handles its own errors and logs them to DB
+        Promise.all(studentsToPromote.map(async (s) => {
             const email = s.user?.email;
             if (!email) return;
             const studentName = `${s.user.firstName} ${s.user.lastName}`.trim();
@@ -246,7 +251,7 @@ export async function executeBatchTransition(sourceLevel: string, targetLevel: s
                     newLevel: targetLevel,
                 },
             });
-        }));
+        })).catch(err => console.error('[BATCH] Background email dispatch failed:', err));
 
         await writeAuditLog({
             adminId: operator.userId,

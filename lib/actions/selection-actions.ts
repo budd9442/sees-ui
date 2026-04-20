@@ -1065,6 +1065,9 @@ export async function approveSelectionRound(roundId: string, forceApprove = fals
                 where: { round_id: roundId },
                 data: { status: 'APPROVED', approved_at: new Date() }
             });
+        }, {
+            maxWait: 10000,
+            timeout: 30000,
         });
 
         const finalApps = await prisma.selectionApplication.findMany({
@@ -1106,7 +1109,8 @@ export async function approveSelectionRound(roundId: string, forceApprove = fals
         const programNameById = new Map(programs.map((p) => [p.program_id, p.name]));
         const specNameById = new Map(specs.map((s) => [s.specialization_id, s.name]));
 
-        await Promise.all(finalApps.map(async (app) => {
+        // Fire and forget emails to prevent UI stalls and connection pool exhaustion
+        Promise.all(finalApps.map(async (app) => {
             const st = studentById.get(app.student_id);
             const email = st?.user?.email;
             if (!email || !app.allocated_to || !st?.user) return;
@@ -1130,7 +1134,7 @@ export async function approveSelectionRound(roundId: string, forceApprove = fals
                 entityId: roundId,
                 vars: { studentName, outcome },
             });
-        }));
+        })).catch(err => console.error('[SELECTION] Background email dispatch failed:', err));
 
         await writeAuditLog({
             adminId: actor.userId,
@@ -1186,18 +1190,21 @@ export async function commitApprovedPathwayAllocationsToStudents(roundId: string
 
         const selectionDate = round.approved_at ?? new Date();
 
-        await prisma.$transaction(
-            allocated.map(app =>
-                prisma.student.update({
+        await prisma.$transaction(async (tx) => {
+            for (const app of allocated) {
+                await tx.student.update({
                     where: { student_id: app.student_id },
                     data: {
                         degree_path_id: app.allocated_to!,
                         pathway_locked: true,
                         pathway_selection_date: selectionDate,
                     },
-                })
-            )
-        );
+                });
+            }
+        }, {
+            maxWait: 10000,
+            timeout: 30000,
+        });
 
         await writeAuditLog({
             adminId: actor.userId,
