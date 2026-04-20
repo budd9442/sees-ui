@@ -1,6 +1,6 @@
 import amqp from 'amqplib';
-import { prisma } from '@/lib/db';
-import { sendEmail } from '@/lib/email/brevo';
+import { prisma } from '../db';
+import { sendEmail } from '../email/brevo';
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
 const QUEUE_NAME = 'enrollment_invites';

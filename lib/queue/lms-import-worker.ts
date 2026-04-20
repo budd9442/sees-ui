@@ -1,16 +1,16 @@
 import amqp from 'amqplib';
-import { prisma } from '@/lib/db';
-import { fetchKlnScienceFacultyRegistrationYears } from '@/lib/lms/kln-science-faculty-client';
-import { inferStudentAcademicContext } from '@/lib/lms/lms-inference';
-import { matchByCodeOrName, type CatalogModule } from '@/lib/lms/lms-matching';
+import { prisma } from '../db';
+import { fetchKlnScienceFacultyRegistrationYears } from '../lms/kln-science-faculty-client';
+import { inferStudentAcademicContext } from '../lms/lms-inference';
+import { matchByCodeOrName, type CatalogModule } from '../lms/lms-matching';
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
 const QUEUE_NAME = 'lms_import';
 
 const globalForWorker = globalThis as unknown as { 
     isLmsWorkerRunning: boolean;
-    lmsWorkerConn?: amqp.Connection;
-    lmsWorkerChan?: amqp.Channel;
+    lmsWorkerConn?: any;
+    lmsWorkerChan?: any;
 };
 let isWorkerRunning = globalForWorker.isLmsWorkerRunning || false;
 
