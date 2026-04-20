@@ -43,10 +43,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
                 const identifierInput = String(identifier).trim();
 
-                // Validation for student number format (XX/NNNN/NNNNN)
-                const studentIdRegex = /^[A-Z]{2}\/\d{4}\/\d{5}$/i;
-                const isStudentNumber = studentIdRegex.test(identifierInput);
-
                 // We'll search by email, username, or user_id (which acts as student_id/staff_number)
                 const user = await prisma.user.findFirst({
                     where: {

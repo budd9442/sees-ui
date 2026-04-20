@@ -94,7 +94,7 @@ export async function regenerateAcademicRecoveryPlan() {
 
     // We need to know the fingerprint to delete the correct one
     const trend = await GPAMonitoringService.getStudentGPAGraph(studentId);
-    if (!trend.dipDetected) return { success: false, message: "No dip detected" };
+    if (!trend.dipDetected) return { dipDetected: false, trend };
 
     const dipFingerprint = `${trend.previousGPA.toFixed(2)}_${trend.currentGPA.toFixed(2)}`;
 
