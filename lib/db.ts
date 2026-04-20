@@ -12,10 +12,12 @@ const adapter = new PrismaPg(pool);
 
 export const prisma = globalForPrisma.prisma || new PrismaClient({ adapter });
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' || process.env.START_WORKERS_IN_NEXT === 'true') {
     globalForPrisma.prisma = prisma;
     
     console.log('[DB] Initializing background workers...');
+    
+    // Auto-start RabbitMQ Workers in background for development or if explicitly requested
     import('@/lib/queue/email-worker').then(worker => {
         worker.startEmailWorker().catch(err => {
             console.error('[QUEUE] Failed to auto-start worker:', err);

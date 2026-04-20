@@ -45,5 +45,50 @@ services:
       - postgres
       - rabbitmq
 
+  email-worker:
+    build: .
+    container_name: sees-email-worker
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      - NODE_ENV=production
+    env_file:
+      - .env
+    command: npm run worker:email
+    depends_on:
+      - postgres
+      - rabbitmq
+
+  lms-worker:
+    build: .
+    container_name: sees-lms-worker
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      - NODE_ENV=production
+    env_file:
+      - .env
+    command: npm run worker:lms
+    depends_on:
+      - postgres
+      - rabbitmq
+
+  gpa-worker:
+    build: .
+    container_name: sees-gpa-worker
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      - NODE_ENV=production
+    env_file:
+      - .env
+    command: npm run worker:gpa
+    depends_on:
+      - postgres
+      - rabbitmq
+
 volumes:
   postgres_data:

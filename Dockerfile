@@ -29,8 +29,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install prisma locally to ensure module is found
-RUN npm install prisma
+# Install dependencies for workers
+RUN npm install tsx
+# Re-install all dependencies because standalone only contains a subset
+RUN npm install --omit=dev
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -38,7 +40,10 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Copy prisma directory for migrations
+# Copy source files needed for workers
+COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+# Copy prisma directory for migrations and workers
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 # Copy prisma config for run-time
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
