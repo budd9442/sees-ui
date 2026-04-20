@@ -498,13 +498,12 @@ export async function getStaffGradesData() {
     }
 
     const institutionBands = await getInstitutionGradingBands();
-    const validLetters = institutionBands.map(b => b.letter_grade);
 
     return {
         modules: Array.from(modules.values()),
         grades,
         students: Array.from(studentsMap.values()),
-        validLetters,
+        institutionBands,
     };
 }
 

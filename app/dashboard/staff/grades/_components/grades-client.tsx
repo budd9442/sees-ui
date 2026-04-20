@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +53,7 @@ import {
 import { toast } from 'sonner';
 import { uploadStaffGrades, releaseStaffGrades } from '@/lib/actions/staff-subactions';
 import { useRouter } from 'next/navigation';
+import { resolveLetterFromBands } from "@/lib/grading/marks-to-grade";
 import Link from 'next/link';
 
 export default function GradesClient({ initialData, currentUserId }: { initialData: any, currentUserId: string }) {
@@ -70,20 +71,11 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
     const [currentGrades, setCurrentGrades] = useState(initialGrades);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const getLetterGrade = (grade: number): string => {
-        if (grade >= 90) return 'A+';
-        if (grade >= 85) return 'A';
-        if (grade >= 80) return 'A-';
-        if (grade >= 75) return 'B+';
-        if (grade >= 70) return 'B';
-        if (grade >= 65) return 'B-';
-        if (grade >= 60) return 'C+';
-        if (grade >= 55) return 'C';
-        if (grade >= 50) return 'C-';
-        if (grade >= 45) return 'D+';
-        if (grade >= 40) return 'D';
-        return 'F';
-    };
+    // Sync local grades state when server props change
+    useEffect(() => {
+        setCurrentGrades(initialGrades);
+    }, [initialGrades]);
+
 
     const moduleGrades = currentGrades.filter((g: any) => g.moduleId === selectedModule);
     const currentModule = modules.find((m: any) => m.id === selectedModule);
@@ -138,7 +130,8 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
 
             const headers = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase().replace(/\s+/g, ''));
 
-            const validLetters = (initialData.validLetters || []).map((l: string) => l.toLowerCase());
+            const institutionBands = initialData.institutionBands || [];
+            const validLetters = institutionBands.map((b: any) => b.letter_grade.toLowerCase());
             const errors: any[] = [];
             const data: any[] = [];
 
@@ -224,16 +217,21 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                 studentId: g.studentId,
                 moduleId: g.moduleId,
                 grade: g.grade,
-                letterGrade: getLetterGrade(g.grade), // Placeholder utility
+                letterGrade: typeof g.grade === 'number' 
+                    ? resolveLetterFromBands(g.grade, initialData.institutionBands)
+                    : g.grade, 
                 isReleased: false
             }));
             setCurrentGrades((prev: any) => [...prev, ...newGrades]);
-            setIsUploading(false);
+            toast.success(`Successfully uploaded ${uploadData.length} grades`);
+            
+            // Clear upload state and refresh
             setShowUploadDialog(false);
             setUploadFile(null);
             setUploadData([]);
             setUploadErrors([]);
-            toast.success(`Successfully uploaded ${uploadData.length} grades`);
+            
+            // Trigger server refresh to get updated grades and calculated points/standings
             router.refresh();
         } catch (e) {
             setIsUploading(false);
@@ -736,7 +734,6 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                             <TableRow>
                                                 <TableHead>Student ID</TableHead>
                                                 <TableHead>Grade</TableHead>
-                                                <TableHead>Points</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -744,7 +741,6 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                                 <TableRow key={item.id}>
                                                     <TableCell>{item.studentId}</TableCell>
                                                     <TableCell>{item.grade}</TableCell>
-                                                    <TableCell>{item.points}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
