@@ -9,6 +9,7 @@
     "worker:email": "node --import tsx lib/queue/email-worker.ts",
     "worker:lms": "node --import tsx lib/queue/lms-import-worker.ts",
     "worker:gpa": "node --import tsx lib/queue/gpa-worker.ts",
+    "queue:clear": "node --import tsx scripts/clear-queues.ts",
     "metrics:collect": "node --import tsx scripts/collect-system-metrics.ts",
     "test:graduation": "node --import tsx --test lib/graduation/evaluate-eligibility.test.ts",
     "test:notifications": "node --import tsx --test lib/notifications/render.test.ts"

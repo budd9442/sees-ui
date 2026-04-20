@@ -29,22 +29,33 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     providers: [
         Credentials({
             credentials: {
-                email: { label: "Email", type: "email" },
+                identifier: { label: "Identifier", type: "text" },
                 password: { label: "Password", type: "password" },
                 code: { label: "Code", type: "text" }
             },
             async authorize(credentials) {
-                const { email, password } = credentials ?? {};
+                const { identifier, password } = credentials ?? {};
                 const h = await headers();
                 const ip = clientIpFromHeaders(h);
                 const ua = h.get("user-agent");
 
-                if (!email || !password) return null;
+                if (!identifier || !password) return null;
 
-                const emailInput = String(email).trim();
+                const identifierInput = String(identifier).trim();
 
-                const user = await prisma.user.findUnique({
-                    where: { email: emailInput },
+                // Validation for student number format (XX/NNNN/NNNNN)
+                const studentIdRegex = /^[A-Z]{2}\/\d{4}\/\d{5}$/i;
+                const isStudentNumber = studentIdRegex.test(identifierInput);
+
+                // We'll search by email, username, or user_id (which acts as student_id/staff_number)
+                const user = await prisma.user.findFirst({
+                    where: {
+                        OR: [
+                            { email: { equals: identifierInput, mode: 'insensitive' } },
+                            { username: { equals: identifierInput, mode: 'insensitive' } },
+                            { user_id: { equals: identifierInput, mode: 'insensitive' } }
+                        ]
+                    },
                     include: { 
                         student: true, 
                         staff: {
@@ -67,7 +78,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                         entityType: "AUTH",
                         entityId: "login",
                         category: "AUTH",
-                        metadata: { email: emailInput, reason: "user_not_found" },
+                        metadata: { identifier: identifierInput, reason: "user_not_found" },
                         ipAddress: ip,
                         userAgent: ua,
                     });

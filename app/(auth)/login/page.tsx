@@ -34,7 +34,7 @@ export default function LoginPage() {
 
     const errorMessage = typeof state === 'string' ? state : state?.error;
     const show2FA = (errorMessage === '2FA_REQUIRED' || errorMessage === 'INVALID_2FA_CODE') && typeof state === 'object';
-    const persistedEmail = typeof state === 'object' ? state?.email : '';
+    const persistedIdentifier = typeof state === 'object' ? state?.identifier : '';
     const persistedPassword = typeof state === 'object' ? state?.password : '';
 
     return (
@@ -109,7 +109,7 @@ export default function LoginPage() {
                             <form action={dispatch} className="space-y-5">
                                 {show2FA ? (
                                     <>
-                                        <input type="hidden" name="email" value={persistedEmail} />
+                                        <input type="hidden" name="identifier" value={persistedIdentifier} />
                                         <input type="hidden" name="password" value={persistedPassword} />
                                         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                             <div className="space-y-2">
@@ -141,13 +141,12 @@ export default function LoginPage() {
                                 ) : (
                                     <>
                                         <div className="space-y-2">
-                                            <Label htmlFor="email">Email</Label>
+                                            <Label htmlFor="identifier">Email, Username or Student No.</Label>
                                             <Input
-                                                id="email"
-                                                type="email"
-                                                name="email"
-                                                placeholder="name@sees.edu"
-                                                autoComplete="email"
+                                                id="identifier"
+                                                type="text"
+                                                name="identifier"
+                                                placeholder="e.g. bandara-im22053 or IM/2022/053"
                                                 required
                                             />
                                         </div>

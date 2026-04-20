@@ -7,7 +7,7 @@ export async function authenticate(
     prevState: any,
     formData: FormData,
 ) {
-    const email = formData.get('email') as string;
+    const identifier = formData.get('identifier') as string;
     const password = formData.get('password') as string;
 
     try {
@@ -17,10 +17,10 @@ export async function authenticate(
         const errorMsg = (error as any).cause?.err?.message || (error as any).message;
         
         if (errorMsg === '2FA_REQUIRED') {
-            return { error: '2FA_REQUIRED', email, password };
+            return { error: '2FA_REQUIRED', identifier, password };
         }
         if (errorMsg === 'INVALID_2FA_CODE') {
-            return { error: 'INVALID_2FA_CODE', email, password };
+            return { error: 'INVALID_2FA_CODE', identifier, password };
         }
 
         if (error instanceof AuthError) {
