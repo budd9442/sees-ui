@@ -71,7 +71,7 @@ function aggregateMetric(rows: Record<string, unknown>[], col: string, agg: KpiA
     }
 
     const nums = rows.map((r) => Number(r[col])).filter((n) => Number.isFinite(n));
-    if (!nums.length) return NaN;
+    if (!nums.length) return Number.NaN;
 
     if (a === 'first') return nums[0]!;
     if (a === 'sum') return nums.reduce((s, n) => s + n, 0);

@@ -29,9 +29,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install dependencies for workers
-RUN npm install tsx
-# Re-install all dependencies because standalone only contains a subset
+# Install production dependencies (including tsx and dotenv)
+COPY package.json package-lock.json* ./
 RUN npm install --omit=dev
 
 RUN addgroup --system --gid 1001 nodejs
@@ -47,6 +46,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 # Copy prisma config for run-time
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+# Copy tsconfig for tsx path resolution
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 
 USER nextjs
 

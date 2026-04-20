@@ -1,6 +1,6 @@
 import amqp from 'amqplib';
-import { prisma } from '@/lib/db';
-import { AcademicEngine } from '@/lib/services/academic-engine';
+import { prisma } from '../db';
+import { AcademicEngine } from '../services/academic-engine';
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
 const QUEUE_NAME = 'gpa_recalculation';
