@@ -747,12 +747,12 @@ export async function releaseModuleGrades(moduleId: string) {
         },
     });
 
-    for (const g of gradesToRelease) {
+    await Promise.all(gradesToRelease.map(async (g) => {
         const email = g.student.user?.email;
-        if (!email) continue;
+        if (!email) return;
         const studentName = `${g.student.user.firstName} ${g.student.user.lastName}`.trim();
         const dedupe = `${NotificationEventKey.GRADE_RELEASED}:${g.student_id}:${g.module_id}`;
-        await dispatchNotificationEmail({
+        return dispatchNotificationEmail({
             eventKey: NotificationEventKey.GRADE_RELEASED,
             dedupeKey: dedupe,
             to: email,
@@ -767,7 +767,7 @@ export async function releaseModuleGrades(moduleId: string) {
                 letterGrade: g.letter_grade,
             },
         });
-    }
+    }));
 
     await notifyAcademicStandingChangesAfterGradeRelease(affectedStudentIds, standingBefore, releaseBatchId);
 

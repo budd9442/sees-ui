@@ -194,8 +194,8 @@ export const creditValidation = {
     
     if (credits < 12) {
       errors.push('Minimum 12 credits required per semester');
-    } else if (credits > 24) {
-      errors.push('Maximum 24 credits allowed per semester');
+    } else if (credits > 36) {
+      errors.push('Maximum 36 credits allowed per semester');
     }
     
     return {
@@ -497,8 +497,8 @@ export const businessValidation = {
     
     // Check credit limits
     const currentCredits = student.currentSemesterCredits || 0;
-    if (currentCredits + module.credits > 24) {
-      errors.push('Exceeds maximum semester credit limit (24)');
+    if (currentCredits + module.credits > 36) {
+      errors.push('Exceeds maximum semester credit limit (36)');
     }
     
     return {

@@ -483,44 +483,44 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
 
             {/* KPI strip + awaiting-review alert: anchor target from HOD dashboard “Pending approvals” */}
             <div id="hod-pending-approvals" className="scroll-mt-24 space-y-4">
-            {/* KPI Strip */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="p-4">
-                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Total Rounds</p>
-                        <p className="text-3xl font-black mt-1 text-foreground">{allRounds.length}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4">
-                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Active</p>
-                        <p className="text-3xl font-black mt-1 text-foreground">{totalActive}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4">
-                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Approved</p>
-                        <p className="text-3xl font-black mt-1 text-foreground">{totalApproved}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4">
-                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Awaiting Review</p>
-                        <p className="text-3xl font-black mt-1 text-foreground">{allRounds.filter((r: any) => r.status === 'CLOSED').length}</p>
-                    </CardContent>
-                </Card>
-            </div>
+                {/* KPI Strip */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card>
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Total Rounds</p>
+                            <p className="text-3xl font-black mt-1 text-foreground">{allRounds.length}</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Active</p>
+                            <p className="text-3xl font-black mt-1 text-foreground">{totalActive}</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Approved</p>
+                            <p className="text-3xl font-black mt-1 text-foreground">{totalApproved}</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Awaiting Review</p>
+                            <p className="text-3xl font-black mt-1 text-foreground">{allRounds.filter((r: any) => r.status === 'CLOSED').length}</p>
+                        </CardContent>
+                    </Card>
+                </div>
 
-            {/* Alert for rounds awaiting approval */}
-            {allRounds.filter((r: any) => r.status === 'CLOSED').length > 0 && (
-                <Alert className="border-amber-200 bg-amber-50">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <AlertTitle className="text-amber-700">Rounds Awaiting HOD Approval</AlertTitle>
-                    <AlertDescription className="text-amber-600">
-                        {allRounds.filter((r: any) => r.status === 'CLOSED').length} round(s) are closed and require your review and approval before student records are updated.
-                    </AlertDescription>
-                </Alert>
-            )}
+                {/* Alert for rounds awaiting approval */}
+                {allRounds.filter((r: any) => r.status === 'CLOSED').length > 0 && (
+                    <Alert className="border-amber-200 bg-amber-50">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        <AlertTitle className="text-amber-700">Rounds Awaiting HOD Approval</AlertTitle>
+                        <AlertDescription className="text-amber-600">
+                            {allRounds.filter((r: any) => r.status === 'CLOSED').length} round(s) are closed and require your review and approval before student records are updated.
+                        </AlertDescription>
+                    </Alert>
+                )}
             </div>
 
             {/* Main Tabs */}
@@ -902,27 +902,7 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                                 })}
                             </div>
 
-                            {roundDetail.status === 'APPROVED' && roundDetail.type === 'PATHWAY' && (
-                                <Card className="border-l-4 border-l-slate-500">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-base">Student degree programs</CardTitle>
-                                        <CardDescription className="text-xs">
-                                            {"Each student's official degree program should match their approved allocation. That runs when you use Approve and Finalize; use this if an older approval left any record out of sync."}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            disabled={isPending}
-                                            onClick={handleCommitPathwayDegrees}
-                                        >
-                                            Apply approved allocations to student records
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            )}
+
 
                             {roundDetail.status === 'APPROVED' && (
                                 <Card className="border-l-4 border-l-violet-500">
@@ -1052,7 +1032,7 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                                                     return (
                                                         <TableRow key={app.app_id} className={
                                                             app.status === 'WAITLISTED' ? 'bg-amber-50/40' :
-                                                            app.status === 'ALLOCATED' ? 'bg-green-50/30' : ''
+                                                                app.status === 'ALLOCATED' ? 'bg-green-50/30' : ''
                                                         }>
                                                             <TableCell className="py-2">
                                                                 <div>
@@ -1394,168 +1374,168 @@ export default function SelectionClient({ initialData }: { initialData: any }) {
                         </DialogHeader>
                     </div>
                     <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-5">
-                    <div className="min-w-0 space-y-5">
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div className="min-w-0 space-y-1.5">
-                                <Label>Round Type *</Label>
-                                <Select value={newRound.type} onValueChange={v => { setNewRound(r => ({ ...r, type: v as RoundType })); setNewConfigs([]); }}>
-                                    <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="PATHWAY">Pathway Selection</SelectItem>
-                                        <SelectItem value="SPECIALIZATION">Specialization Selection</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="min-w-0 space-y-1.5">
-                                <Label>Academic Year *</Label>
-                                <Select value={newRound.academic_year_id} onValueChange={v => setNewRound(r => ({ ...r, academic_year_id: v }))}>
-                                    <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {academicYears.map((y: any) => (
-                                            <SelectItem key={y.academic_year_id} value={y.academic_year_id}>{y.label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <div className="min-w-0 space-y-1.5">
-                            <Label>Round Label *</Label>
-                            <Input className="min-w-0 max-w-full" placeholder="e.g. 2024/25 L2 Pathway Selection" value={newRound.label} onChange={e => setNewRound(r => ({ ...r, label: e.target.value }))} />
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                            <div className="min-w-0 space-y-1.5">
-                                <Label>Target Level</Label>
-                                <Select value={newRound.level || '__none'} onValueChange={v => setNewRound(r => ({ ...r, level: v === '__none' ? '' : v }))}>
-                                    <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="__none">Any level</SelectItem>
-                                        <SelectItem value="L1">Level 1</SelectItem>
-                                        <SelectItem value="L2">Level 2</SelectItem>
-                                        <SelectItem value="L3">Level 3</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="min-w-0 space-y-1.5">
-                                <Label>Target Program</Label>
-                                <Select
-                                    value={newRound.target_program_id || '__none'}
-                                    onValueChange={v => setNewRound(r => ({ ...r, target_program_id: v === '__none' ? '' : v }))}
-                                >
-                                    <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="__none">Any program</SelectItem>
-                                        {programs.map((p: any) => (
-                                            <SelectItem key={p.program_id} value={p.program_id}>
-                                                {p.code} — {p.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1.5 min-w-0">
-                                <Label>Selection Mode</Label>
-                                <Select value={newRound.selection_mode} onValueChange={v => setNewRound(r => ({ ...r, selection_mode: v }))}>
-                                    <SelectTrigger className="h-auto min-h-10 w-full min-w-0 whitespace-normal py-2 text-left [&_[data-slot=select-value]]:line-clamp-3 [&_[data-slot=select-value]]:whitespace-normal">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-w-[min(90vw,40rem)]">
-                                        <SelectItem className="whitespace-normal break-words py-2" value="AUTO">Auto — FIFO within capacity, GPA when over cap (recommended)</SelectItem>
-                                        <SelectItem className="whitespace-normal break-words py-2" value="GPA">Always GPA-ranked (whole cohort)</SelectItem>
-                                        <SelectItem className="whitespace-normal break-words py-2" value="FREE">Always FCFS (global order)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div className="min-w-0 space-y-1.5">
-                                <Label>Opens At</Label>
-                                <Input className="min-w-0 w-full max-w-full" type="datetime-local" value={newRound.opens_at} onChange={e => setNewRound(r => ({ ...r, opens_at: e.target.value }))} />
-                            </div>
-                            <div className="min-w-0 space-y-1.5">
-                                <Label>Closes At</Label>
-                                <Input className="min-w-0 w-full max-w-full" type="datetime-local" value={newRound.closes_at} onChange={e => setNewRound(r => ({ ...r, closes_at: e.target.value }))} />
-                            </div>
-                        </div>
-                        <div className="min-w-0 space-y-1.5 max-w-md">
-                            <Label>Post-approval change window (days)</Label>
-                            <Input
-                                className="min-w-0"
-                                type="number"
-                                min={0}
-                                max={365}
-                                value={newRound.allocation_change_grace_days}
-                                onChange={e => setNewRound(r => ({ ...r, allocation_change_grace_days: Math.max(0, Number(e.target.value) || 0) }))}
-                            />
-                            <p className="text-[10px] text-muted-foreground">
-                                Days after approval during which allocated students may submit a change request for HOD review (0 = none).
-                            </p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-3">
-                            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                                <div className="min-w-0 flex-1">
-                                    <Label className="text-sm font-bold">
-                                        {newRound.type === 'PATHWAY' ? 'Pathway Slots (Max Capacity)' : 'Specialization Slots (Min Threshold)'}
-                                    </Label>
-                                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                                        {newRound.type === 'PATHWAY' ? 'Pathway closes when max is reached' : 'Warns if enrollment falls below minimum'}
-                                    </p>
+                        <div className="min-w-0 space-y-5">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="min-w-0 space-y-1.5">
+                                    <Label>Round Type *</Label>
+                                    <Select value={newRound.type} onValueChange={v => { setNewRound(r => ({ ...r, type: v as RoundType })); setNewConfigs([]); }}>
+                                        <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="PATHWAY">Pathway Selection</SelectItem>
+                                            <SelectItem value="SPECIALIZATION">Specialization Selection</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
-                                <Button type="button" size="sm" variant="outline" className="shrink-0 self-start" onClick={addConfig}><Plus className="h-3.5 w-3.5 mr-1" />Add Slot</Button>
+                                <div className="min-w-0 space-y-1.5">
+                                    <Label>Academic Year *</Label>
+                                    <Select value={newRound.academic_year_id} onValueChange={v => setNewRound(r => ({ ...r, academic_year_id: v }))}>
+                                        <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {academicYears.map((y: any) => (
+                                                <SelectItem key={y.academic_year_id} value={y.academic_year_id}>{y.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
-                            {newConfigs.map((cfg, i) => (
-                                <div key={i} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border/50 bg-muted/30 p-4 sm:flex-row sm:items-end sm:gap-3">
+                            <div className="min-w-0 space-y-1.5">
+                                <Label>Round Label *</Label>
+                                <Input className="min-w-0 max-w-full" placeholder="e.g. 2024/25 L2 Pathway Selection" value={newRound.label} onChange={e => setNewRound(r => ({ ...r, label: e.target.value }))} />
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                <div className="min-w-0 space-y-1.5">
+                                    <Label>Target Level</Label>
+                                    <Select value={newRound.level || '__none'} onValueChange={v => setNewRound(r => ({ ...r, level: v === '__none' ? '' : v }))}>
+                                        <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__none">Any level</SelectItem>
+                                            <SelectItem value="L1">Level 1</SelectItem>
+                                            <SelectItem value="L2">Level 2</SelectItem>
+                                            <SelectItem value="L3">Level 3</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="min-w-0 space-y-1.5">
+                                    <Label>Target Program</Label>
+                                    <Select
+                                        value={newRound.target_program_id || '__none'}
+                                        onValueChange={v => setNewRound(r => ({ ...r, target_program_id: v === '__none' ? '' : v }))}
+                                    >
+                                        <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__none">Any program</SelectItem>
+                                            {programs.map((p: any) => (
+                                                <SelectItem key={p.program_id} value={p.program_id}>
+                                                    {p.code} — {p.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5 min-w-0">
+                                    <Label>Selection Mode</Label>
+                                    <Select value={newRound.selection_mode} onValueChange={v => setNewRound(r => ({ ...r, selection_mode: v }))}>
+                                        <SelectTrigger className="h-auto min-h-10 w-full min-w-0 whitespace-normal py-2 text-left [&_[data-slot=select-value]]:line-clamp-3 [&_[data-slot=select-value]]:whitespace-normal">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-w-[min(90vw,40rem)]">
+                                            <SelectItem className="whitespace-normal break-words py-2" value="AUTO">Auto — FIFO within capacity, GPA when over cap (recommended)</SelectItem>
+                                            <SelectItem className="whitespace-normal break-words py-2" value="GPA">Always GPA-ranked (whole cohort)</SelectItem>
+                                            <SelectItem className="whitespace-normal break-words py-2" value="FREE">Always FCFS (global order)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <div className="min-w-0 space-y-1.5">
+                                    <Label>Opens At</Label>
+                                    <Input className="min-w-0 w-full max-w-full" type="datetime-local" value={newRound.opens_at} onChange={e => setNewRound(r => ({ ...r, opens_at: e.target.value }))} />
+                                </div>
+                                <div className="min-w-0 space-y-1.5">
+                                    <Label>Closes At</Label>
+                                    <Input className="min-w-0 w-full max-w-full" type="datetime-local" value={newRound.closes_at} onChange={e => setNewRound(r => ({ ...r, closes_at: e.target.value }))} />
+                                </div>
+                            </div>
+                            <div className="min-w-0 space-y-1.5 max-w-md">
+                                <Label>Post-approval change window (days)</Label>
+                                <Input
+                                    className="min-w-0"
+                                    type="number"
+                                    min={0}
+                                    max={365}
+                                    value={newRound.allocation_change_grace_days}
+                                    onChange={e => setNewRound(r => ({ ...r, allocation_change_grace_days: Math.max(0, Number(e.target.value) || 0) }))}
+                                />
+                                <p className="text-[10px] text-muted-foreground">
+                                    Days after approval during which allocated students may submit a change request for HOD review (0 = none).
+                                </p>
+                            </div>
+                            <Separator />
+                            <div className="space-y-3">
+                                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                                     <div className="min-w-0 flex-1">
-                                        <Label className="text-[10px] text-muted-foreground mb-1.5 block">
-                                            {newRound.type === 'PATHWAY' ? 'Pathway' : 'Specialization'}
+                                        <Label className="text-sm font-bold">
+                                            {newRound.type === 'PATHWAY' ? 'Pathway Slots (Max Capacity)' : 'Specialization Slots (Min Threshold)'}
                                         </Label>
-                                        <Select value={cfg.program_id || cfg.spec_id || ''}
-                                            onValueChange={v => {
-                                                if (newRound.type === 'PATHWAY') updateConfig(i, 'program_id', v);
-                                                else updateConfig(i, 'spec_id', v);
-                                            }}>
-                                            <SelectTrigger className="h-auto min-h-10 w-full min-w-0 text-xs text-left whitespace-normal py-2.5 [&_[data-slot=select-value]]:line-clamp-4 [&_[data-slot=select-value]]:whitespace-normal">
-                                                <SelectValue placeholder={newRound.type === 'PATHWAY' ? 'Select pathway…' : 'Select specialization…'} />
-                                            </SelectTrigger>
-                                            <SelectContent className="max-w-[min(90vw,42rem)]">
-                                                {newRound.type === 'PATHWAY'
-                                                    ? programs.map((p: any) => (
-                                                        <SelectItem key={p.program_id} className="whitespace-normal break-words py-2" value={p.program_id}>
-                                                            <span className="font-mono text-[10px] text-muted-foreground">{p.code}</span>
-                                                            {' — '}
-                                                            <span>{p.name}</span>
-                                                        </SelectItem>
-                                                    ))
-                                                    : specializations.map((s: any) => (
-                                                        <SelectItem key={s.specialization_id} className="whitespace-normal break-words py-2" value={s.specialization_id}>
-                                                            <span className="font-mono text-[10px] text-muted-foreground">{s.code}</span>
-                                                            {' — '}
-                                                            <span>{s.name}</span>
-                                                        </SelectItem>
-                                                    ))
-                                                }
-                                            </SelectContent>
-                                        </Select>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                                            {newRound.type === 'PATHWAY' ? 'Pathway closes when max is reached' : 'Warns if enrollment falls below minimum'}
+                                        </p>
                                     </div>
-                                    <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-                                        <div className="flex items-center gap-2">
-                                            <Label className="text-xs whitespace-nowrap text-muted-foreground">
-                                                {newRound.type === 'PATHWAY' ? 'Max cap' : 'Min'}
-                                            </Label>
-                                            <Input type="number" value={cfg.capacity} onChange={e => updateConfig(i, 'capacity', Number(e.target.value))}
-                                                className="h-9 w-20 text-xs" />
-                                        </div>
-                                        <Button type="button" size="sm" variant="ghost" onClick={() => removeConfig(i)} className="h-9 w-9 shrink-0 p-0" aria-label="Remove slot">
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                                    <Button type="button" size="sm" variant="outline" className="shrink-0 self-start" onClick={addConfig}><Plus className="h-3.5 w-3.5 mr-1" />Add Slot</Button>
                                 </div>
-                            ))}
-                            {newConfigs.length === 0 && (
-                                <p className="text-xs text-muted-foreground text-center py-3">No slots configured. Click &quot;Add Slot&quot; to start.</p>
-                            )}
+                                {newConfigs.map((cfg, i) => (
+                                    <div key={i} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border/50 bg-muted/30 p-4 sm:flex-row sm:items-end sm:gap-3">
+                                        <div className="min-w-0 flex-1">
+                                            <Label className="text-[10px] text-muted-foreground mb-1.5 block">
+                                                {newRound.type === 'PATHWAY' ? 'Pathway' : 'Specialization'}
+                                            </Label>
+                                            <Select value={cfg.program_id || cfg.spec_id || ''}
+                                                onValueChange={v => {
+                                                    if (newRound.type === 'PATHWAY') updateConfig(i, 'program_id', v);
+                                                    else updateConfig(i, 'spec_id', v);
+                                                }}>
+                                                <SelectTrigger className="h-auto min-h-10 w-full min-w-0 text-xs text-left whitespace-normal py-2.5 [&_[data-slot=select-value]]:line-clamp-4 [&_[data-slot=select-value]]:whitespace-normal">
+                                                    <SelectValue placeholder={newRound.type === 'PATHWAY' ? 'Select pathway…' : 'Select specialization…'} />
+                                                </SelectTrigger>
+                                                <SelectContent className="max-w-[min(90vw,42rem)]">
+                                                    {newRound.type === 'PATHWAY'
+                                                        ? programs.map((p: any) => (
+                                                            <SelectItem key={p.program_id} className="whitespace-normal break-words py-2" value={p.program_id}>
+                                                                <span className="font-mono text-[10px] text-muted-foreground">{p.code}</span>
+                                                                {' — '}
+                                                                <span>{p.name}</span>
+                                                            </SelectItem>
+                                                        ))
+                                                        : specializations.map((s: any) => (
+                                                            <SelectItem key={s.specialization_id} className="whitespace-normal break-words py-2" value={s.specialization_id}>
+                                                                <span className="font-mono text-[10px] text-muted-foreground">{s.code}</span>
+                                                                {' — '}
+                                                                <span>{s.name}</span>
+                                                            </SelectItem>
+                                                        ))
+                                                    }
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+                                            <div className="flex items-center gap-2">
+                                                <Label className="text-xs whitespace-nowrap text-muted-foreground">
+                                                    {newRound.type === 'PATHWAY' ? 'Max cap' : 'Min'}
+                                                </Label>
+                                                <Input type="number" value={cfg.capacity} onChange={e => updateConfig(i, 'capacity', Number(e.target.value))}
+                                                    className="h-9 w-20 text-xs" />
+                                            </div>
+                                            <Button type="button" size="sm" variant="ghost" onClick={() => removeConfig(i)} className="h-9 w-9 shrink-0 p-0" aria-label="Remove slot">
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {newConfigs.length === 0 && (
+                                    <p className="text-xs text-muted-foreground text-center py-3">No slots configured. Click &quot;Add Slot&quot; to start.</p>
+                                )}
+                            </div>
                         </div>
-                    </div>
                     </div>
                     <div className="min-w-0 shrink-0 border-t bg-muted/20 px-6 py-4">
                         <DialogFooter className="gap-2 sm:justify-end">

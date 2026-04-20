@@ -27,6 +27,7 @@ interface HodDashboardViewProps {
     pendingApprovals: number;
     pathwayDemandData: any[];
     academicPerformanceData: any[];
+    modulePerformanceData: any[];
     staffWorkloadData: any[];
 }
 
@@ -38,6 +39,7 @@ export function HodDashboardView({
     pendingApprovals,
     pathwayDemandData,
     academicPerformanceData,
+    modulePerformanceData,
     staffWorkloadData,
 }: HodDashboardViewProps) {
     const totalPathwayApplicants = pathwayDemandData.reduce((acc, row) => acc + Number(row.applicants ?? 0), 0);
@@ -58,8 +60,13 @@ export function HodDashboardView({
     );
     const nonZeroPerformance = sortedPerformance.filter((row) => Number(row.avgGPA ?? 0) > 0);
     const topProgram = nonZeroPerformance[0];
-    const lowestProgram = nonZeroPerformance[nonZeroPerformance.length - 1];
-    const highlightNames = new Set([topProgram?.program, lowestProgram?.program].filter(Boolean));
+
+    const sortedModules = [...modulePerformanceData].sort(
+        (a, b) => Number(a.avgGPA ?? 0) - Number(b.avgGPA ?? 0)
+    );
+    const lowestModule = sortedModules[0];
+
+    const highlightNames = new Set([topProgram?.program].filter(Boolean));
     const rankedPrograms = nonZeroPerformance.filter((row) => !highlightNames.has(row.program));
     const avgDepartmentGpa =
         academicPerformanceData.length > 0
@@ -243,10 +250,10 @@ export function HodDashboardView({
                                 </div>
 
                                 <div className="rounded-md border p-3">
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Needs Support</p>
-                                    <p className="mt-1 text-sm font-medium">{lowestProgram?.program || 'Not available'}</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lowest GPA Module</p>
+                                    <p className="mt-1 text-sm font-medium">{lowestModule ? `${lowestModule.code}: ${lowestModule.module}` : 'Not available'}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        GPA {lowestProgram ? Number(lowestProgram.avgGPA ?? 0).toFixed(2) : 'N/A'}
+                                        GPA {lowestModule ? Number(lowestModule.avgGPA ?? 0).toFixed(2) : 'N/A'}
                                     </p>
                                 </div>
 
@@ -254,7 +261,6 @@ export function HodDashboardView({
                                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Operational Flags</p>
                                     <div className="mt-1 space-y-1 text-sm">
                                         <p>Pending approvals: <span className="font-semibold">{pendingApprovals}</span></p>
-                                        <p>Over-capacity pathways: <span className="font-semibold">{overSubscribedPathways.length}</span></p>
                                         <p>Heaviest workload: <span className="font-semibold">{highestLoadStaff?.name || 'N/A'}</span></p>
                                     </div>
                                 </div>

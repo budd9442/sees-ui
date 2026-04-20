@@ -27,6 +27,7 @@ export default async function HodDashboardPage() {
           pendingApprovals={data.pendingApprovals}
           pathwayDemandData={data.pathwayDemandData}
           academicPerformanceData={data.academicPerformanceData}
+          modulePerformanceData={data.modulePerformanceData}
           staffWorkloadData={data.staffWorkloadData}
         />
       </Suspense>

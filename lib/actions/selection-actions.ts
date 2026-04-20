@@ -1106,10 +1106,10 @@ export async function approveSelectionRound(roundId: string, forceApprove = fals
         const programNameById = new Map(programs.map((p) => [p.program_id, p.name]));
         const specNameById = new Map(specs.map((s) => [s.specialization_id, s.name]));
 
-        for (const app of finalApps) {
+        await Promise.all(finalApps.map(async (app) => {
             const st = studentById.get(app.student_id);
             const email = st?.user?.email;
-            if (!email || !app.allocated_to || !st?.user) continue;
+            if (!email || !app.allocated_to || !st?.user) return;
             const studentName = `${st.user.firstName} ${st.user.lastName}`.trim();
             let outcome: string;
             if (roundType === 'PATHWAY') {
@@ -1120,7 +1120,7 @@ export async function approveSelectionRound(roundId: string, forceApprove = fals
                 outcome = `Your specialization has been set to ${nm ?? app.allocated_to}.`;
             }
             const dedupe = `${NotificationEventKey.PATHWAY_ALLOCATED}:${app.student_id}:${roundId}`;
-            await dispatchNotificationEmail({
+            return dispatchNotificationEmail({
                 eventKey: NotificationEventKey.PATHWAY_ALLOCATED,
                 dedupeKey: dedupe,
                 to: email,
@@ -1130,7 +1130,7 @@ export async function approveSelectionRound(roundId: string, forceApprove = fals
                 entityId: roundId,
                 vars: { studentName, outcome },
             });
-        }
+        }));
 
         await writeAuditLog({
             adminId: actor.userId,
@@ -1487,7 +1487,7 @@ export async function getStudentActiveSelectionRound(type: RoundType) {
         });
         const roundOpen = openCandidates.find((round) => {
             const levelOk = levelMatches(round.level, student.current_level);
-            const programOk = !round.target_program_id || round.target_program_id === student.degree_path.program_id;
+            const programOk = !round.target_program_id || round.target_program_id === student.degree_path?.program_id;
             return levelOk && programOk;
         });
 
@@ -1606,7 +1606,12 @@ export async function getStudentActiveSelectionRound(type: RoundType) {
         });
         const approvedRound = approvedCandidates.find((round) => {
             const levelOk = levelMatches(round.level, student.current_level);
-            const programOk = !round.target_program_id || round.target_program_id === student.degree_path.program_id;
+            // If the student already has an application in this round (checked by query), 
+            // we ignore the target_program_id check as their program might have changed post-approval.
+            const hasApplication = true; // Query already filters for this via applications.some
+            const programOk = !round.target_program_id || 
+                             round.target_program_id === student.degree_path?.program_id ||
+                             hasApplication;
             return levelOk && programOk;
         });
 

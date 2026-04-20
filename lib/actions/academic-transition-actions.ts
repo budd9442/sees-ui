@@ -227,12 +227,12 @@ export async function executeBatchTransition(sourceLevel: string, targetLevel: s
             return updateCount.count;
         });
 
-        for (const s of studentsToPromote) {
+        await Promise.all(studentsToPromote.map(async (s) => {
             const email = s.user?.email;
-            if (!email) continue;
+            if (!email) return;
             const studentName = `${s.user.firstName} ${s.user.lastName}`.trim();
             const dedupe = `${NotificationEventKey.ACADEMIC_CLASS_CHANGED}:${s.student_id}:${sourceLevel}->${targetLevel}`;
-            await dispatchNotificationEmail({
+            return dispatchNotificationEmail({
                 eventKey: NotificationEventKey.ACADEMIC_CLASS_CHANGED,
                 dedupeKey: dedupe,
                 to: email,
@@ -246,7 +246,7 @@ export async function executeBatchTransition(sourceLevel: string, targetLevel: s
                     newLevel: targetLevel,
                 },
             });
-        }
+        }));
 
         await writeAuditLog({
             adminId: operator.userId,

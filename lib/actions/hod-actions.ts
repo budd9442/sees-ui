@@ -121,6 +121,19 @@ export async function getHODDashboardData() {
         };
     }));
 
+    // Module Performance tracking
+    const modulePerformanceData = deptModules.map(m => {
+        const releasedGrades = m.grades.filter((g: any) => g.released_at !== null);
+        const avg = releasedGrades.length > 0
+            ? releasedGrades.reduce((acc: number, g: any) => acc + g.grade_point, 0) / releasedGrades.length
+            : 0;
+        return {
+            module: m.name,
+            code: m.code,
+            avgGPA: parseFloat(avg.toFixed(2))
+        };
+    }).filter(m => m.avgGPA > 0);
+
     // Staff Workload tracking
     const staffWorkloadData = deptStaff.map(s => {
         const uniqueStudentIds = new Set<string>();
@@ -156,6 +169,7 @@ export async function getHODDashboardData() {
         pendingApprovals,
         pathwayDemandData,
         academicPerformanceData,
+        modulePerformanceData,
         staffWorkloadData
     };
 }

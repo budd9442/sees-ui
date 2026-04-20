@@ -57,7 +57,7 @@ export class AcademicEngine {
 
     /**
      * Credit Load Validation
-     * Ensures students do not exceed the 21-credit standard limit per semester.
+     * Ensures students do not exceed the 36-credit standard limit per semester.
      */
     static async validateCreditLoad(studentId: string, semesterId: string, newModuleIds: string[]): Promise<{
         allowed: boolean;
@@ -66,7 +66,7 @@ export class AcademicEngine {
     }> {
         // Fetch dynamic limit from settings
         const setting = await prisma.systemSetting.findUnique({ where: { key: 'limit_semester_credits' } });
-        const MAX_CREDITS = parseInt(setting?.value || '21');
+        const MAX_CREDITS = parseInt(setting?.value || '36');
 
         // 1. Get currently registered modules for this semester
         const existing = await prisma.moduleRegistration.findMany({

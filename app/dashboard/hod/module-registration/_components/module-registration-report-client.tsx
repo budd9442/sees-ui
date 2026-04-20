@@ -47,36 +47,65 @@ function downloadCsv(filename: string, header: string[], lines: (string | number
 }
 
 function downloadDetailedCsv(data: ModuleRegistrationRoundSnapshot) {
+    // 1. Group by student
+    const studentMap = new Map<string, {
+        student_id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        level: string;
+        modules: string[];
+        totalCredits: number;
+    }>();
+
+    data.rows.forEach(row => {
+        if (!studentMap.has(row.student_id)) {
+            studentMap.set(row.student_id, {
+                student_id: row.student_id,
+                email: row.email,
+                firstName: row.firstName,
+                lastName: row.lastName,
+                level: row.current_level,
+                modules: [],
+                totalCredits: 0
+            });
+        }
+        const s = studentMap.get(row.student_id)!;
+        s.modules.push(row.module_code);
+        s.totalCredits += row.credits;
+    });
+
+    const students = Array.from(studentMap.values()).sort((a, b) => a.student_id.localeCompare(b.student_id));
+    const maxModules = Math.max(...students.map(s => s.modules.length), 1);
+
+    // 2. Build headers
     const h = [
-        'reg_id',
-        'student_id',
-        'email',
-        'first_name',
-        'last_name',
-        'level',
-        'module_code',
-        'module_name',
-        'credits',
-        'semester',
-        'status',
-        'registered_at',
+        'STUDENT ID',
+        'EMAIL',
+        'FIRST NAME',
+        'LAST NAME',
+        'LEVEL',
+        ...Array.from({ length: maxModules }, (_, i) => `MODULE ${i + 1}`),
+        'TOTAL CREDITS'
     ];
-    const lines = data.rows.map(row => [
-        row.reg_id,
-        row.student_id,
-        row.email,
-        row.firstName,
-        row.lastName,
-        row.current_level,
-        row.module_code,
-        row.module_name,
-        row.credits,
-        row.semester_label,
-        row.status,
-        row.registration_date,
-    ]);
+
+    // 3. Build lines
+    const lines = students.map(s => {
+        const row: (string | number)[] = [
+            s.student_id,
+            s.email,
+            s.firstName,
+            s.lastName,
+            s.level,
+            ...s.modules,
+            ...Array(maxModules - s.modules.length).fill(''),
+            s.totalCredits
+        ];
+        return row;
+    });
+
     const safe = data.round.label.replace(/[^\w\-]+/g, '_').slice(0, 40);
-    downloadCsv(`module-registrations_${safe}_detailed.csv`, h, lines);
+    downloadCsv(`module-registrations_${safe}_full_report.csv`, h, lines);
 }
 
 function downloadByModuleCsv(data: ModuleRegistrationRoundSnapshot) {
@@ -583,7 +612,7 @@ export function ModuleRegistrationReportClient({
                     <div className="flex flex-wrap gap-2 shrink-0">
                         <Button type="button" variant="outline" size="sm" onClick={() => downloadDetailedCsv(data)}>
                             <FileDown className="h-4 w-4 mr-2" />
-                            CSV all rows
+                            CSV Full Report
                         </Button>
                         <Button type="button" variant="outline" size="sm" onClick={() => downloadByModuleCsv(data)}>
                             <FileDown className="h-4 w-4 mr-2" />

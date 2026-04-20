@@ -417,7 +417,7 @@ export async function getModuleRegistrationData() {
             semesterId: sem.semester_id,
             label: sem.label,
             semesterNumber: semNum,
-            rule: creditRules.find(r => r.semester_number === semNum) || { min_credits: 12, max_credits: 24 },
+            rule: creditRules.find(r => r.semester_number === semNum) || { min_credits: 12, max_credits: 36 },
             modules: dedupedSemStructures.map(s => ({
                 id: s.module.module_id,
                 code: s.module.code,
@@ -598,7 +598,7 @@ export async function registerForModules(moduleIds: string[]) {
                 .map((s) => s.module_id);
             const totalCredits = semMods.reduce((sum, s) => sum + (s.module.credits || 0), 0);
             
-            const rule = creditRules.find(r => r.semester_number === semNum) || { min_credits: 12, max_credits: 24 };
+            const rule = creditRules.find(r => r.semester_number === semNum) || { min_credits: 12, max_credits: 36 };
 
             if (totalCredits < rule.min_credits) throw new Error(`${sem.label}: Minimum ${rule.min_credits} credits required (current: ${totalCredits})`);
             if (totalCredits > rule.max_credits) throw new Error(`${sem.label}: Maximum ${rule.max_credits} credits exceeded (current: ${totalCredits})`);
