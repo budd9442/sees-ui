@@ -35,8 +35,6 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { Download } from 'lucide-react';
-import { ReportBuilderPanel } from '@/components/analytics/report-builder-panel';
-import { defaultHodReportDefinition } from '@/lib/analytics/default-reports';
 import { exportTabularData } from '@/lib/export';
 import { toast } from 'sonner';
 
@@ -66,7 +64,6 @@ export default function HODAnalyticsClient({
 }: HODAnalyticsClientProps) {
     const router = useRouter();
     const pathname = usePathname();
-    const [showCustomAnalysis, setShowCustomAnalysis] = useState(false);
     const { students, modules, grades, enrollmentTrend, departmentGpaTrend, department, pathwayOptions, levelOptions } =
         initialData;
 
@@ -111,7 +108,7 @@ export default function HODAnalyticsClient({
     const excellentStudents = students.filter((s: any) => s.currentGPA >= 3.7).length;
 
     const pathwayDistribution = students.reduce((acc: any, student: any) => {
-        const pathway = student.specialization || 'Undecided';
+        const pathway = student.pathway || 'Undecided';
         acc[pathway] = (acc[pathway] || 0) + 1;
         return acc;
     }, {});
@@ -179,7 +176,7 @@ export default function HODAnalyticsClient({
     }).sort((a: any, b: any) => parseFloat(b.averageGrade) - parseFloat(a.averageGrade));
 
     const pathwayPerformance = Object.keys(pathwayDistribution).map(pathway => {
-        const pathwayStudents = students.filter((s: any) => s.specialization === pathway);
+        const pathwayStudents = students.filter((s: any) => s.pathway === pathway);
         const avgGPA = pathwayStudents.length > 0
             ? pathwayStudents.reduce((sum: number, s: any) => sum + s.currentGPA, 0) / pathwayStudents.length
             : 0;
@@ -201,7 +198,7 @@ export default function HODAnalyticsClient({
             const rows = students.map((student: any) => ({
                 studentId: student.id,
                 name: student.name,
-                pathway: student.specialization,
+                pathway: student.pathway,
                 academicYear: student.academicYear,
                 currentGPA: Number(student.currentGPA ?? 0).toFixed(2),
             }));
@@ -223,19 +220,6 @@ export default function HODAnalyticsClient({
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p className="text-sm font-medium">Custom analysis builder</p>
-                        <p className="text-xs text-muted-foreground">
-                            Keep default insights and add custom visuals with saved reports, exports, and assistant support.
-                        </p>
-                    </div>
-                    <Button variant="default" size="sm" onClick={() => setShowCustomAnalysis((v) => !v)}>
-                        {showCustomAnalysis ? 'Hide custom analysis' : 'Open custom analysis'}
-                    </Button>
-                </CardContent>
-            </Card>
             <div className="space-y-6">
             <div className="flex justify-between items-start">
                 <div>
@@ -346,25 +330,6 @@ export default function HODAnalyticsClient({
                 </TabsContent>
             </Tabs>
 
-            {showCustomAnalysis && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Custom analysis</CardTitle>
-                        <CardDescription>
-                            Add and customize visuals on top of the default HoD analytics view.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ReportBuilderPanel
-                            variant="embedded"
-                            defaultDefinition={defaultHodReportDefinition()}
-                            filterContext={builderFilterContext}
-                            builderRole="hod"
-                            aggregatesSummary={aggregateSummary}
-                        />
-                    </CardContent>
-                </Card>
-            )}
             </div>
         </div>
     );

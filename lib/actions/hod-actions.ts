@@ -269,7 +269,7 @@ export async function getHODAnalyticsData(filters?: HODAnalyticsFilters) {
     let students = studentsRaw.map(mapStudent);
 
     if (filters?.pathway && filters.pathway !== 'all') {
-        students = students.filter((s) => s.specialization === filters.pathway);
+        students = students.filter((s) => s.pathway === filters.pathway);
     }
     const normalizedLevel = normalizeLevelFilter(filters?.level);
     if (normalizedLevel) {

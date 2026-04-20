@@ -197,6 +197,12 @@ const navigationItems: NavItem[] = [
     roles: ['hod'],
   },
   {
+    title: 'Report builder',
+    href: '/dashboard/hod/analytics/builder',
+    icon: FileSpreadsheet,
+    roles: ['hod'],
+  },
+  {
     title: 'Rankings',
     href: '/dashboard/hod/rankings',
     icon: Star,
