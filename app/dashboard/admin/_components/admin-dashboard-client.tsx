@@ -8,6 +8,13 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Users,
   Database,
   Shield,
@@ -28,8 +35,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
   BarChart,
@@ -92,7 +97,7 @@ interface AdminDashboardProps {
 export default function AdminDashboardClient({ metrics, recentActivity, settingsCount }: AdminDashboardProps) {
   const { user } = useAuthStore();
 
-  // State for real-time metrics
+  const [timeRange, setTimeRange] = useState('1h');
   const [currentMetrics, setCurrentMetrics] = useState<SystemMetrics | null>(null);
   const [metricsHistory, setMetricsHistory] = useState<MetricHistoryPoint[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -102,7 +107,7 @@ export default function AdminDashboardClient({ metrics, recentActivity, settings
   const fetchMetrics = async () => {
     try {
       setIsUpdating(true);
-      const response = await fetch('/api/admin/metrics');
+      const response = await fetch(`/api/admin/metrics?window=${timeRange}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch metrics');
@@ -143,16 +148,12 @@ export default function AdminDashboardClient({ metrics, recentActivity, settings
     }
   };
 
-  // Poll metrics every 30 seconds (data updates every minute, so this is sufficient)
+  // Poll metrics every 30 seconds
   useEffect(() => {
-    // Initial fetch
     fetchMetrics();
-
-    // Set up polling
-    const interval = setInterval(fetchMetrics, 30000); // 30 seconds
-
+    const interval = setInterval(fetchMetrics, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timeRange]);
 
   const totalUsers = currentMetrics?.activeUsers ?? metrics.users.total;
   const activeUsers = currentMetrics?.activeUsers ?? metrics.users.active;
@@ -290,12 +291,29 @@ export default function AdminDashboardClient({ metrics, recentActivity, settings
 
         <TabsContent value="performance" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>System Performance Metrics</CardTitle>
-              <CardDescription>
-                Real-time system resource utilization
-                {metricsHistory.length > 0 && ` (${metricsHistory.length} data points)`}
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>System Performance Metrics</CardTitle>
+                <CardDescription>
+                  Real-time system resource utilization
+                  {metricsHistory.length > 0 && ` (${metricsHistory.length} data points)`}
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={timeRange} onValueChange={setTimeRange}>
+                  <SelectTrigger className="w-[120px] h-8 text-xs">
+                    <SelectValue placeholder="Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1h">1 Hour</SelectItem>
+                    <SelectItem value="6h">6 Hours</SelectItem>
+                    <SelectItem value="24h">24 Hours</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => fetchMetrics()} disabled={isUpdating}>
+                  <RefreshCw className={`h-4 w-4 ${isUpdating ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {metricsHistory.length > 0 ? (

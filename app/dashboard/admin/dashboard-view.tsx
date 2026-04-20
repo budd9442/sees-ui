@@ -19,7 +19,10 @@ import {
     AlertTriangle,
     Mail,
     FileUp,
+    Calculator,
+    LineChart as ChartIcon,
 } from 'lucide-react';
+
 import {
     LineChart,
     Line,
@@ -73,6 +76,9 @@ export function AdminDashboardView({
     const connProgress = systemMetrics?.connProgress ?? 0;
     const emailSvc = systemMetrics?.serviceStatus?.email;
     const importSvc = systemMetrics?.serviceStatus?.import;
+    const calcSvc = systemMetrics?.serviceStatus?.calculations;
+    const monitorSvc = systemMetrics?.serviceStatus?.monitoring;
+
     const serviceBadgeClass = (statusText?: string) =>
         statusText === 'Healthy'
             ? 'bg-green-100 text-green-800'
@@ -223,8 +229,9 @@ export function AdminDashboardView({
                             <CardHeader>
                                 <CardTitle>System Performance</CardTitle>
                                 <CardDescription>
-                                    Active users and health score from sampled metrics (last ~2h of cron samples)
+                                    Active users and health score (last 24h, hourly samples)
                                 </CardDescription>
+
                             </CardHeader>
                             <CardContent>
                                 <ResponsiveContainer width="100%" height={250}>
@@ -310,6 +317,53 @@ export function AdminDashboardView({
                                 </div>
                             </CardContent>
                         </Card>
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Calculator className="h-5 w-5" />
+                                    Calculation Service
+                                </CardTitle>
+                                <CardDescription>GPA and academic class background processing</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Status</span>
+                                    <Badge className={serviceBadgeClass(calcSvc?.status)}>{calcSvc?.status ?? 'Unknown'}</Badge>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Recalculations (24h)</span>
+                                    <span className="font-medium">{(calcSvc?.total24h ?? 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Last Action</span>
+                                    <span className="font-medium text-xs truncate">{(calcSvc?.total24h ?? 0) > 0 ? 'Recently active' : 'Idle'}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <ChartIcon className="h-5 w-5" />
+                                    Monitoring Service
+                                </CardTitle>
+                                <CardDescription>Real-time system metrics collection and analysis</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Status</span>
+                                    <Badge className={serviceBadgeClass(monitorSvc?.status)}>{monitorSvc?.status ?? 'Unknown'}</Badge>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Samples Collected (24h)</span>
+                                    <span className="font-medium">{(monitorSvc?.samples24h ?? 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Resolution</span>
+                                    <span className="font-medium">1 sample / min</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+
                     </div>
                 </TabsContent>
 

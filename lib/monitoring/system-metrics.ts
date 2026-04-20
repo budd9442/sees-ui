@@ -55,3 +55,47 @@ export async function pruneOldSystemMetrics(retentionHours = SYSTEM_METRIC_RETEN
     },
   });
 }
+
+export interface SystemMetricData {
+  timestamp: Date;
+  cpu: number;
+  memory: number;
+  health: number;
+  active_users: number;
+  [key: string]: any;
+}
+
+/**
+ * Downsamples a set of metrics to a target number of points using averaging.
+ * Useful for displaying long time ranges without fetching thousands of points.
+ */
+export function downsampleMetrics<T extends SystemMetricData>(data: T[], targetPoints: number): T[] {
+  if (data.length <= targetPoints || targetPoints <= 0) return data;
+
+  const result: T[] = [];
+  const bucketSize = data.length / targetPoints;
+
+  for (let i = 0; i < targetPoints; i++) {
+    const start = Math.floor(i * bucketSize);
+    const end = Math.floor((i + 1) * bucketSize);
+    const bucket = data.slice(start, end);
+
+    if (bucket.length === 0) continue;
+
+    // Average the numeric values
+    const averaged = { ...bucket[0] };
+    const numericKeys = ['cpu', 'memory', 'health', 'active_users'];
+
+    numericKeys.forEach(key => {
+      const sum = bucket.reduce((s, item) => s + (item[key] || 0), 0);
+      (averaged as any)[key] = Math.round(sum / bucket.length);
+    });
+
+    // Use the middle timestamp for the bucket
+    averaged.timestamp = bucket[Math.floor(bucket.length / 2)].timestamp;
+
+    result.push(averaged);
+  }
+
+  return result;
+}

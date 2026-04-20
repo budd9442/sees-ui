@@ -1,32 +1,51 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { collectSystemMetricSample } from '@/lib/monitoring/system-metrics';
+import { collectSystemMetricSample, downsampleMetrics } from '@/lib/monitoring/system-metrics';
 
 export const dynamic = 'force-dynamic';
 
 const SAMPLE_INTERVAL_MS = 60_000;
 
 /**
- * Returns historical system metrics from database
- * Frontend uses this to populate the performance graph and metric cards
+ * Returns historical system metrics from database with downsampling.
+ * Query params: ?window=1h|6h|24h|7d (default: 1h)
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
+        const { searchParams } = new URL(req.url);
+        const window = searchParams.get('window') || '1h';
+
+        // Map window to hours and target points
+        const windowConfig: Record<string, { hours: number; targetPoints: number }> = {
+            '1h': { hours: 1, targetPoints: 12 }, // ~5 min intervals for detail
+            '6h': { hours: 6, targetPoints: 6 },  // 1 hour intervals
+            '24h': { hours: 24, targetPoints: 24 }, // 1 hour intervals
+            '7d': { hours: 168, targetPoints: 168 }, // 1 hour intervals
+        };
+
+
+        const config = windowConfig[window] || windowConfig['1h'];
+        const cutoffTime = new Date(Date.now() - config.hours * 60 * 60 * 1000);
+
         // Fallback sampler: when cron is not running, create one sample per minute
         // during dashboard activity so the chart still accumulates history.
-        const latest = await prisma.systemMetric.findFirst({
-            orderBy: { timestamp: 'desc' },
-            select: { timestamp: true },
-        });
-        const latestAgeMs = latest ? Date.now() - latest.timestamp.getTime() : Number.POSITIVE_INFINITY;
-        if (latestAgeMs >= SAMPLE_INTERVAL_MS) {
-            await collectSystemMetricSample();
+        if (window === '1h') {
+            const latest = await prisma.systemMetric.findFirst({
+                orderBy: { timestamp: 'desc' },
+                select: { timestamp: true },
+            });
+            const latestAgeMs = latest ? Date.now() - latest.timestamp.getTime() : Number.POSITIVE_INFINITY;
+            if (latestAgeMs >= SAMPLE_INTERVAL_MS) {
+                await collectSystemMetricSample();
+            }
         }
 
-        // Get last 60 minutes of metrics (60 records at 1-minute intervals)
+        // Fetch metrics for the requested window
         const metrics = await prisma.systemMetric.findMany({
-            orderBy: { timestamp: 'desc' },
-            take: 60,
+            where: {
+                timestamp: { gte: cutoffTime }
+            },
+            orderBy: { timestamp: 'asc' }, // Get chronological order directly
             select: {
                 id: true,
                 timestamp: true,
@@ -42,19 +61,19 @@ export async function GET() {
             }
         });
 
-        // Return in chronological order (oldest first) for graph display
-        const chronological = metrics.reverse();
+        // Apply downsampling
+        const downsampled = downsampleMetrics(metrics, config.targetPoints);
 
         // Format storage for display
         const formatStorage = (gb: number) => {
-            if (gb >= 1000) {
+            if (gb >= 1024) {
                 return `${(gb / 1024).toFixed(1)}TB`;
             }
             return `${gb.toFixed(1)}GB`;
         };
 
         // Transform data for frontend
-        const formattedMetrics = chronological.map(metric => ({
+        const formattedMetrics = downsampled.map(metric => ({
             id: metric.id,
             timestamp: metric.timestamp.toISOString(),
             cpu: metric.cpu,
@@ -69,6 +88,7 @@ export async function GET() {
         }));
 
         return NextResponse.json(formattedMetrics);
+
     } catch (error) {
         console.error('Error fetching system metrics:', error);
         return NextResponse.json(
