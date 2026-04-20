@@ -47,6 +47,7 @@ export async function POST(req: Request) {
             },
         });
 
+        console.log(`[API] Enqueuing LMS import job for session ${importSession.session_id}, student ${studentId}`);
         const enqueued = await pushToQueue(QUEUE_NAME, {
             session_id: importSession.session_id,
             student_id: studentId,
@@ -56,6 +57,7 @@ export async function POST(req: Request) {
         });
 
         if (!enqueued) {
+            console.error(`[API] Failed to enqueue LMS import job for session ${importSession.session_id}`);
             await prisma.lmsImportSession.update({
                 where: { session_id: importSession.session_id },
                 data: { status: 'FAILED', stage: 'READY', progress_pct: 0, error_message: 'Failed to enqueue job' },

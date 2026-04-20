@@ -36,7 +36,7 @@ export type LmsKlnScrapeResult = {
 };
 
 const START_URL =
-    'http://www.science.kln.ac.lk:8080/(S(m1v2h3jkc5xguxlh40axodgm))/sfkn.aspx';
+    'http://www.science.kln.ac.lk:8080/sfkn.aspx';
 
 // ASP.NET postback event targets + GridView table IDs.
 const YEAR_CONTROLS = [
@@ -182,9 +182,19 @@ function dedupeRows(rows: LmsModuleRow[]): LmsModuleRow[] {
 }
 
 async function fetchText(url: string, opts?: RequestInit) {
-    const res = await fetch(url, opts);
-    const text = await res.text();
-    return { res, html: text };
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+    try {
+        const res = await fetch(url, {
+            ...opts,
+            signal: controller.signal,
+        });
+        const text = await res.text();
+        return { res, html: text };
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 export async function fetchKlnScienceFacultyRegistrationYears(params: {

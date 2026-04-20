@@ -7,7 +7,12 @@ import { matchByCodeOrName, type CatalogModule } from '@/lib/lms/lms-matching';
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
 const QUEUE_NAME = 'lms_import';
 
-let isWorkerRunning = false;
+const globalForWorker = globalThis as unknown as { 
+    isLmsWorkerRunning: boolean;
+    lmsWorkerConn?: amqp.Connection;
+    lmsWorkerChan?: amqp.Channel;
+};
+let isWorkerRunning = globalForWorker.isLmsWorkerRunning || false;
 
 function lmsYearToAcademicLevel(year: number) {
     if (year <= 1) return 'L1';
@@ -27,18 +32,30 @@ function normalizeGradeLetter(grade: string) {
 }
 
 export async function startLmsImportWorker() {
-    if (isWorkerRunning) return;
+    if (isWorkerRunning) {
+        console.log('[QUEUE] LMS Import Worker is already running. Skipping initialization.');
+        return;
+    }
 
-    const connection = await amqp.connect(RABBITMQ_URL);
-    const channel = await connection.createChannel();
-
-    await channel.assertQueue(QUEUE_NAME, { durable: true });
-    channel.prefetch(1);
-
+    // Set immediately to prevent concurrent startup attempts during HMR
     isWorkerRunning = true;
+    globalForWorker.isLmsWorkerRunning = true;
+
+    try {
+        console.log('[QUEUE] Connecting to RabbitMQ for LMS Import...');
+        const connection = await amqp.connect(RABBITMQ_URL);
+        const channel = await connection.createChannel();
+
+        await channel.assertQueue(QUEUE_NAME, { durable: true });
+        channel.prefetch(1);
+
+        globalForWorker.lmsWorkerConn = connection;
+        globalForWorker.lmsWorkerChan = channel;
+        console.log(`[QUEUE] LMS Import Worker initialized successfully. Listening on "${QUEUE_NAME}"`);
 
     channel.consume(QUEUE_NAME, async (msg) => {
         if (!msg) return;
+        console.log(`[QUEUE] <<< Received message from "${QUEUE_NAME}"`);
         const raw = msg.content.toString();
         let content: any = null;
         try {
@@ -59,12 +76,14 @@ export async function startLmsImportWorker() {
 
         const prismaAny = prisma as any;
         try {
+            console.log(`[LMS WORKER] Processing session ${sessionId} for student ${studentId}`);
             await prismaAny.lmsImportSession.update({
                 where: { session_id: sessionId },
                 data: { status: 'RUNNING', stage: 'LOGIN', progress_pct: 5, error_message: null },
             });
 
             const onStage = async (stage: string, progressPct: number) => {
+                console.log(`[LMS WORKER] Stage: ${stage}, Progress: ${progressPct}%`);
                 // Keep the number of writes small (this runs only a few times per import).
                 await prismaAny.lmsImportSession.update({
                     where: { session_id: sessionId },
@@ -72,11 +91,13 @@ export async function startLmsImportWorker() {
                 });
             };
 
+            console.log(`[LMS WORKER] Starting scrape for ${lmsUsername}...`);
             const scrape = await fetchKlnScienceFacultyRegistrationYears({
                 username: lmsUsername,
                 password: lmsPassword,
                 onStage,
             });
+            console.log(`[LMS WORKER] Scrape completed. Found years: ${Object.keys(scrape.years).join(', ')}`);
 
             await prismaAny.lmsImportSession.update({
                 where: { session_id: sessionId },
@@ -327,11 +348,21 @@ export async function startLmsImportWorker() {
 
     connection.on('close', () => {
         isWorkerRunning = false;
+        globalForWorker.isLmsWorkerRunning = false;
     });
+
+    } catch (error: any) {
+        console.error('[QUEUE] CRITICAL: Failed to start LMS Import Worker:', error.message);
+        isWorkerRunning = false;
+        globalForWorker.isLmsWorkerRunning = false;
+        
+        // Retry connection after 5 seconds
+        setTimeout(startLmsImportWorker, 5000);
+    }
 }
 
 // Manual startup.
 if (require.main === module) {
-    startLmsImportWorker().catch((e) => console.error('[QUEUE] LMS worker failed:', e));
+    startLmsImportWorker();
 }
 
