@@ -104,6 +104,26 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
         }
     };
 
+    /** Split one CSV line respecting double-quoted fields (commas inside quotes). */
+    function parseCsvLine(line: string): string[] {
+        const out: string[] = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const c = line[i];
+            if (c === '"') {
+                inQuotes = !inQuotes;
+            } else if (c === ',' && !inQuotes) {
+                out.push(cur.trim());
+                cur = '';
+            } else {
+                cur += c;
+            }
+        }
+        out.push(cur.trim());
+        return out;
+    }
+
     const parseCSVFile = (file: File) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -116,8 +136,9 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                 return;
             }
 
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, ''));
+            const headers = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase().replace(/\s+/g, ''));
 
+            const validLetters = (initialData.validLetters || []).map((l: string) => l.toLowerCase());
             const errors: any[] = [];
             const data: any[] = [];
 
@@ -125,7 +146,7 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                const values = line.split(',').map(v => v.trim());
+                const values = parseCsvLine(line);
                 const rowData: any = {};
 
                 headers.forEach((header, index) => {
@@ -133,8 +154,33 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                 });
 
                 const rowErrors: string[] = [];
-                if (!rowData.studentid) rowErrors.push('Student Id is required');
-                if (!rowData.grade || isNaN(parseFloat(rowData.grade))) rowErrors.push('Grade must be a valid number (0-100)');
+                if (!rowData.studentid) {
+                    rowErrors.push('Student Id is required');
+                }
+                
+                if (!rowData.grade) {
+                    // Ignore row if grade is missing
+                    continue;
+                } else {
+                    const gradeStr = String(rowData.grade).trim();
+                    const marks = parseFloat(gradeStr);
+                    const isNumeric = !isNaN(marks) && /^-?\d+(\.\d+)?$/.test(gradeStr);
+                    
+                    if (isNumeric) {
+                        if (marks < 0 || marks > 100) {
+                            rowErrors.push('Marks must be between 0 and 100');
+                        }
+                    } else {
+                        // Letter grade check
+                        const isLetter = validLetters.includes(gradeStr.toLowerCase());
+                        if (!isLetter) {
+                            // "anything outside except 0-100 must be ignored"
+                            // We treat this as an "ignored" row by not adding it to data and not adding a blocking error.
+                            // However, we should probably tell the user it was ignored.
+                            continue; 
+                        }
+                    }
+                }
 
                 if (rowErrors.length > 0) {
                     errors.push({
@@ -144,12 +190,16 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                         error: rowErrors.join(', '),
                     });
                 } else {
-                    const marks = parseFloat(rowData.grade);
+                    const gradeVal = String(rowData.grade).trim();
+                    const marks = parseFloat(gradeVal);
+                    const isNumeric = !isNaN(marks) && /^-?\d+(\.\d+)?$/.test(gradeVal);
+                    const uploadVal = isNumeric ? marks : gradeVal;
+                    
                     data.push({
                         id: `UPLOAD_${i}`,
                         studentId: rowData.studentid,
-                        studentName: '', // Will be matched on server
-                        grade: marks,
+                        studentName: '', 
+                        grade: uploadVal,
                         moduleId: selectedModule,
                     });
                 }
@@ -648,12 +698,15 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
 
             {/* Upload Dialog */}
             <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-                <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                        <DialogTitle>Upload Grades</DialogTitle>
-                        <DialogDescription>Upload grades from a CSV file for {currentModule?.title || 'the selected module'}</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
+                <DialogContent className="flex max-h-[min(85vh,800px)] w-[calc(100vw-1.5rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+                    <div className="min-h-0 space-y-4 overflow-y-auto p-6">
+                        <DialogHeader className="space-y-2 text-left">
+                            <DialogTitle>Upload Grades</DialogTitle>
+                            <DialogDescription className="text-pretty">
+                                Upload grades from a CSV file for {currentModule?.title || 'the selected module'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="file">CSV File</Label>
                             <div className="flex items-center gap-2">
@@ -699,9 +752,10 @@ export default function GradesClient({ initialData, currentUserId }: { initialDa
                                 </div>
                             </div>
                         )}
+                        </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowUploadDialog(false)}>Cancel</Button>
+                    <DialogFooter className="shrink-0 gap-2 border-t p-4 sm:gap-0 sm:px-6">
+                        <Button type="button" variant="outline" onClick={() => setShowUploadDialog(false)}>Cancel</Button>
                         <Button onClick={handleBulkUpload} disabled={uploadErrors.length > 0 || uploadData.length === 0 || isUploading || !selectedModule}>
                             {isUploading ? "Uploading..." : "Upload Grades"}
                         </Button>

@@ -7,7 +7,7 @@ import {
     whereRegistrationsForStaffAssignment,
 } from '@/lib/staff-module-enrollment';
 import { resolveGradeFromUploadCell, type GradingBandRow } from '@/lib/grading/marks-to-grade';
-import { getEffectiveGradingBandsForModule } from '@/lib/grading/module-bands';
+import { getEffectiveGradingBandsForModule, getInstitutionGradingBands } from '@/lib/grading/module-bands';
 import { dispatchNotificationEmail } from '@/lib/notifications/dispatch';
 import { NotificationEventKey } from '@/lib/notifications/events';
 import {
@@ -70,14 +70,14 @@ export async function getStaffAnalytics(filters?: StaffAnalyticsFilters) {
             where:
                 yearIds.length > 0
                     ? whereRegistrationsForStaffAssignment({
-                          assignmentModuleId: m.module_id,
-                          moduleCode: m.code,
-                          academicYearIds: yearIds,
-                      })
+                        assignmentModuleId: m.module_id,
+                        moduleCode: m.code,
+                        academicYearIds: yearIds,
+                    })
                     : {
-                          status: { not: 'DROPPED' },
-                          OR: [{ module_id: m.module_id }, { module: { code: { equals: m.code.trim(), mode: 'insensitive' } } }],
-                      },
+                        status: { not: 'DROPPED' },
+                        OR: [{ module_id: m.module_id }, { module: { code: { equals: m.code.trim(), mode: 'insensitive' } } }],
+                    },
             include: {
                 semester: true,
                 student: {
@@ -192,20 +192,20 @@ export async function getStaffModuleRoster(moduleId: string) {
     const regs =
         yearIds.length > 0
             ? await prisma.moduleRegistration.findMany({
-                  where: whereRegistrationsForStaffAssignment({
-                      assignmentModuleId: moduleData.module_id,
-                      moduleCode: moduleData.code,
-                      academicYearIds: yearIds,
-                  }),
-                  include: regInclude,
-              })
+                where: whereRegistrationsForStaffAssignment({
+                    assignmentModuleId: moduleData.module_id,
+                    moduleCode: moduleData.code,
+                    academicYearIds: yearIds,
+                }),
+                include: regInclude,
+            })
             : await prisma.moduleRegistration.findMany({
-                  where: {
-                      module_id: moduleData.module_id,
-                      status: { not: 'DROPPED' },
-                  },
-                  include: regInclude,
-              });
+                where: {
+                    module_id: moduleData.module_id,
+                    status: { not: 'DROPPED' },
+                },
+                include: regInclude,
+            });
 
     return {
         id: moduleData.module_id,
@@ -225,10 +225,10 @@ export async function getStaffModuleRoster(moduleId: string) {
                 specialization: reg.student.specialization?.name || reg.student.degree_path.name,
                 grade: gradeRecord
                     ? {
-                          points: gradeRecord.grade_point,
-                          letterGrade: gradeRecord.letter_grade,
-                          isReleased: !!gradeRecord.released_at,
-                      }
+                        points: gradeRecord.grade_point,
+                        letterGrade: gradeRecord.letter_grade,
+                        isReleased: !!gradeRecord.released_at,
+                    }
                     : null,
                 attendance: 100,
                 lastActive: reg.student.user.last_login_date?.toISOString() || null,
@@ -365,7 +365,6 @@ export async function createStaffSchedule(data: {
 // ----------------------------------------------------------------------
 // GRADES ACTIONS
 // ----------------------------------------------------------------------
-
 export async function getStaffGradesData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -498,10 +497,14 @@ export async function getStaffGradesData() {
         }
     }
 
+    const institutionBands = await getInstitutionGradingBands();
+    const validLetters = institutionBands.map(b => b.letter_grade);
+
     return {
         modules: Array.from(modules.values()),
         grades,
         students: Array.from(studentsMap.values()),
+        validLetters,
     };
 }
 
