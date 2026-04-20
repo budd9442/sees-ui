@@ -21,6 +21,8 @@ import {
     restoreAdminBackup as backup_restoreAdminBackup,
     downloadBackupAsBase64 as backup_downloadBackupAsBase64,
 } from '@/lib/actions/backup-actions';
+import { downsampleMetrics } from '@/lib/monitoring/system-metrics';
+
 
 /** Audit rows + notification dispatch log, sorted for admin monitoring / logs UI. */
 async function buildUnifiedLogsForAdmin() {
@@ -144,6 +146,9 @@ export async function getAdminDashboardData() {
         runningImports,
         importFailed24h,
         importReady24h,
+        gpaCalculations24h,
+        monitoringSamples24h,
+
     ] = await Promise.all([
         prisma.user.count(),
         prisma.user.count({
@@ -154,10 +159,13 @@ export async function getAdminDashboardData() {
         prisma.staff.count(),
         prisma.systemMetric.findFirst({ orderBy: { timestamp: 'desc' } }),
         prisma.systemMetric.findMany({
-            orderBy: { timestamp: 'desc' },
-            take: 120,
+            where: {
+                timestamp: { gte: twentyFourHoursAgo }
+            },
+            orderBy: { timestamp: 'asc' },
             select: { timestamp: true, active_users: true, health: true, cpu: true, memory: true },
         }),
+
         prisma.notificationDispatchLog.count({
             where: { status: 'FAILED', created_at: { gte: twentyFourHoursAgo } },
         }),
@@ -179,6 +187,13 @@ export async function getAdminDashboardData() {
         prismaAny.lmsImportSession.count({
             where: { status: 'PREVIEW_READY', updated_at: { gte: twentyFourHoursAgo } },
         }),
+        prisma.gPAHistory.count({
+            where: { calculation_date: { gte: twentyFourHoursAgo } },
+        }),
+        prisma.systemMetric.count({
+            where: { timestamp: { gte: twentyFourHoursAgo } },
+        }),
+
     ]);
 
     const roleDistribution = [
@@ -236,14 +251,17 @@ export async function getAdminDashboardData() {
     const connProgress =
         dbConnections != null ? Math.min(100, Math.round((dbConnections / maxConn) * 100)) : 0;
 
-    const chronological = [...metricSeries].reverse();
+    // Downsample to 24 points (1 per hour for 24 hours)
+    const sampledMetrics = downsampleMetrics(metricSeries as any[], 24);
+
     const performanceData =
-        chronological.length > 0
-            ? chronological.map((m) => ({
+        sampledMetrics.length > 0
+            ? sampledMetrics.map((m) => ({
                   time: m.timestamp.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
                   activeUsers: m.active_users,
                   healthScore: m.health,
               }))
+
             : latestMetric
               ? [
                     {
@@ -320,7 +338,16 @@ export async function getAdminDashboardData() {
                     ready24h: importReady24h,
                     failed24h: importFailed24h,
                 },
+                calculations: {
+                    status: gpaCalculations24h > 0 ? 'Healthy' : 'Idle',
+                    total24h: gpaCalculations24h,
+                },
+                monitoring: {
+                    status: monitoringSamples24h > 60 ? 'Healthy' : monitoringSamples24h > 0 ? 'Degraded' : 'Critical',
+                    samples24h: monitoringSamples24h,
+                },
             },
+
         },
         performanceData,
         recentLogs,
