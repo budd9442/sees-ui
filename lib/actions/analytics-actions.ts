@@ -6,6 +6,24 @@ import { auth } from '@/auth';
 import { executeAnalyticsQuery, type AnalyticsQueryResult } from '@/lib/analytics/execute-analytics-query';
 import { reportDefinitionSchema, type ReportDefinition } from '@/lib/analytics/schema';
 
+/**
+ * @swagger
+ * /action/analytics/runAnalyticsQueryAction:
+ *   post:
+ *     summary: "[Server Action] Run Custom Analytics Query"
+ *     description: Executes a parameterized analytics query against student data and returns aggregated results for visualization.
+ *     tags:
+ *       - Analytics Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Successfully executed query
+ */
 export async function runAnalyticsQueryAction(input: unknown): Promise<AnalyticsQueryResult> {
     return executeAnalyticsQuery(input);
 }

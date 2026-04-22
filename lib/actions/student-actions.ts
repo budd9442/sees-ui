@@ -75,6 +75,20 @@ async function fetchProgramStructuresForEnrollment(opts: {
     return structures;
 }
 
+/**
+ * @swagger
+ * /action/student/getStudentDashboardData:
+ *   post:
+ *     summary: "[Server Action] Get Student Dashboard Data"
+ *     description: Fetches the primary data for the student dashboard, including profile, GPA, notifications, and schedule.
+ *     tags:
+ *       - Student Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched dashboard data
+ *       401:
+ *         description: Unauthorized
+ */
 export async function getStudentDashboardData() {
     const session = await auth();
     if (!session?.user?.email) {
@@ -262,6 +276,20 @@ async function getAnnualSemesters() {
     return activeYear.semesters;
 }
 
+/**
+ * @swagger
+ * /action/student/getModuleRegistrationData:
+ *   post:
+ *     summary: "[Server Action] Get Module Registration Data"
+ *     description: Fetches available modules, credit rules, and current registrations for the enrollment interface.
+ *     tags:
+ *       - Student Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched registration data
+ *       401:
+ *         description: Unauthorized
+ */
 export async function getModuleRegistrationData() {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
@@ -487,6 +515,33 @@ export async function getModuleRegistrationData() {
 }
 
 
+/**
+ * @swagger
+ * /action/student/registerForModules:
+ *   post:
+ *     summary: "[Server Action] Register for Modules"
+ *     description: Submits a list of module IDs for registration, validating prerequisites and credit limits.
+ *     tags:
+ *       - Student Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               moduleIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Successfully registered
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
 export async function registerForModules(moduleIds: string[]) {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
@@ -650,6 +705,20 @@ export async function registerForModules(moduleIds: string[]) {
 }
 
 
+/**
+ * @swagger
+ * /action/student/getStudentGrades:
+ *   post:
+ *     summary: "[Server Action] Get Student Grades"
+ *     description: Fetches the student's academic transcript/grades.
+ *     tags:
+ *       - Student Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched grades
+ *       401:
+ *         description: Unauthorized
+ */
 export async function getStudentGrades() {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
@@ -702,6 +771,18 @@ export async function getStudentGrades() {
     });
 }
 
+/**
+ * @swagger
+ * /action/student/getStudentSchedule:
+ *   post:
+ *     summary: "[Server Action] Get Student Timetable"
+ *     description: Returns the weekly lecture schedule for the currently authenticated student's enrolled modules.
+ *     tags:
+ *       - Student Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched schedule
+ */
 export async function getStudentSchedule() {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");

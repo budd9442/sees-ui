@@ -4,6 +4,22 @@ import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * @swagger
+ * /api/lms-import/skip:
+ *   post:
+ *     summary: Skip LMS import
+ *     description: Marks the LMS import as skipped for the student.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully skipped import
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST() {
     try {
         const session = await auth();

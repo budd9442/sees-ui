@@ -5,6 +5,33 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 
+/**
+ * @swagger
+ * /action/report/submitAnonymousReport:
+ *   post:
+ *     summary: "[Server Action] Submit Anonymous Report"
+ *     description: Submits a student grievance or report anonymously, notifies the responsible department, and creates a tracking record.
+ *     tags:
+ *       - Report Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               subject:
+ *                 type: string
+ *               categoryId:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               priority:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully submitted report
+ */
 export async function submitAnonymousReport(data: {
     subject: string;
     categoryId: string;
@@ -67,6 +94,18 @@ export async function submitAnonymousReport(data: {
     return { success: true, id: report.report_id };
 }
 
+/**
+ * @swagger
+ * /action/report/getStudentReportsData:
+ *   post:
+ *     summary: "[Server Action] List Student Reports"
+ *     description: Returns a history of reports and grievances submitted by the currently authenticated student.
+ *     tags:
+ *       - Report Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched reports
+ */
 export async function getStudentReportsData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
@@ -88,6 +127,15 @@ export async function getStudentReportsData() {
     };
 }
 
+/**
+ * @swagger
+ * /action/report/getReportCategories:
+ *   post:
+ *     summary: "[Server Action] List Report Categories"
+ *     description: Returns available categories for anonymous reporting (e.g., academic, facilities, harassment).
+ *     tags:
+ *       - Report Actions
+ */
 export async function getReportCategories() {
     return prisma.reportCategory.findMany({
         where: { is_active: true },

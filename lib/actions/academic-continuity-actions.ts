@@ -6,6 +6,15 @@ import { revalidatePath } from 'next/cache';
 /**
  * Deep clones curriculum (ProgramStructure) and teaching assignments from a source year to a target year.
  */
+/**
+ * @swagger
+ * /action/academic-continuity/cloneAcademicYearData:
+ *   post:
+ *     summary: "[Server Action] Clone Year Data"
+ *     description: Deep clones curriculum structures, modules, and staff assignments from a source academic year to a target year.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function cloneAcademicYearData(sourceYearId: string, targetYearId: string, options: { 
     modules: boolean, 
     staff: boolean 

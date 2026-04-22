@@ -65,11 +65,32 @@ export async function readQuestionsDoc(): Promise<OnboardingQuestionsDocument> {
     }
 }
 
+/**
+ * @swagger
+ * /action/onboarding/getOnboardingQuestionsForAdmin:
+ *   post:
+ *     summary: "[Server Action] List Onboarding Questions"
+ *     description: Fetches the configured onboarding questions used to collect additional metadata from students during their first login.
+ *     tags:
+ *       - Onboarding Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched questions
+ */
 export async function getOnboardingQuestionsForAdmin() {
     await requireAdminOrHod();
     return readQuestionsDoc();
 }
 
+/**
+ * @swagger
+ * /action/onboarding/saveOnboardingQuestionsForAdmin:
+ *   post:
+ *     summary: "[Server Action] Configure Onboarding Form"
+ *     description: Updates the set of questions displayed to new students. Includes support for select, radio, and text inputs with validation.
+ *     tags:
+ *       - Onboarding Actions
+ */
 export async function saveOnboardingQuestionsForAdmin(input: unknown) {
     const { session } = await requireAdminOrHod();
     const normalized = normalizeOnboardingQuestions(input);
@@ -119,6 +140,18 @@ export async function saveOnboardingQuestionsForAdmin(input: unknown) {
     return { ok: true, count: payload.questions.length };
 }
 
+/**
+ * @swagger
+ * /action/onboarding/getStudentOnboardingState:
+ *   post:
+ *     summary: "[Server Action] Check Student Onboarding Status"
+ *     description: Returns whether the current student has completed the onboarding process and fetches the questions they need to answer.
+ *     tags:
+ *       - Onboarding Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched onboarding state
+ */
 export async function getStudentOnboardingState() {
     const session = await requireStudentSession();
     const student = await prisma.student.findUnique({
@@ -170,6 +203,15 @@ function validateAnswersAgainstQuestions(questions: OnboardingQuestion[], answer
     return answers;
 }
 
+/**
+ * @swagger
+ * /action/onboarding/submitStudentOnboardingAnswers:
+ *   post:
+ *     summary: "[Server Action] Submit Onboarding Answers"
+ *     description: Saves a student's responses to the onboarding questionnaire and marks their onboarding as complete.
+ *     tags:
+ *       - Onboarding Actions
+ */
 export async function submitStudentOnboardingAnswers(answersRaw: unknown) {
     const session = await requireStudentSession();
     const doc = onboardingQuestionsDocumentSchema.parse(await readQuestionsDoc());

@@ -9,6 +9,26 @@ import { writeAuditLog } from '@/lib/audit/write-audit-log';
 /**
  * Update system-wide GPA thresholds (e.g., First Class at 3.7)
  */
+/**
+ * @swagger
+ * /action/grading/updateAcademicThresholds:
+ *   post:
+ *     summary: "[Server Action] Update Academic Thresholds"
+ *     description: Updates system-wide GPA thresholds for degree classifications (e.g., First Class, Second Upper).
+ *     tags:
+ *       - Admin Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties:
+ *               type: string
+ *     responses:
+ *       200:
+ *         description: Successfully updated thresholds
+ */
 export async function updateAcademicThresholds(settings: Record<string, string>) {
     const session = await auth();
     if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
@@ -46,6 +66,37 @@ export async function updateAcademicThresholds(settings: Record<string, string>)
 
 /**
  * Configure Grading Scheme (Points for each letter grade)
+ */
+/**
+ * @swagger
+ * /action/grading/updateGradingScheme:
+ *   post:
+ *     summary: "[Server Action] Update Grading Bands"
+ *     description: Configures the letter grades, grade points, and mark ranges for the active grading scheme.
+ *     tags:
+ *       - Admin Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               schemeId:
+ *                 type: string
+ *               bands:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     letter:
+ *                       type: string
+ *                     points:
+ *                       type: number
+ *                     minMarks:
+ *                       type: number
+ *                     maxMarks:
+ *                       type: number
  */
 export async function updateGradingScheme(schemeId: string, bands: { letter: string, points: number, minMarks: number, maxMarks: number }[]) {
     const session = await auth();

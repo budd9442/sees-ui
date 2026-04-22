@@ -343,6 +343,12 @@ const navigationItems: NavItem[] = [
     icon: History,
     roles: ['admin'],
   },
+  {
+    title: 'API Documentation',
+    href: '/dashboard/admin/docs',
+    icon: FileText,
+    roles: ['admin'],
+  },
 ];
 
 export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolean> }) {

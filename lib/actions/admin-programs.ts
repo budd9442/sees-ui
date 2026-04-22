@@ -22,6 +22,29 @@ const SpecializationSchema = z.object({
 });
 
 // GET Actions
+/**
+ * @swagger
+ * /action/admin-program/getAllPrograms:
+ *   post:
+ *     summary: "[Server Action] List All Degree Programs"
+ *     description: Returns a filtered list of degree programs, including specializations and academic year information.
+ *     tags:
+ *       - Admin Actions
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               query:
+ *                 type: string
+ *               yearId:
+ *                 type: string
+ *                 default: active
+ *     responses:
+ *       200:
+ *         description: Successfully fetched programs
+ */
 export async function getAllPrograms(query: string = '', yearId: string = 'active') {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -53,6 +76,15 @@ export async function getAllPrograms(query: string = '', yearId: string = 'activ
     });
 }
 
+/**
+ * @swagger
+ * /action/admin-program/getProgramById:
+ *   post:
+ *     summary: "[Server Action] Get Program Details"
+ *     description: Returns a complete program definition, including specializations, curriculum structure, and intakes.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getProgramById(programId: string) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -72,6 +104,15 @@ export async function getProgramById(programId: string) {
 }
 
 // CREATE / UPDATE Programs
+/**
+ * @swagger
+ * /action/admin-program/createProgram:
+ *   post:
+ *     summary: "[Server Action] Create Degree Program"
+ *     description: Registers a new degree program in the system for a specific academic year.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function createProgram(data: z.infer<typeof ProgramSchema>) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -113,6 +154,15 @@ export type ProgramConfigUpdate = Partial<{
     academicYearId: string;
 }>;
 
+/**
+ * @swagger
+ * /action/admin-program/updateProgram:
+ *   post:
+ *     summary: "[Server Action] Update Degree Program"
+ *     description: Modifies program metadata or academic year binding.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function updateProgram(programId: string, data: ProgramConfigUpdate) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -140,6 +190,15 @@ export async function updateProgram(programId: string, data: ProgramConfigUpdate
 }
 
 /** Soft-disable a program (preferred over delete when enrollments may exist). */
+/**
+ * @swagger
+ * /action/admin-program/deactivateProgram:
+ *   post:
+ *     summary: "[Server Action] Deactivate Program"
+ *     description: Soft-deletes a program by setting its active status to false.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function deactivateProgram(programId: string) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error('Unauthorized');
@@ -186,6 +245,15 @@ function mapDegreeProgramForConfigClient(p: {
     };
 }
 
+/**
+ * @swagger
+ * /action/admin-program/getProgramsForAdminConfig:
+ *   post:
+ *     summary: "[Server Action] List All Programs (Config)"
+ *     description: Returns a flat list of programs mapped for the administrative configuration interface.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getProgramsForAdminConfig() {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error('Unauthorized');
@@ -197,6 +265,15 @@ export async function getProgramsForAdminConfig() {
 }
 
 // CREATE / UPDATE Specializations
+/**
+ * @swagger
+ * /action/admin-program/createSpecialization:
+ *   post:
+ *     summary: "[Server Action] Create Specialization"
+ *     description: Adds a new specialized path under an existing degree program.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function createSpecialization(data: z.infer<typeof SpecializationSchema> & { academicYearId?: string }) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -234,6 +311,15 @@ export async function createSpecialization(data: z.infer<typeof SpecializationSc
 }
 
 // STRUCTURE MANAGEMENT
+/**
+ * @swagger
+ * /action/admin-program/addModuleToStructure:
+ *   post:
+ *     summary: "[Server Action] Add Module to Curriculum"
+ *     description: Links a module to a program's academic level and semester, designating it as Core or Elective.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function addModuleToStructure(data: {
     programId: string,
     moduleId: string,
@@ -277,6 +363,15 @@ export async function addModuleToStructure(data: {
     revalidatePath(`/dashboard/admin/programs`);
 }
 
+/**
+ * @swagger
+ * /action/admin-program/removeModuleFromStructure:
+ *   post:
+ *     summary: "[Server Action] Remove Module from Curriculum"
+ *     description: Unlinks a module from a program's academic structure.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function removeModuleFromStructure(structureId: string) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -294,6 +389,15 @@ export async function removeModuleFromStructure(structureId: string) {
     revalidatePath(`/dashboard/admin/programs`);
 }
 
+/**
+ * @swagger
+ * /action/admin-program/getAllModulesSimple:
+ *   post:
+ *     summary: "[Server Action] List Modules (Basic)"
+ *     description: Returns a simplified list of active modules for selection in curriculum management.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getAllModulesSimple() {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -312,12 +416,30 @@ export async function getAllModulesSimple() {
 
 // INTAKE MANAGEMENT
 
+/**
+ * @swagger
+ * /action/admin-program/getAllAcademicYears:
+ *   post:
+ *     summary: "[Server Action] List All Academic Years"
+ *     description: Returns all academic cycles for intake configuration.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getAllAcademicYears() {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
     return await prisma.academicYear.findMany({ orderBy: { start_date: 'desc' } });
 }
 
+/**
+ * @swagger
+ * /action/admin-program/upsertProgramIntake:
+ *   post:
+ *     summary: "[Server Action] Save Program Intake"
+ *     description: Configures student capacity limits and status for a program's intake in a specific year.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function upsertProgramIntake(data: {
     programId: string,
     academicYearId: string,

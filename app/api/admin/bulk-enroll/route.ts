@@ -8,6 +8,52 @@ import { parse } from 'csv-parse/sync';
 import { auth } from '@/auth';
 import { writeAuditLog } from '@/lib/audit/write-audit-log';
 
+/**
+ * @swagger
+ * /api/admin/bulk-enroll:
+ *   post:
+ *     summary: Bulk enroll students
+ *     description: Processes a list of students for enrollment via JSON or CSV file.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               records:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               programId:
+ *                 type: string
+ *               level:
+ *                 type: string
+ *               filename:
+ *                 type: string
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               programId:
+ *                 type: string
+ *               level:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully processed enrollment
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(req: Request) {
     try {
         const session = await auth();

@@ -7,9 +7,27 @@ import crypto from 'crypto';
 export const dynamic = 'force-dynamic';
 
 /**
- * Request a password reset
- * POST /api/auth/request-reset
- * Body: { email: string }
+ * @swagger
+ * /api/auth/request-reset:
+ *   post:
+ *     summary: Request password reset
+ *     description: Sends a password reset link to the user's email if it exists.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Success message (sent regardless of email existence)
+ *       400:
+ *         description: Email is required
+ *       500:
+ *         description: Internal server error
  */
 export async function POST(req: Request) {
     try {

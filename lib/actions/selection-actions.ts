@@ -83,6 +83,26 @@ function levelMatches(roundLevel: string | null | undefined, studentLevel: strin
 // Read actions (HOD / admin)
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /action/selection/getSelectionRounds:
+ *   post:
+ *     summary: "[Server Action] List Selection Rounds"
+ *     description: Fetches all specialization or pathway selection rounds, optionally filtered by academic year.
+ *     tags:
+ *       - Selection Actions
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               academicYearId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched rounds
+ */
 export async function getSelectionRounds(academicYearId?: string) {
     try {
         if (!(await requireHodOrAdmin())) {
@@ -428,6 +448,49 @@ export async function getSelectionInsights() {
 // HOD Write Actions
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /action/selection/createSelectionRound:
+ *   post:
+ *     summary: "[Server Action] Create Selection Round"
+ *     description: Initializes a new specialization or pathway selection round with specific configurations and dates.
+ *     tags:
+ *       - Selection Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               academic_year_id:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [PATHWAY, SPECIALIZATION]
+ *               label:
+ *                 type: string
+ *               level:
+ *                 type: string
+ *               target_program_id:
+ *                 type: string
+ *               selection_mode:
+ *                 type: string
+ *                 enum: [AUTO, GPA, FREE]
+ *               opens_at:
+ *                 type: string
+ *                 format: date-time
+ *               closes_at:
+ *                 type: string
+ *                 format: date-time
+ *               configs:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Successfully created round
+ */
 export async function createSelectionRound(data: {
     academic_year_id: string;
     type: RoundType;
@@ -918,6 +981,27 @@ function allocateSpecialization(
 // Auto-allocation (AUTO / GPA / FREE)
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /action/selection/runGPAAllocation:
+ *   post:
+ *     summary: "[Server Action] Execute Allocation Engine"
+ *     description: Runs the automated selection algorithm to assign students to pathways or specializations based on GPA, preferences, and available capacity.
+ *     tags:
+ *       - Selection Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roundId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully executed allocation
+ */
 export async function runGPAAllocation(roundId: string) {
     try {
         const actor = await requireHodOrAdmin();
@@ -999,6 +1083,27 @@ export async function runGPAAllocation(roundId: string) {
 // HOD Approval — Commits Allocations to Student Records
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /action/selection/approveSelectionRound:
+ *   post:
+ *     summary: "[Server Action] Approve and Commit Selection"
+ *     description: Finalizes a selection round, locking in student allocations and updating their official academic records (pathway/specialization).
+ *     tags:
+ *       - Selection Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roundId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully approved round
+ */
 export async function approveSelectionRound(roundId: string, forceApprove = false) {
     try {
         const actor = await requireHodOrAdmin();
@@ -1250,6 +1355,29 @@ export async function commitApprovedPathwayAllocationsToStudents(roundId: string
     }
 }
 
+/**
+ * @swagger
+ * /action/selection/moveWaitlistStudent:
+ *   post:
+ *     summary: "[Server Action] Move Waitlisted Student"
+ *     description: Manually promotes a waitlisted student to an allocated slot in a specific pathway or specialization.
+ *     tags:
+ *       - Selection Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               appId:
+ *                 type: string
+ *               targetSlotId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully moved student
+ */
 export async function moveWaitlistStudent(appId: string, targetSlotId: string) {
     try {
         const actor = await requireHodOrAdmin();
@@ -1289,6 +1417,27 @@ export async function moveWaitlistStudent(appId: string, targetSlotId: string) {
 /**
  * Automatically move all waitlisted students in a round to any pathway/specialization
  * that still has available capacity.
+ */
+/**
+ * @swagger
+ * /action/selection/promoteAllWaitlistToFreeSlots:
+ *   post:
+ *     summary: "[Server Action] Mass Waitlist Promotion"
+ *     description: Automatically allocates all remaining waitlisted students to any available slots across the configured pathways.
+ *     tags:
+ *       - Selection Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roundId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully promoted students
  */
 export async function promoteAllWaitlistToFreeSlots(roundId: string) {
     try {
@@ -1365,6 +1514,24 @@ export async function promoteAllWaitlistToFreeSlots(roundId: string) {
 }
 
 
+/**
+ * @swagger
+ * /action/selection/rejectApplication:
+ *   post:
+ *     summary: "[Server Action] Reject Selection Application"
+ *     description: Explicitly rejects a student's selection application, removing them from consideration for the current round.
+ *     tags:
+ *       - Selection Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               appId:
+ *                 type: string
+ */
 export async function rejectApplication(appId: string) {
     try {
         const actor = await requireHodOrAdmin();
@@ -1478,6 +1645,28 @@ export async function redistributeUnderThresholdSpecs(roundId: string, specIds?:
 // Student actions (student portal)
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /action/selection/getStudentActiveSelectionRound:
+ *   post:
+ *     summary: "[Server Action] Get Active Selection for Student"
+ *     description: Returns the selection round (pathway or specialization) currently available to the authenticated student based on their level and program.
+ *     tags:
+ *       - Student Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               type:
+ *                 type: string
+ *                 enum: [PATHWAY, SPECIALIZATION]
+ *     responses:
+ *       200:
+ *         description: Successfully fetched active round
+ */
 export async function getStudentActiveSelectionRound(type: RoundType) {
     try {
         const studentSess = await requireStudent();
@@ -1717,6 +1906,29 @@ export async function getStudentActiveSelectionRound(type: RoundType) {
     }
 }
 
+/**
+ * @swagger
+ * /action/selection/submitAllocationChangeRequest:
+ *   post:
+ *     summary: "[Server Action] Request Allocation Change"
+ *     description: Submits a formal request for a student to change their allocated pathway or specialization after a round has been approved.
+ *     tags:
+ *       - Student Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               round_id:
+ *                 type: string
+ *               requested_preference_1:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully submitted request
+ */
 export async function submitAllocationChangeRequest(data: {
     round_id: string;
     requested_preference_1: string;
@@ -1815,6 +2027,27 @@ export async function submitAllocationChangeRequest(data: {
     }
 }
 
+/**
+ * @swagger
+ * /action/selection/listAllocationChangeRequestsForRound:
+ *   post:
+ *     summary: "[Server Action] List Change Requests"
+ *     description: Returns a list of pending allocation change requests for a specific selection round (for HOD review).
+ *     tags:
+ *       - HOD Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roundId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched requests
+ */
 export async function listAllocationChangeRequestsForRound(roundId: string) {
     try {
         if (!(await requireHodOrAdmin())) {
@@ -1859,6 +2092,30 @@ export async function listAllocationChangeRequestsForRound(roundId: string) {
     }
 }
 
+/**
+ * @swagger
+ * /action/selection/resolveAllocationChangeRequest:
+ *   post:
+ *     summary: "[Server Action] Resolve Change Request"
+ *     description: Approves or rejects a student's request to change their allocated pathway or specialization.
+ *     tags:
+ *       - HOD Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               requestId:
+ *                 type: string
+ *               decision:
+ *                 type: string
+ *                 enum: [APPROVE, REJECT]
+ *     responses:
+ *       200:
+ *         description: Successfully resolved request
+ */
 export async function resolveAllocationChangeRequest(requestId: string, decision: 'APPROVE' | 'REJECT') {
     try {
         const hod = await requireHodOrAdmin();
@@ -1979,6 +2236,35 @@ export async function resolveAllocationChangeRequest(requestId: string, decision
     }
 }
 
+/**
+ * @swagger
+ * /action/selection/submitSelectionApplication:
+ *   post:
+ *     summary: "[Server Action] Submit Selection Application"
+ *     description: Submits a student's preferences for a specialization or pathway selection round.
+ *     tags:
+ *       - Selection Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roundId:
+ *                 type: string
+ *               preference_1:
+ *                 type: string
+ *               preference_2:
+ *                 type: string
+ *               preference_3:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully submitted application
+ *       400:
+ *         description: Validation error
+ */
 export async function submitSelectionApplication(data: {
     round_id: string;
     preference_1: string;

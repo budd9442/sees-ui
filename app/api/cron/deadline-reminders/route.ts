@@ -2,8 +2,20 @@ import { NextResponse } from 'next/server';
 import { processDeadlineReminders } from '@/lib/notifications/deadline-reminders';
 
 /**
- * Daily cron: send deadline reminder emails for open module-registration and selection rounds.
- * Configure your scheduler to GET this URL with header `Authorization: Bearer <CRON_SECRET>`.
+ * @swagger
+ * /api/cron/deadline-reminders:
+ *   get:
+ *     summary: Send deadline reminders (Cron)
+ *     description: Background task to send reminder emails for upcoming deadlines. Requires CRON_SECRET authorization.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Reminders processed successfully
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
 export async function GET(req: Request) {
     const secret = process.env.CRON_SECRET;

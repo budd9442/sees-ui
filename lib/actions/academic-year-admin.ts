@@ -8,6 +8,18 @@ import { writeAuditLog } from '@/lib/audit/write-audit-log';
 /**
  * Fetch all academic years with impact statistics for Admin
  */
+/**
+ * @swagger
+ * /action/academic-year/getAdminAcademicYears:
+ *   post:
+ *     summary: "[Server Action] List Academic Years (Admin)"
+ *     description: Returns a comprehensive list of all academic years with associated statistics like semester and program counts.
+ *     tags:
+ *       - Academic Year Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched academic years
+ */
 export async function getAdminAcademicYears() {
     try {
         const years = await prisma.academicYear.findMany({
@@ -47,6 +59,33 @@ export async function getAdminAcademicYears() {
 
 /**
  * Create a new Academic Year and auto-provision semeters
+ */
+/**
+ * @swagger
+ * /action/academic-year/createAcademicYear:
+ *   post:
+ *     summary: "[Server Action] Create Academic Year"
+ *     description: Initializes a new academic year cycle and automatically provisions two semesters.
+ *     tags:
+ *       - Academic Year Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               label:
+ *                 type: string
+ *               startDate:
+ *                 type: string
+ *                 format: date-time
+ *               endDate:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Successfully created academic year
  */
 export async function createAcademicYear(data: {
     label: string,
@@ -121,6 +160,15 @@ export async function createAcademicYear(data: {
 /**
  * Set a specific year as the system's "Current/Active" cycle
  */
+/**
+ * @swagger
+ * /action/academic-year/setActiveAcademicYear:
+ *   post:
+ *     summary: "[Server Action] Set Active Academic Cycle"
+ *     description: Activates a specific academic year and deactivates all others. This is the system-wide 'current' cycle.
+ *     tags:
+ *       - Academic Year Actions
+ */
 export async function setActiveAcademicYear(id: string) {
     try {
         const session = await auth();
@@ -159,6 +207,15 @@ export async function setActiveAcademicYear(id: string) {
 
 /**
  * Delete an academic year (only if it has no critical links)
+ */
+/**
+ * @swagger
+ * /action/academic-year/deleteAcademicYear:
+ *   post:
+ *     summary: "[Server Action] Delete Academic Year"
+ *     description: Removes an academic year and its semesters if no student or staff records are linked to it.
+ *     tags:
+ *       - Academic Year Actions
  */
 export async function deleteAcademicYear(id: string) {
     try {
@@ -211,6 +268,15 @@ export async function deleteAcademicYear(id: string) {
 }
 /**
  * Update an existing Academic Year
+ */
+/**
+ * @swagger
+ * /action/academic-year/updateAcademicYear:
+ *   post:
+ *     summary: "[Server Action] Update Academic Year"
+ *     description: Modifies the label and date range of an existing academic year, re-syncing default semesters.
+ *     tags:
+ *       - Academic Year Actions
  */
 export async function updateAcademicYear(id: string, data: {
     label: string,

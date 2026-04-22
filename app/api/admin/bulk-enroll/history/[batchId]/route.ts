@@ -2,6 +2,30 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 
+/**
+ * @swagger
+ * /api/admin/bulk-enroll/history/{batchId}:
+ *   get:
+ *     summary: Get batch details
+ *     description: Returns the details of a specific bulk enrollment batch, including all records.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: batchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched batch details
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Batch not found
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(
     req: Request,
     { params }: { params: Promise<{ batchId: string }> }

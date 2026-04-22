@@ -103,6 +103,20 @@ function formatDatabaseSize(bytes: bigint | number): string {
     return `${mb.toFixed(1)} MB`;
 }
 
+/**
+ * @swagger
+ * /action/admin/getAdminDashboardData:
+ *   post:
+ *     summary: "[Server Action] Get Admin Dashboard Data"
+ *     description: Fetches high-level system metrics, user distributions, service statuses, and recent logs for the admin dashboard.
+ *     tags:
+ *       - Admin Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched dashboard data
+ *       401:
+ *         description: Unauthorized
+ */
 export async function getAdminDashboardData() {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
@@ -372,6 +386,20 @@ async function requireAdminUser() {
     return u;
 }
 
+/**
+ * @swagger
+ * /action/admin/getSystemMonitoringData:
+ *   post:
+ *     summary: "[Server Action] Get System Monitoring Data"
+ *     description: Returns detailed system health metrics, logs, and configurations for deep monitoring.
+ *     tags:
+ *       - Admin Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched monitoring data
+ *       401:
+ *         description: Unauthorized
+ */
 export async function getSystemMonitoringData() {
     await requireAdminUser();
 
@@ -456,6 +484,15 @@ export async function getSystemMonitoringData() {
 }
 
 // Alias for compatibility with logs view
+/**
+ * @swagger
+ * /action/admin/getAdminLogsData:
+ *   post:
+ *     summary: "[Server Action] Get System Audit Logs"
+ *     description: Returns a unified stream of audit logs and notification dispatch history for system monitoring.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getAdminLogsData() {
     const data = await getSystemMonitoringData();
     return { logs: data.logs };
@@ -465,22 +502,67 @@ export async function getAdminLogsData() {
 // SYSTEM BACKUP ACTIONS (canonical: backup-actions.ts)
 // ----------------------------------------------------------------------
 
+/**
+ * @swagger
+ * /action/admin/getAdminBackupsData:
+ *   post:
+ *     summary: "[Server Action] List Database Backups"
+ *     description: Returns a list of available database snapshots and their creation metadata.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getAdminBackupsData() {
     return backup_getAdminBackupsData();
 }
 
+/**
+ * @swagger
+ * /action/admin/createAdminBackup:
+ *   post:
+ *     summary: "[Server Action] Trigger Database Backup"
+ *     description: Manually initiates a full database snapshot.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function createAdminBackup() {
     return backup_createAdminBackup();
 }
 
+/**
+ * @swagger
+ * /action/admin/deleteAdminBackup:
+ *   post:
+ *     summary: "[Server Action] Delete Backup"
+ *     description: Permanently removes a database snapshot from storage.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function deleteAdminBackup(backupId: string) {
     return backup_deleteAdminBackup(backupId);
 }
 
+/**
+ * @swagger
+ * /action/admin/restoreAdminBackup:
+ *   post:
+ *     summary: "[Server Action] Restore Database"
+ *     description: Restores the system database to a previous state using a selected snapshot.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function restoreAdminBackup(backupId: string) {
     return backup_restoreAdminBackup(backupId);
 }
 
+/**
+ * @swagger
+ * /action/admin/downloadBackupAsBase64:
+ *   post:
+ *     summary: "[Server Action] Download Backup"
+ *     description: Returns the raw backup file encoded as Base64 for local archiving.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function downloadBackupAsBase64(filename: string) {
     return backup_downloadBackupAsBase64(filename);
 }
@@ -497,6 +579,18 @@ async function requireAdminForNotifications() {
     return session;
 }
 
+/**
+ * @swagger
+ * /action/admin/getAdminNotificationsData:
+ *   post:
+ *     summary: "[Server Action] Get Notification Configuration"
+ *     description: Fetches email templates and trigger configurations for system notifications.
+ *     tags:
+ *       - Admin Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched notification data
+ */
 export async function getAdminNotificationsData() {
     await requireAdminForNotifications();
     await ensureDefaultNotificationConfig();
@@ -529,6 +623,15 @@ export async function getAdminNotificationsData() {
     };
 }
 
+/**
+ * @swagger
+ * /action/admin/createAdminNotificationTemplate:
+ *   post:
+ *     summary: "[Server Action] Create Email Template"
+ *     description: Adds a new email template for system notifications.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function createAdminNotificationTemplate(data: Partial<NotificationTemplate> & { category: NotificationTemplate['category'] }) {
     const session = await requireAdminForNotifications();
     if (!data.name?.trim() || !data.subject?.trim() || !data.body?.trim() || !data.category) {
@@ -576,6 +679,15 @@ export async function createAdminNotificationTemplate(data: Partial<Notification
     };
 }
 
+/**
+ * @swagger
+ * /action/admin/updateAdminNotificationTemplate:
+ *   post:
+ *     summary: "[Server Action] Update Email Template"
+ *     description: Modifies an existing email template's subject, body, or placeholders.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function updateAdminNotificationTemplate(id: string, data: Partial<NotificationTemplate>) {
     const session = await requireAdminForNotifications();
     const existing = await prisma.notificationEmailTemplate.findUnique({
@@ -624,6 +736,15 @@ export async function updateAdminNotificationTemplate(id: string, data: Partial<
     };
 }
 
+/**
+ * @swagger
+ * /action/admin/deleteAdminNotificationTemplate:
+ *   post:
+ *     summary: "[Server Action] Delete Email Template"
+ *     description: Removes an email template from the system.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function deleteAdminNotificationTemplate(id: string) {
     const session = await requireAdminForNotifications();
     await prisma.notificationEmailTemplate.delete({
@@ -640,6 +761,15 @@ export async function deleteAdminNotificationTemplate(id: string) {
     return { success: true };
 }
 
+/**
+ * @swagger
+ * /action/admin/updateNotificationTriggerEnabled:
+ *   post:
+ *     summary: "[Server Action] Toggle Notification Trigger"
+ *     description: Enables or disables a specific system event trigger for notifications.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function updateNotificationTriggerEnabled(eventKey: string, enabled: boolean) {
     const session = await requireAdminForNotifications();
     await prisma.notificationTriggerConfig.update({
@@ -658,6 +788,15 @@ export async function updateNotificationTriggerEnabled(eventKey: string, enabled
     return { success: true as const };
 }
 
+/**
+ * @swagger
+ * /action/admin/updateDeadlineReminderConfig:
+ *   post:
+ *     summary: "[Server Action] Update Reminder Schedule"
+ *     description: Configures how many days before a deadline the system should send reminder emails.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function updateDeadlineReminderConfig(daysBeforeClose: number[]) {
     const session = await requireAdminForNotifications();
     const clean = [...new Set(daysBeforeClose.map((n) => Math.floor(Number(n))).filter((n) => n >= 0 && n <= 30))].sort(
@@ -712,6 +851,15 @@ function sampleVarsForEventKey(eventKey: string): Record<string, string> {
     return common;
 }
 
+/**
+ * @swagger
+ * /action/admin/previewAdminNotificationTemplate:
+ *   post:
+ *     summary: "[Server Action] Preview Email Template"
+ *     description: Renders a preview of an email template with sample data.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function previewAdminNotificationTemplate(templateId: string) {
     await requireAdminForNotifications();
     const t = await prisma.notificationEmailTemplate.findUnique({
@@ -730,6 +878,15 @@ export async function previewAdminNotificationTemplate(templateId: string) {
 
 // ANONYMOUS REPORTS ACTIONS
 
+/**
+ * @swagger
+ * /action/admin/getAnonymousReportsData:
+ *   post:
+ *     summary: "[Server Action] List Grievances & Reports"
+ *     description: Returns a list of anonymous reports submitted by students. Filtering is applied based on user role (Admin/HOD see all, Staff see assigned).
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getAnonymousReportsData() {
     const session = await auth();
     const allowedRoles = ['admin', 'hod', 'staff', 'advisor'];
@@ -804,6 +961,15 @@ export async function getAnonymousReportsData() {
 
 
 
+/**
+ * @swagger
+ * /action/admin/getAdminReportCategoriesData:
+ *   post:
+ *     summary: "[Server Action] List Report Categories (Admin)"
+ *     description: Returns available report categories and assigned staff members for configuration.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getAdminReportCategoriesData() {
     const session = await auth();
     if (!session?.user?.id || session.user.role !== 'admin') throw new Error('Unauthorized');
@@ -841,6 +1007,15 @@ export async function getAdminReportCategoriesData() {
 
 
 
+/**
+ * @swagger
+ * /action/admin/upsertReportCategory:
+ *   post:
+ *     summary: "[Server Action] Save Report Category"
+ *     description: Creates or updates a report category, including its assignment and active status.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function upsertReportCategory(data: {
     id?: string;
     name: string;
@@ -886,6 +1061,15 @@ export async function upsertReportCategory(data: {
     return { success: true, data: result };
 }
 
+/**
+ * @swagger
+ * /action/admin/deleteReportCategory:
+ *   post:
+ *     summary: "[Server Action] Delete Report Category"
+ *     description: Removes a report category if it is not currently in use by any reports.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function deleteReportCategory(id: string) {
     const session = await auth();
     if (!session?.user?.id || session.user.role !== 'admin') throw new Error('Unauthorized');
@@ -943,6 +1127,15 @@ function anonymousReportStatusUiToDb(ui: string): string {
     return m[k] ?? ui.toUpperCase();
 }
 
+/**
+ * @swagger
+ * /action/admin/updateAnonymousReport:
+ *   post:
+ *     summary: "[Server Action] Update Report Status"
+ *     description: Updates the status, notes, assignment, or priority of an anonymous student report.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function updateAnonymousReport(
     reportId: string,
     data: {
@@ -1037,6 +1230,15 @@ export async function updateAnonymousReport(
 
 // GPA CONFIG ACTIONS
 
+/**
+ * @swagger
+ * /action/admin/getAdminGpaConfigData:
+ *   post:
+ *     summary: "[Server Action] Get GPA Configuration"
+ *     description: Returns the current institution-wide grading bands and grade point scale.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getAdminGpaConfigData() {
     const session = await auth();
     if (!session?.user?.id || session.user.role !== 'admin') throw new Error("Unauthorized");
@@ -1070,6 +1272,15 @@ export async function getAdminGpaConfigData() {
 }
 
 /** Persist only institution mark → letter → points bands (active grading scheme). Does not touch GPA settings tabs. */
+/**
+ * @swagger
+ * /action/admin/saveAdminGradingBands:
+ *   post:
+ *     summary: "[Server Action] Save Institutional Grading Bands"
+ *     description: Updates the global mark-to-grade mapping for the institution.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function saveAdminGradingBands(
     gradeScale: {
         grade: string;
@@ -1136,6 +1347,15 @@ export async function saveAdminGradingBands(
 
 // DEGREE PROGRAMS ACTIONS
 
+/**
+ * @swagger
+ * /action/admin/getAdminDegreeProgramsData:
+ *   post:
+ *     summary: "[Server Action] List Degree Programs (Admin)"
+ *     description: Returns all degree programs and their configurations for administrative management.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getAdminDegreeProgramsData() {
     const { getProgramsForAdminConfig } = await import('@/lib/actions/admin-programs');
     return getProgramsForAdminConfig();

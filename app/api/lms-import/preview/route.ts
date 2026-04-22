@@ -7,6 +7,35 @@ export const dynamic = 'force-dynamic';
 
 const QUEUE_NAME = 'lms_import';
 
+/**
+ * @swagger
+ * /api/lms-import/preview:
+ *   post:
+ *     summary: Start LMS import preview
+ *     description: Enqueues a job to fetch academic records from the LMS for preview.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully started import
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(req: Request) {
     try {
         const session = await auth();

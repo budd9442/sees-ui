@@ -21,6 +21,20 @@ async function attachEligibilityToStudents<T extends { id: string }>(students: T
     );
 }
 
+/**
+ * @swagger
+ * /action/hod/getHODDashboardData:
+ *   post:
+ *     summary: "[Server Action] Get HOD Dashboard Data"
+ *     description: Returns department-wide metrics including student totals, staff workload, and module performance for Heads of Department.
+ *     tags:
+ *       - HOD Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched dashboard data
+ *       401:
+ *         description: Unauthorized
+ */
 export async function getHODDashboardData() {
     const session = await auth();
     if (!session?.user?.email) throw new Error("Unauthorized");
@@ -210,6 +224,31 @@ function normalizeLevelFilter(level?: string | null) {
     return level ?? undefined;
 }
 
+/**
+ * @swagger
+ * /action/hod/getHODAnalyticsData:
+ *   post:
+ *     summary: "[Server Action] Get HOD Detailed Analytics"
+ *     description: Returns in-depth department analytics including student demographics, grade distributions, and GPA trends.
+ *     tags:
+ *       - HOD Actions
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               filters:
+ *                 type: object
+ *                 properties:
+ *                   pathway:
+ *                     type: string
+ *                   level:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched analytics
+ */
 export async function getHODAnalyticsData(filters?: HODAnalyticsFilters) {
     const userId = await resolveHodUserId();
     const scope = await resolveHodDepartmentScope(userId);
@@ -374,6 +413,18 @@ export async function getHODAnalyticsData(filters?: HODAnalyticsFilters) {
 // PATHWAYS ACTIONS
 // ----------------------------------------------------------------------
 
+/**
+ * @swagger
+ * /action/hod/getHODPathwaysData:
+ *   post:
+ *     summary: "[Server Action] Get HOD Pathway Analytics"
+ *     description: Returns student distribution and preference data for degree pathways within the HOD's department.
+ *     tags:
+ *       - HOD Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched pathway data
+ */
 export async function getHODPathwaysData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -383,6 +434,33 @@ export async function getHODPathwaysData() {
     return { students: data.students };
 }
 
+/**
+ * @swagger
+ * /action/hod/allocatePathway:
+ *   post:
+ *     summary: "[Server Action] Allocate Student Pathway"
+ *     description: Manually assigns or reassigns students to a specific degree pathway or program.
+ *     tags:
+ *       - HOD Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               studentIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               pathway:
+ *                 type: string
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully requested allocation
+ */
 export async function allocatePathway(studentIds: string[], pathway: string, reason: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -407,6 +485,18 @@ export async function allocatePathway(studentIds: string[], pathway: string, rea
 // REPORTS ACTIONS
 // ----------------------------------------------------------------------
 
+/**
+ * @swagger
+ * /action/hod/getHODReportsData:
+ *   post:
+ *     summary: "[Server Action] Get HOD Comprehensive Reports"
+ *     description: Fetches all departmental reports including eligibility lists, academic goals, and intervention tracking.
+ *     tags:
+ *       - HOD Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched report data
+ */
 export async function getHODReportsData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -471,6 +561,18 @@ export async function getHODReportsData() {
 // RANKINGS ACTIONS
 // ----------------------------------------------------------------------
 
+/**
+ * @swagger
+ * /action/hod/getHODRankingsData:
+ *   post:
+ *     summary: "[Server Action] Get HOD Student Rankings"
+ *     description: Returns a ranked list of students within the department based on weighted GPA and pass rate metrics.
+ *     tags:
+ *       - HOD Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched rankings data
+ */
 export async function getHODRankingsData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -489,6 +591,18 @@ export async function getHODRankingsData() {
 // ELIGIBLE ACTIONS
 // ----------------------------------------------------------------------
 
+/**
+ * @swagger
+ * /action/hod/getHODEligibleData:
+ *   post:
+ *     summary: "[Server Action] Get HOD Graduation Eligibility"
+ *     description: Fetches graduation eligibility status for all students in the HOD's department.
+ *     tags:
+ *       - HOD Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched eligibility data
+ */
 export async function getHODEligibleData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -507,6 +621,18 @@ export async function getHODEligibleData() {
 // SYSTEM SETTINGS (Rankings Weights)
 // ----------------------------------------------------------------------
 
+/**
+ * @swagger
+ * /action/hod/getRankingWeights:
+ *   post:
+ *     summary: "[Server Action] Get Ranking Formula Weights"
+ *     description: Returns the current weights used for GPA and pass rate in the student ranking calculation.
+ *     tags:
+ *       - HOD Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched weights
+ */
 export async function getRankingWeights() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -568,6 +694,18 @@ export async function updateRankingWeights(gpaWeight: number, passRateWeight: nu
 
 export type HODTrendsFilters = HODAnalyticsFilters;
 
+/**
+ * @swagger
+ * /action/hod/getHODTrendsData:
+ *   post:
+ *     summary: "[Server Action] Get HOD Performance Trends"
+ *     description: Returns historical GPA trends and performance deltas for the department's student cohorts.
+ *     tags:
+ *       - HOD Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched trends data
+ */
 export async function getHODTrendsData(filters?: HODTrendsFilters) {
     const userId = await resolveHodUserId();
     const scope = await resolveHodDepartmentScope(userId);

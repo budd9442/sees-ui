@@ -59,6 +59,27 @@ function searchRateOk(userId: string): boolean {
   return true;
 }
 
+/**
+ * @swagger
+ * /action/messaging/searchUsersForMessaging:
+ *   post:
+ *     summary: "[Server Action] Search Users for Chat"
+ *     description: Searches for active users (students, staff, advisors) by name or email to initiate a conversation.
+ *     tags:
+ *       - Messaging Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               query:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched matching users
+ */
 export async function searchUsersForMessaging(query: string) {
   const session = await auth();
   if (!session?.user?.id) throw new Error('Unauthorized');
@@ -109,6 +130,28 @@ export async function searchUsersForMessaging(query: string) {
   };
 }
 
+/**
+ * @swagger
+ * /action/messaging/getMyMessages:
+ *   post:
+ *     summary: "[Server Action] List Personal Messages"
+ *     description: Fetches a paginated history of messages sent and received by the authenticated user.
+ *     tags:
+ *       - Messaging Actions
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               limit:
+ *                 type: number
+ *               cursor:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Successfully fetched message history
+ */
 export async function getMyMessages(opts?: { cursor?: MessageCursor | null; limit?: number }) {
   const session = await auth();
   if (!session?.user?.id) throw new Error('Unauthorized');
@@ -156,6 +199,31 @@ export async function getMyMessages(opts?: { cursor?: MessageCursor | null; limi
   return { messages: formatted, nextCursor };
 }
 
+/**
+ * @swagger
+ * /action/messaging/sendDirectMessage:
+ *   post:
+ *     summary: "[Server Action] Send Direct Message"
+ *     description: Sends a real-time message to another user and triggers a Pusher notification.
+ *     tags:
+ *       - Messaging Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               recipientId:
+ *                 type: string
+ *               subject:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully sent message
+ */
 export async function sendDirectMessage(input: {
   recipientId: string;
   subject?: string;

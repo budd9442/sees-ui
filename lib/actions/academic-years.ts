@@ -6,6 +6,15 @@ import { prisma } from '@/lib/db';
  * Fetch all academic years for selection
  * Sorted by start date descending to show current/future cycles first
  */
+/**
+ * @swagger
+ * /action/academic-year/getAcademicYears:
+ *   post:
+ *     summary: "[Server Action] List Academic Cycles"
+ *     description: Returns all academic years registered in the system, sorted by start date.
+ *     tags:
+ *       - System Actions
+ */
 export async function getAcademicYears() {
     try {
         const years = await prisma.academicYear.findMany({

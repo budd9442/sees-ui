@@ -13,6 +13,18 @@ import { prisma } from '@/lib/db';
  * once and cached per unique (previousGPA, currentGPA) pair.
  * Subsequent loads return the cached advice without calling the AI API again.
  */
+/**
+ * @swagger
+ * /action/monitoring/getAcademicRecoveryData:
+ *   post:
+ *     summary: "[Server Action] Get GPA Recovery Advice"
+ *     description: Detects GPA dips and returns AI-generated recovery plans and advisor contact information.
+ *     tags:
+ *       - Monitoring Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched recovery data
+ */
 export async function getAcademicRecoveryData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");

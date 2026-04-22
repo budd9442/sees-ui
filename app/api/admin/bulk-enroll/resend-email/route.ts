@@ -6,6 +6,35 @@ import { dispatchNotificationEmail } from '@/lib/notifications/dispatch';
 import { NotificationEventKey } from '@/lib/notifications/events';
 import { auth } from '@/auth';
 
+/**
+ * @swagger
+ * /api/admin/bulk-enroll/resend-email:
+ *   post:
+ *     summary: Resend enrollment email
+ *     description: Resends the welcome email to a student with a new temporary password.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               recordId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully resent email
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Record or user not found
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(req: Request) {
     try {
         const session = await auth();

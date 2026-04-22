@@ -10,6 +10,34 @@ function normalizeGradeLetter(input: string) {
     return String(input ?? '').trim();
 }
 
+/**
+ * @swagger
+ * /api/lms-import/session/{id}/commit:
+ *   post:
+ *     summary: Commit LMS import
+ *     description: Finalizes the LMS import by saving the previewed records to the database.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully committed import
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Session not found
+ *       409:
+ *         description: Preview not ready
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
     const session = await auth();
     if (!session?.user || session.user.role !== 'student') {

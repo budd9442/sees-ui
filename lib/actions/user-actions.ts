@@ -10,6 +10,34 @@ import { getInvitationEmail } from '@/lib/email/templates';
 import { randomBytes } from 'crypto';
 import { addDays } from 'date-fns';
 
+/**
+ * @swagger
+ * /action/user/getUsers:
+ *   post:
+ *     summary: "[Server Action] List and Filter Users"
+ *     description: Fetches a paginated list of users with optional filtering by role, level, and search query.
+ *     tags:
+ *       - User Actions
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               page:
+ *                 type: number
+ *               limit:
+ *                 type: number
+ *               search:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               level:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched users
+ */
 export async function getUsers({
     page = 1,
     limit = 10,
@@ -136,6 +164,38 @@ export async function getUsers({
     }
 }
 
+/**
+ * @swagger
+ * /action/user/createUser:
+ *   post:
+ *     summary: "[Server Action] Create New User"
+ *     description: Registers a new student or staff member, calculates academic level for students, and sends an invitation email with a registration token.
+ *     tags:
+ *       - Admin Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [student, staff]
+ *               degreePathId:
+ *                 type: string
+ *               staffNumber:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully created user
+ */
 export async function createUser(data: CreateUserSchema) {
     const result = userSchema.safeParse(data);
 
@@ -311,6 +371,33 @@ export async function createUser(data: CreateUserSchema) {
     }
 }
 
+/**
+ * @swagger
+ * /action/user/updateUser:
+ *   post:
+ *     summary: "[Server Action] Update User Details"
+ *     description: Updates a user's basic profile and role-specific details (student levels, staff departments) from the administrative dashboard.
+ *     tags:
+ *       - Admin Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully updated user
+ */
 export async function updateUser(updatedData: UpdateUserSchema) {
     const result = updateUserSchema.safeParse(updatedData);
 
@@ -397,6 +484,29 @@ export async function updateUser(updatedData: UpdateUserSchema) {
     }
 }
 
+/**
+ * @swagger
+ * /action/user/toggleUserStatus:
+ *   post:
+ *     summary: "[Server Action] Toggle User Activation"
+ *     description: Switches a user's status between ACTIVE and INACTIVE to enable or disable system access.
+ *     tags:
+ *       - User Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               currentStatus:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully toggled status
+ */
 export async function toggleUserStatus(userId: string, currentStatus: string) {
     try {
         const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
@@ -412,6 +522,24 @@ export async function toggleUserStatus(userId: string, currentStatus: string) {
     }
 }
 
+/**
+ * @swagger
+ * /action/user/deleteUser:
+ *   post:
+ *     summary: "[Server Action] Hard Delete User"
+ *     description: Permanently removes a user and all associated academic/staff records from the system using a cascaded transaction.
+ *     tags:
+ *       - User Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ */
 export async function deleteUser(userId: string) {
     try {
         // Deep cascade delete using a transaction to ensure data integrity
@@ -465,6 +593,27 @@ export async function deleteUser(userId: string) {
     }
 }
 
+/**
+ * @swagger
+ * /action/user/validateRegistrationToken:
+ *   post:
+ *     summary: "[Server Action] Validate Invite Token"
+ *     description: Checks if a registration token is valid, unused, and within its expiration period.
+ *     tags:
+ *       - Auth Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token validation result
+ */
 export async function validateRegistrationToken(token: string) {
     try {
         const registrationToken = await prisma.registrationToken.findUnique({
@@ -511,6 +660,12 @@ export async function completeRegistration(token: string, password: string) {
         const userId = validation.data?.userId;
         if (!userId) return { success: false, error: 'User not found' };
 
+        // Validate password strength server-side
+        const passwordResult = setPasswordSchema.safeParse({ password, confirmPassword: password });
+        if (!passwordResult.success) {
+            return { success: false, error: 'Password does not meet security requirements' };
+        }
+
         const hashedPassword = await hash(password, 10);
 
         await prisma.$transaction(async (tx) => {
@@ -542,6 +697,26 @@ export async function completeRegistration(token: string, password: string) {
     }
 }
 
+/**
+ * @swagger
+ * /action/user/changePassword:
+ *   post:
+ *     summary: "[Server Action] Change Password"
+ *     description: Updates the authenticated user's password after verifying their current password.
+ *     tags:
+ *       - Auth Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ */
 export async function changePassword(data: ChangePasswordSchema & { userId: string }) {
     const result = changePasswordSchema.safeParse(data);
 
@@ -581,6 +756,41 @@ export async function changePassword(data: ChangePasswordSchema & { userId: stri
     }
 }
 
+/**
+ * @swagger
+ * /action/user/updateProfile:
+ *   post:
+ *     summary: "[Server Action] Update Personal Profile"
+ *     description: Updates the currently authenticated user's profile information, including contact details and social links.
+ *     tags:
+ *       - User Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               linkedin:
+ *                 type: string
+ *               github:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               emergency_contact:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully updated profile
+ */
 export async function updateProfile(userId: string, data: { 
     firstName: string; 
     lastName: string;
@@ -620,6 +830,15 @@ export async function updateProfile(userId: string, data: {
         return { success: false, error: error instanceof Error ? error.message : 'Failed to update user profile' };
     }
 }
+/**
+ * @swagger
+ * /action/user/toggleHODStatus:
+ *   post:
+ *     summary: "[Server Action] Toggle HOD Role"
+ *     description: Promotes or demotes a staff member to Head of Department (HOD) status for their assigned department.
+ *     tags:
+ *       - User Actions
+ */
 export async function toggleHODStatus(staffId: string) {
     try {
         const staff = await prisma.staff.findUnique({

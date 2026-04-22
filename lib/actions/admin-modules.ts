@@ -18,6 +18,28 @@ const ModuleSchema = z.object({
     prerequisiteCodes: z.array(z.string()).default([]),
 });
 
+/**
+ * @swagger
+ * /action/admin-module/getModules:
+ *   post:
+ *     summary: "[Server Action] List and Search Modules"
+ *     description: Returns a filtered list of academic modules, optionally filtered by search query and academic year.
+ *     tags:
+ *       - Admin Actions
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               query:
+ *                 type: string
+ *               academicYearId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched modules
+ */
 export async function getModules(query?: string, academicYearId?: string) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -56,6 +78,15 @@ export async function getModules(query?: string, academicYearId?: string) {
     });
 }
 
+/**
+ * @swagger
+ * /action/admin-module/upsertModule:
+ *   post:
+ *     summary: "[Server Action] Create or Update Module"
+ *     description: Creates a new academic module or updates an existing one, including prerequisites and academic year binding.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function upsertModule(data: z.infer<typeof ModuleSchema> & { moduleId?: string, academicYearId?: string }) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -174,6 +205,15 @@ export async function upsertModule(data: z.infer<typeof ModuleSchema> & { module
     revalidatePath('/dashboard/admin/modules');
 }
 
+/**
+ * @swagger
+ * /action/admin-module/syncGuideBookPrerequisites:
+ *   post:
+ *     summary: "[Server Action] Sync Prereqs from Guidebook"
+ *     description: Automatically populates module prerequisite links based on a predefined guidebook mapping.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function syncGuideBookPrerequisites() {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -227,6 +267,15 @@ export async function syncGuideBookPrerequisites() {
     return;
 }
 
+/**
+ * @swagger
+ * /action/admin-module/toggleModuleStatus:
+ *   post:
+ *     summary: "[Server Action] Toggle Module Visibility"
+ *     description: Activates or deactivates a module, making it hidden or visible to students during registration.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function toggleModuleStatus(moduleId: string) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -251,6 +300,15 @@ export async function toggleModuleStatus(moduleId: string) {
 
 // STAFF ASSIGNMENT ACTIONS
 
+/**
+ * @swagger
+ * /action/admin-module/getAllStaffList:
+ *   post:
+ *     summary: "[Server Action] List All Staff"
+ *     description: Returns a list of all staff members in the system for module assignment purposes.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getAllStaffList() {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -276,6 +334,15 @@ export async function getAllStaffList() {
     }));
 }
 
+/**
+ * @swagger
+ * /action/admin-module/getModuleAssignments:
+ *   post:
+ *     summary: "[Server Action] List Staff Assigned to Module"
+ *     description: Returns the staff members currently assigned to teach or manage a specific module.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getModuleAssignments(moduleId: string) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -301,6 +368,15 @@ export async function getModuleAssignments(moduleId: string) {
     }));
 }
 
+/**
+ * @swagger
+ * /action/admin-module/assignStaffToModule:
+ *   post:
+ *     summary: "[Server Action] Assign Staff to Module"
+ *     description: Links a staff member to a module with a specific role (e.g., Lecturer, Coordinator) for an academic year.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function assignStaffToModule(moduleId: string, staffId: string, role: string, yearId?: string) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
@@ -360,6 +436,15 @@ export async function assignStaffToModule(moduleId: string, staffId: string, rol
     revalidatePath('/dashboard/admin/modules');
 }
 
+/**
+ * @swagger
+ * /action/admin-module/removeStaffAssignment:
+ *   post:
+ *     summary: "[Server Action] Remove Staff Assignment"
+ *     description: Permanently removes a staff member's teaching assignment from a module.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function removeStaffAssignment(assignmentId: string) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");

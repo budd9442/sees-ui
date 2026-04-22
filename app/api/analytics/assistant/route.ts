@@ -54,6 +54,55 @@ Available Datasets & Columns:
 
 Keep patches helpful and concise. If adding visuals, ensure they fit neatly. Do not leave visuals unsorted if the user asks for rankings.`;
 
+/**
+ * @swagger
+ * /api/analytics/assistant:
+ *   post:
+ *     summary: AI Analytics Assistant
+ *     description: Interacts with the Grok AI to generate analytics reports and visuals based on user prompts.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *                 description: User's natural language request.
+ *               aggregatesSummary:
+ *                 type: string
+ *                 description: Summary of current metrics for context.
+ *               currentVisualIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               definition:
+ *                 type: object
+ *                 description: Current report definition.
+ *     responses:
+ *       200:
+ *         description: Successfully generated AI response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 narrative:
+ *                   type: string
+ *                 patch:
+ *                   type: object
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Assistant disabled
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(req: Request) {
     if (!isAnalyticsAssistantEnabled()) {
         return NextResponse.json({ error: 'Assistant disabled' }, { status: 403 });

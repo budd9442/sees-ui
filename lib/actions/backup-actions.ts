@@ -14,6 +14,18 @@ const IV_LENGTH = 16;
 /**
  * Trigger a JSON-based database snapshot (Portability focus for FR7.2c)
  */
+/**
+ * @swagger
+ * /action/backup/triggerBackup:
+ *   post:
+ *     summary: "[Server Action] Create Database Snapshot"
+ *     description: Triggers an encrypted JSON backup of the entire database, including users, programs, modules, and grades.
+ *     tags:
+ *       - Backup Actions
+ *     responses:
+ *       200:
+ *         description: Successfully created backup
+ */
 export async function triggerBackup() {
     const session = await auth();
     if (!session?.user?.id || (session.user as any).role !== 'admin') {
@@ -210,6 +222,18 @@ export async function downloadBackupAsBase64(filename: string) {
     };
 }
 
+/**
+ * @swagger
+ * /action/backup/createAdminBackup:
+ *   post:
+ *     summary: "[Server Action] Manual Backup Creation"
+ *     description: Creates an encrypted snapshot of the current database state for administrative archiving.
+ *     tags:
+ *       - Backup Actions
+ *     responses:
+ *       200:
+ *         description: Successfully created backup
+ */
 export async function createAdminBackup() {
     const r = await triggerBackup();
     return {

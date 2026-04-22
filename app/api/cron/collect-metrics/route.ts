@@ -8,10 +8,20 @@ import {
 export const dynamic = 'force-dynamic';
 
 /**
- * Background metrics collection endpoint
- * Called by cron job every minute to collect and store system metrics.
- * Configure your scheduler to GET this URL with header:
- * Authorization: Bearer <CRON_SECRET>
+ * @swagger
+ * /api/cron/collect-metrics:
+ *   get:
+ *     summary: Collect system metrics (Cron)
+ *     description: Background task to collect and store system metrics. Requires CRON_SECRET authorization.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Metrics collected successfully
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
 export async function GET(req: Request) {
     const secret = process.env.CRON_SECRET;

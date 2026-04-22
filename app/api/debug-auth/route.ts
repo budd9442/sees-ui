@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+/**
+ * @swagger
+ * /api/debug-auth:
+ *   get:
+ *     summary: Debug authentication
+ *     description: Returns the current authentication state from cookies for debugging purposes.
+ *     responses:
+ *       200:
+ *         description: Successfully fetched debug info
+ */
 export async function GET() {
   const cookieStore = await cookies();
   const authCookie = cookieStore.get('auth-storage');

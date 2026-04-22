@@ -5,9 +5,29 @@ import bcrypt from 'bcryptjs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Reset password using token
- * POST /api/auth/reset-password
- * Body: { token: string, password: string }
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Reset password
+ *     description: Resets the user's password using a valid reset token.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         description: Invalid or expired token
+ *       500:
+ *         description: Internal server error
  */
 export async function POST(req: Request) {
     try {

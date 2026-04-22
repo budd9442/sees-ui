@@ -12,6 +12,29 @@ import { assertStudentWriteAccess } from '@/lib/actions/student-access';
  * This is a transactional "Sync" operation.
  * It will add new registrations and remove deselected ones (that aren't already completed).
  */
+/**
+ * @swagger
+ * /action/enrollment/registerForModules:
+ *   post:
+ *     summary: "[Server Action] Register Student for Modules"
+ *     description: Enrolls a student in a set of academic modules for the active semester, performing prerequisite and capacity checks.
+ *     tags:
+ *       - Enrollment Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               moduleIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Successfully updated registrations
+ */
 export async function registerForModules(moduleIds: string[]) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -109,6 +132,18 @@ export async function registerForModules(moduleIds: string[]) {
 
 /**
  * Get Enrollment Oversight statistics for staff.
+ */
+/**
+ * @swagger
+ * /action/enrollment/getEnrollmentStats:
+ *   post:
+ *     summary: "[Server Action] Get Enrollment Statistics"
+ *     description: Returns department-wide enrollment metrics, including student counts per module and capacity utilization.
+ *     tags:
+ *       - Staff Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched enrollment stats
  */
 export async function getEnrollmentStats() {
     const session = await auth();

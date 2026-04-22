@@ -27,6 +27,20 @@ function moduleRegistrationRoundTable(): any {
 
 // ─── HOD / admin ─────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /action/registration-round/listModuleRegistrationRounds:
+ *   post:
+ *     summary: "[Server Action] List Registration Rounds"
+ *     description: Returns all module registration rounds, including their status, study levels, and time windows.
+ *     tags:
+ *       - Registration Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched rounds
+ *       401:
+ *         description: Unauthorized
+ */
 export async function listModuleRegistrationRounds() {
     try {
         if (!(await requireHodOrAdmin())) {
@@ -51,6 +65,15 @@ export async function listModuleRegistrationRounds() {
     }
 }
 
+/**
+ * @swagger
+ * /action/registration-round/getModuleRegistrationRound:
+ *   post:
+ *     summary: "[Server Action] Get Registration Round Details"
+ *     description: Returns the full configuration and timing for a specific module registration window.
+ *     tags:
+ *       - Registration Actions
+ */
 export async function getModuleRegistrationRound(roundId: string) {
     try {
         if (!(await requireHodOrAdmin())) {
@@ -73,6 +96,39 @@ export async function getModuleRegistrationRound(roundId: string) {
     }
 }
 
+/**
+ * @swagger
+ * /action/registration-round/createModuleRegistrationRound:
+ *   post:
+ *     summary: "[Server Action] Create Registration Round"
+ *     description: Initializes a new module registration window for specific study levels.
+ *     tags:
+ *       - Registration Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               academic_year_id:
+ *                 type: string
+ *               label:
+ *                 type: string
+ *               levels:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               opens_at:
+ *                 type: string
+ *                 format: date-time
+ *               closes_at:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Successfully created round
+ */
 export async function createModuleRegistrationRound(data: {
     academic_year_id: string;
     label: string;
@@ -117,6 +173,15 @@ export async function createModuleRegistrationRound(data: {
     }
 }
 
+/**
+ * @swagger
+ * /action/registration-round/updateModuleRegistrationRoundMeta:
+ *   post:
+ *     summary: "[Server Action] Update Registration Round"
+ *     description: Modifies the metadata, study levels, or time windows for a registration round. Cannot edit finalized rounds.
+ *     tags:
+ *       - Registration Actions
+ */
 export async function updateModuleRegistrationRoundMeta(
     roundId: string,
     data: Partial<{
@@ -199,6 +264,15 @@ async function assertNoOpenConflict(
     return { ok: true };
 }
 
+/**
+ * @swagger
+ * /action/registration-round/openModuleRegistrationRound:
+ *   post:
+ *     summary: "[Server Action] Open Registration Round"
+ *     description: Activates a registration window, allowing students of the specified levels to begin selecting modules.
+ *     tags:
+ *       - Registration Actions
+ */
 export async function openModuleRegistrationRound(roundId: string) {
     try {
         if (!(await requireHodOrAdmin())) {
@@ -237,6 +311,15 @@ export async function openModuleRegistrationRound(roundId: string) {
     }
 }
 
+/**
+ * @swagger
+ * /action/registration-round/closeModuleRegistrationRound:
+ *   post:
+ *     summary: "[Server Action] Close Registration Round"
+ *     description: Deactivates an open registration window, preventing further module changes by students.
+ *     tags:
+ *       - Registration Actions
+ */
 export async function closeModuleRegistrationRound(roundId: string) {
     try {
         if (!(await requireHodOrAdmin())) {
@@ -312,6 +395,15 @@ export type ModuleRegistrationRoundSnapshot = {
 /**
  * Full registration picture for the round's academic year, filtered to students whose
  * level matches the round (empty round levels = all levels). HOD/admin only.
+ */
+/**
+ * @swagger
+ * /action/registration-round/getModuleRegistrationRoundSnapshot:
+ *   post:
+ *     summary: "[Server Action] Get Registration Snapshot"
+ *     description: Returns a comprehensive statistical summary and student-level registration list for a specific round.
+ *     tags:
+ *       - Registration Actions
  */
 export async function getModuleRegistrationRoundSnapshot(
     roundId: string
@@ -477,6 +569,15 @@ export async function getModuleRegistrationRoundSnapshot(
     }
 }
 
+/**
+ * @swagger
+ * /action/registration-round/finalizeModuleRegistrationRound:
+ *   post:
+ *     summary: "[Server Action] Finalize Registration Round"
+ *     description: Permanently locks a registration round, preventing any future status changes or metadata edits.
+ *     tags:
+ *       - Registration Actions
+ */
 export async function finalizeModuleRegistrationRound(roundId: string) {
     try {
         if (!(await requireHodOrAdmin())) {
@@ -523,6 +624,15 @@ export type StudentModuleRegistrationWindow = {
 
 /**
  * Resolves whether the student may edit module registrations for the active academic year.
+ */
+/**
+ * @swagger
+ * /action/registration-round/getStudentModuleRegistrationWindow:
+ *   post:
+ *     summary: "[Server Action] Check Student Registration Window"
+ *     description: Resolves whether the currently authenticated student is within an active registration window for their level.
+ *     tags:
+ *       - Registration Actions
  */
 export async function getStudentModuleRegistrationWindow(): Promise<StudentModuleRegistrationWindow> {
     const session = await auth();

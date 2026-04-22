@@ -5,6 +5,18 @@ import { prisma } from '@/lib/db';
 import { generateTwoFactorSecret, verifyTwoFactorCode, generateBackupCodes } from '@/lib/auth/two-factor';
 import { revalidatePath } from 'next/cache';
 
+/**
+ * @swagger
+ * /action/auth/getTwoFactorStatus:
+ *   post:
+ *     summary: "[Server Action] Check 2FA Status"
+ *     description: Returns whether the currently authenticated user has Two-Factor Authentication enabled.
+ *     tags:
+ *       - Auth Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched 2FA status
+ */
 export async function getTwoFactorStatus() {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
@@ -17,6 +29,18 @@ export async function getTwoFactorStatus() {
     return user?.isTwoFactorEnabled || false;
 }
 
+/**
+ * @swagger
+ * /action/auth/initiateTwoFactorSetup:
+ *   post:
+ *     summary: "[Server Action] Start 2FA Setup"
+ *     description: Generates a new TOTP secret and QR code for the user to scan with an authenticator app.
+ *     tags:
+ *       - Auth Actions
+ *     responses:
+ *       200:
+ *         description: Successfully generated secret
+ */
 export async function initiateTwoFactorSetup() {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');

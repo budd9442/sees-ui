@@ -18,6 +18,45 @@ function getPusherServer(): Pusher | null {
   });
 }
 
+/**
+ * @swagger
+ * /api/realtime/auth:
+ *   post:
+ *     summary: Pusher channel authorization
+ *     description: Authorizes a user to join a private Pusher channel.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               socket_id:
+ *                 type: string
+ *               channel_name:
+ *                 type: string
+ *         application/x-www-form-urlencoded:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               socket_id:
+ *                 type: string
+ *               channel_name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully authorized
+ *       400:
+ *         description: Missing parameters
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden channel
+ *       503:
+ *         description: Realtime service not configured
+ */
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {

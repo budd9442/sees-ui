@@ -8,6 +8,15 @@ import { isWithinRegistrationWindow, SELECTION_ROUND_WINDOW_COPY } from '@/lib/r
 /**
  * Fetch available specialized paths for the current student
  */
+/**
+ * @swagger
+ * /action/academic-path/getAvailableSpecializedPaths:
+ *   post:
+ *     summary: "[Server Action] List Specialized Pathways"
+ *     description: Returns available degree specializations for the student, including selection statistics, quotas, and current rank.
+ *     tags:
+ *       - Student Actions
+ */
 export async function getAvailableSpecializedPaths() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -126,6 +135,15 @@ export async function getAvailableSpecializedPaths() {
 
 /**
  * Finalize specialized path selection (Preference only until deadline)
+ */
+/**
+ * @swagger
+ * /action/academic-path/selectSpecializedPath:
+ *   post:
+ *     summary: "[Server Action] Select Preferred Pathway"
+ *     description: Updates the student's first preference for a specialized degree pathway. Selection is subject to quota and GPA ranking.
+ *     tags:
+ *       - Student Actions
  */
 export async function selectSpecializedPath(targetProgramId: string) {
     const session = await auth();

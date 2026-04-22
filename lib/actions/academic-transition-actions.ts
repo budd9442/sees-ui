@@ -50,6 +50,20 @@ async function requireBatchOperator() {
 /**
  * Summarizes the student population by academic level
  */
+/**
+ * @swagger
+ * /action/academic-transition/getBatchOverviewForOperator:
+ *   post:
+ *     summary: "[Server Action] Get Batch Population Overview"
+ *     description: Provides a summary of the student population categorized by academic level (L1, L2, L3, L4, GRADUATED).
+ *     tags:
+ *       - Admin Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched batch overview
+ *       401:
+ *         description: Unauthorized
+ */
 export async function getBatchOverviewForOperator() {
     try {
         const operator = await requireBatchOperator();
@@ -87,6 +101,15 @@ export async function getBatchOverviewForOperator() {
 /**
  * Backward-compatible level summary for existing admin page.
  */
+/**
+ * @swagger
+ * /action/academic-transition/getBatchStatistics:
+ *   post:
+ *     summary: "[Server Action] Get Batch Stats (Simplified)"
+ *     description: Returns a simplified population count for active student batches (excluding graduated).
+ *     tags:
+ *       - Admin Actions
+ */
 export async function getBatchStatistics() {
     const overview = await getBatchOverviewForOperator();
     if (!overview.success || !overview.data) return overview;
@@ -98,6 +121,24 @@ export async function getBatchStatistics() {
 
 /**
  * Detailed student and status breakdown for one batch.
+ */
+/**
+ * @swagger
+ * /action/academic-transition/getBatchDetailsForOperator:
+ *   post:
+ *     summary: "[Server Action] Get Batch Detail"
+ *     description: Returns a detailed list of students and enrollment status breakdown for a specific academic level.
+ *     tags:
+ *       - Admin Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               level:
+ *                 type: string
  */
 export async function getBatchDetailsForOperator(level: string) {
     try {
@@ -179,6 +220,33 @@ export async function getBatchDetailsForOperator(level: string) {
 
 /**
  * Vertical promotion of a student batch (L1 -> L2, etc.)
+ */
+/**
+ * @swagger
+ * /action/academic-transition/executeBatchTransition:
+ *   post:
+ *     summary: "[Server Action] Execute Batch Level Promotion"
+ *     description: Promotes an entire cohort of students from one academic level to the next (e.g., L1 to L2). Sends notification emails to all affected students.
+ *     tags:
+ *       - Admin Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sourceLevel:
+ *                 type: string
+ *                 enum: [L1, L2, L3, L4]
+ *               targetLevel:
+ *                 type: string
+ *                 enum: [L2, L3, L4, GRADUATED]
+ *     responses:
+ *       200:
+ *         description: Successfully executed promotion
+ *       400:
+ *         description: Illegal transition or no students found
  */
 export async function executeBatchTransition(sourceLevel: string, targetLevel: string) {
     try {
@@ -274,6 +342,15 @@ export async function executeBatchTransition(sourceLevel: string, targetLevel: s
 
 /**
  * Backward-compatible wrapper for current admin UI calls.
+ */
+/**
+ * @swagger
+ * /action/academic-transition/promoteBatch:
+ *   post:
+ *     summary: "[Server Action] Promote Batch"
+ *     description: Alias for executeBatchTransition. Promotes students from sourceLevel to targetLevel.
+ *     tags:
+ *       - Admin Actions
  */
 export async function promoteBatch(sourceLevel: string, targetLevel: string) {
     return executeBatchTransition(sourceLevel, targetLevel);

@@ -21,6 +21,18 @@ async function createAuditLog(adminId: string, action: string, entityId: string,
 /**
  * Fetch all system settings categorized
  */
+/**
+ * @swagger
+ * /action/settings/getCategorizedSettings:
+ *   post:
+ *     summary: "[Server Action] List All System Settings"
+ *     description: Returns all system configuration keys grouped by category (Academic, Security, Branding, etc.).
+ *     tags:
+ *       - Settings Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched settings
+ */
 export async function getCategorizedSettings() {
     const session = await auth();
     if (!session?.user?.id || (session.user as any).role !== 'admin') {
@@ -47,6 +59,29 @@ export async function getCategorizedSettings() {
 
 /**
  * Update a specific system setting with Audit Trail
+ */
+/**
+ * @swagger
+ * /action/settings/updateSystemSettingWithAudit:
+ *   post:
+ *     summary: "[Server Action] Update System Setting"
+ *     description: Updates a configuration key (e.g., registration window status) and records the change in the administrative audit log.
+ *     tags:
+ *       - Settings Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               key:
+ *                 type: string
+ *               value:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully updated setting
  */
 export async function updateSystemSettingWithAudit(key: string, value: string) {
     const session = await auth();

@@ -39,6 +39,30 @@ export async function getStaffModuleRoster(moduleId: string) {
 /**
  * Update a lecture schedule (FR5.4)
  */
+/**
+ * @swagger
+ * /action/staff/updateLectureSchedule:
+ *   post:
+ *     summary: "[Server Action] Update Class Schedule"
+ *     description: Modifies the timing or location of a lecture. Performs conflict detection to ensure the room and staff are free.
+ *     tags:
+ *       - Staff Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               scheduleId:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *               startTime:
+ *                 type: string
+ *               endTime:
+ *                 type: string
+ */
 export async function updateLectureSchedule(data: {
     scheduleId: string;
     dayOfWeek?: string;
@@ -116,6 +140,18 @@ export async function updateLectureSchedule(data: {
 /**
  * Fetch Staff's Assigned Schedules
  */
+/**
+ * @swagger
+ * /action/staff/getStaffSchedules:
+ *   post:
+ *     summary: "[Server Action] List Staff Timetable"
+ *     description: Returns all scheduled classes and lecture sessions for the currently authenticated staff member.
+ *     tags:
+ *       - Staff Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched timetable
+ */
 export async function getStaffSchedules() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -128,6 +164,18 @@ export async function getStaffSchedules() {
 
 /**
  * Fetch Staff's Assigned Modules (Production-Grade)
+ */
+/**
+ * @swagger
+ * /action/staff/getStaffAssignedModules:
+ *   post:
+ *     summary: "[Server Action] List Taught Modules"
+ *     description: Returns a list of modules assigned to the staff member, including enrollment counts for the current academic year.
+ *     tags:
+ *       - Staff Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched assignments
  */
 export async function getStaffAssignedModules() {
     const session = await auth();
@@ -177,6 +225,20 @@ export async function getStaffAssignedModules() {
 
 /**
  * Production-Grade Staff Dashboard Data Fetcher
+ */
+/**
+ * @swagger
+ * /action/staff/getStaffDashboardData:
+ *   post:
+ *     summary: "[Server Action] Get Staff Dashboard Data"
+ *     description: Fetches assigned modules, workload metrics, grade distribution, and recent activities for the staff dashboard.
+ *     tags:
+ *       - Staff Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched dashboard data
+ *       401:
+ *         description: Unauthorized
  */
 export async function getStaffDashboardData() {
     const session = await auth();
@@ -363,6 +425,24 @@ export async function getStaffDashboardData() {
 /**
  * Fetch Enrolled Students for a Module (Production-Grade)
  */
+/**
+ * @swagger
+ * /action/staff/getEnrolledStudents:
+ *   post:
+ *     summary: "[Server Action] List Module Roster"
+ *     description: Returns the list of students enrolled in a specific module, including their current marks and grade status.
+ *     tags:
+ *       - Staff Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               moduleId:
+ *                 type: string
+ */
 export async function getEnrolledStudents(moduleId: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -452,6 +532,15 @@ export async function getEnrolledStudents(moduleId: string) {
 /**
  * Effective grading bands for this module + institution defaults (for staff UI).
  */
+/**
+ * @swagger
+ * /action/staff/getModuleGradingScaleForStaff:
+ *   post:
+ *     summary: "[Server Action] Get Module Grading Scale"
+ *     description: Returns the active grading bands (letter grades and ranges) for a module, including any staff-defined overrides.
+ *     tags:
+ *       - Staff Actions
+ */
 export async function getModuleGradingScaleForStaff(moduleId: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
@@ -472,6 +561,15 @@ export async function getModuleGradingScaleForStaff(moduleId: string) {
 
 /**
  * Set or clear per-module grading band override (assigned staff only).
+ */
+/**
+ * @swagger
+ * /action/staff/setModuleCustomGradingBands:
+ *   post:
+ *     summary: "[Server Action] Set Custom Grading Scale"
+ *     description: Overrides the institution-wide grading bands for a specific module with custom ranges or letter grades.
+ *     tags:
+ *       - Staff Actions
  */
 export async function setModuleCustomGradingBands(moduleId: string, bands: unknown | null) {
     const session = await auth();
@@ -518,6 +616,38 @@ export type UpdateStudentGradeInput = {
 
 /**
  * Update a Student's Grade: either numeric marks (derives letter) or direct letter grade from scale.
+ */
+/**
+ * @swagger
+ * /action/staff/updateStudentGrade:
+ *   post:
+ *     summary: "[Server Action] Update Student Grade"
+ *     description: Updates or creates a grade for a student registration, calculating points based on the module's grading scale.
+ *     tags:
+ *       - Staff Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               regId:
+ *                 type: string
+ *               input:
+ *                 type: object
+ *                 properties:
+ *                   marks:
+ *                     type: number
+ *                     nullable: true
+ *                   letterGrade:
+ *                     type: string
+ *                     nullable: true
+ *     responses:
+ *       200:
+ *         description: Successfully updated grade
+ *       400:
+ *         description: Validation error
  */
 export async function updateStudentGrade(regId: string, input: UpdateStudentGradeInput) {
     const session = await auth();
@@ -598,6 +728,15 @@ export async function updateStudentGrade(regId: string, input: UpdateStudentGrad
 
 /**
  * Bulk Upload Grades from CSV (Production-Grade)
+ */
+/**
+ * @swagger
+ * /action/staff/bulkUploadStaffGrades:
+ *   post:
+ *     summary: "[Server Action] Bulk Grade Upload"
+ *     description: Processes a batch of student grades from a CSV-style array of objects. Resolves marks or letters based on the module's scale.
+ *     tags:
+ *       - Staff Actions
  */
 export async function bulkUploadStaffGrades(moduleId: string, data: { studentId: string; grade: number | string }[]) {
     try {
@@ -712,6 +851,27 @@ export async function bulkUploadStaffGrades(moduleId: string, data: { studentId:
 
 /**
  * Release/Publish Grades for a Module
+ */
+/**
+ * @swagger
+ * /action/staff/releaseModuleGrades:
+ *   post:
+ *     summary: "[Server Action] Release Module Grades"
+ *     description: Publishes grades for an entire module, triggers academic standing updates, and sends notification emails.
+ *     tags:
+ *       - Staff Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               moduleId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully released grades
  */
 export async function releaseModuleGrades(moduleId: string) {
     const session = await auth();

@@ -133,6 +133,52 @@ function stripMarkdown(text: string): string {
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /api/chat:
+ *   post:
+ *     summary: AI Chat Assistant
+ *     description: Academic virtual assistant that can answer questions about the curriculum and student data using Grok AI and direct SQL queries.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: User's question or message.
+ *               history:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     role:
+ *                       type: string
+ *                     content:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Successfully generated response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 response:
+ *                   type: string
+ *                 dbAccess:
+ *                   type: boolean
+ *       400:
+ *         description: Message is required
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(request: NextRequest) {
   try {
     // ── 1. Auth ───────────────────────────────────────────────────────────

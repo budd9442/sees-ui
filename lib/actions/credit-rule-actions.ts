@@ -8,6 +8,18 @@ import { writeAuditLog } from '@/lib/audit/write-audit-log';
 /**
  * Fetch all academic credit rules
  */
+/**
+ * @swagger
+ * /action/credit-rule/getAcademicCreditRules:
+ *   post:
+ *     summary: "[Server Action] List Credit Rules"
+ *     description: Returns all academic credit rules governing the minimum and maximum credits allowed per semester and study level.
+ *     tags:
+ *       - Credit Rule Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched credit rules
+ */
 export async function getAcademicCreditRules() {
     return await prisma.academicCreditRule.findMany({
         orderBy: [
@@ -32,6 +44,33 @@ export async function getCreditRuleForContext(level: string, semesterNumber: num
 
 /**
  * Upsert a credit rule
+ */
+/**
+ * @swagger
+ * /action/credit-rule/saveCreditRule:
+ *   post:
+ *     summary: "[Server Action] Create or Update Credit Rule"
+ *     description: Configures the credit limits for a specific academic level and semester.
+ *     tags:
+ *       - Credit Rule Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               level:
+ *                 type: string
+ *               semester_number:
+ *                 type: number
+ *               min_credits:
+ *                 type: number
+ *               max_credits:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Successfully saved credit rule
  */
 export async function saveCreditRule(data: {
     level: string;

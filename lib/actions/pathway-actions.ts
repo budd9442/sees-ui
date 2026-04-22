@@ -91,6 +91,18 @@ export async function getPathwayGuidancePreferences() {
     return { success: true, data: parsed.data };
 }
 
+/**
+ * @swagger
+ * /action/pathway/getPathwayGuidance:
+ *   post:
+ *     summary: "[Server Action] Get AI-Powered Pathway Guidance"
+ *     description: Analyzes student interests, strengths, and academic history to provide personalized recommendations for degree pathways (MIT vs IT).
+ *     tags:
+ *       - Pathway Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched guidance
+ */
 export async function getPathwayGuidance() {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
@@ -291,6 +303,18 @@ export async function getPathwayAllocationStatus() {
 /**
  * Run the GPA-based allocation engine.
  * This is a highly destructive administrative action.
+ */
+/**
+ * @swagger
+ * /action/pathway/runPathwayAllocation:
+ *   post:
+ *     summary: "[Server Action] Execute GPA-Based Pathway Allocation"
+ *     description: Highly destructive administrative action that ranks students by GPA and assigns them to pathways based on their ranked preferences and program capacities.
+ *     tags:
+ *       - Admin Actions
+ *     responses:
+ *       200:
+ *         description: Successfully executed allocation
  */
 export async function runPathwayAllocation() {
     const session = await auth();

@@ -9,6 +9,18 @@ import { AIService } from '@/lib/services/ai-service';
 import { createHash } from 'crypto';
 import { evaluateStudentEligibility } from '@/lib/graduation/student-eligibility';
 
+/**
+ * @swagger
+ * /action/student/getCreditsData:
+ *   post:
+ *     summary: "[Server Action] Get Student Credit Summary"
+ *     description: Fetches a detailed summary of the student's academic progress, including earned credits, GPA history, and graduation eligibility thresholds.
+ *     tags:
+ *       - Student Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched credit data
+ */
 export async function getCreditsData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -164,6 +176,18 @@ function getMetricUnit(goalType: QuantGoalType) {
     return 'GPA';
 }
 
+/**
+ * @swagger
+ * /action/student/getGoals:
+ *   post:
+ *     summary: "[Server Action] List Academic Goals"
+ *     description: Returns the student's personal academic goals, including GPA targets, credit milestones, and progress tracking.
+ *     tags:
+ *       - Student Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched goals
+ */
 export async function getGoals() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -195,6 +219,15 @@ export async function getGoals() {
     }));
 }
 
+/**
+ * @swagger
+ * /action/student/createGoal:
+ *   post:
+ *     summary: "[Server Action] Create Academic Goal"
+ *     description: Creates a new trackable goal for the student, such as a target GPA or credit count.
+ *     tags:
+ *       - Student Actions
+ */
 export async function createGoal(data: {
     title: string;
     description?: string;
@@ -336,6 +369,15 @@ export async function deleteGoal(goalId: string) {
     return { success: true };
 }
 
+/**
+ * @swagger
+ * /action/student/getPathwayData:
+ *   post:
+ *     summary: "[Server Action] Get Pathway Options"
+ *     description: Returns the student's current degree pathway and available alternatives (MIT/IT), including demand metrics and peer ranking.
+ *     tags:
+ *       - Student Actions
+ */
 export async function getPathwayData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -401,6 +443,15 @@ export async function getPathwayData() {
     };
 }
 
+/**
+ * @swagger
+ * /action/student/getSpecializationData:
+ *   post:
+ *     summary: "[Server Action] Get Specialization Options"
+ *     description: Returns available branch specializations for the student's program, including current enrollment and capacity status.
+ *     tags:
+ *       - Student Actions
+ */
 export async function getSpecializationData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -474,6 +525,15 @@ export async function updateStudentPathway(programCode: string) {
     return { success: true };
 }
 
+/**
+ * @swagger
+ * /action/student/updateStudentSpecialization:
+ *   post:
+ *     summary: "[Server Action] Select Specialization"
+ *     description: Updates the student's specialization (branch), performing capacity checks to ensure slots are available.
+ *     tags:
+ *       - Student Actions
+ */
 export async function updateStudentSpecialization(specCode: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");

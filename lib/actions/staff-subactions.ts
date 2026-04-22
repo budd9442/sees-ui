@@ -21,6 +21,15 @@ export type StaffAnalyticsFilters = {
     semesterId?: string | null;
 };
 
+/**
+ * @swagger
+ * /action/staff/getStaffAnalyticsFilterOptions:
+ *   post:
+ *     summary: "[Server Action] Get Analytics Filters"
+ *     description: Returns available academic years and semesters to filter staff performance analytics.
+ *     tags:
+ *       - Staff Actions
+ */
 export async function getStaffAnalyticsFilterOptions() {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
@@ -36,6 +45,40 @@ export async function getStaffAnalyticsFilterOptions() {
     });
 }
 
+/**
+ * @swagger
+ * /action/staff/getStaffAnalytics:
+ *   post:
+ *     summary: "[Server Action] Get Staff Module Performance Analytics"
+ *     description: Returns grading trends and registration statistics for modules assigned to the authenticated staff member.
+ *     tags:
+ *       - Staff Actions
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               filters:
+ *                 type: object
+ *                 properties:
+ *                   academicYearId:
+ *                     type: string
+ *                   semesterId:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched analytics
+ */
+/**
+ * @swagger
+ * /action/staff/getStaffAnalytics:
+ *   post:
+ *     summary: "[Server Action] Get Staff Performance Analytics"
+ *     description: Returns grading trends and registration statistics for modules assigned to the staff member.
+ *     tags:
+ *       - Staff Actions
+ */
 export async function getStaffAnalytics(filters?: StaffAnalyticsFilters) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -153,6 +196,24 @@ export async function getStaffAnalytics(filters?: StaffAnalyticsFilters) {
 // ROSTER ACTIONS
 // ----------------------------------------------------------------------
 
+/**
+ * @swagger
+ * /action/staff/getStaffModuleRoster:
+ *   post:
+ *     summary: "[Server Action] Get Detailed Module Roster"
+ *     description: Returns a comprehensive list of students in a module, including their contact info, current grades, and attendance data.
+ *     tags:
+ *       - Staff Actions
+ */
+/**
+ * @swagger
+ * /action/staff/getStaffModuleRoster:
+ *   post:
+ *     summary: "[Server Action] Get Detailed Module Roster"
+ *     description: Returns a comprehensive list of students in a module, including their contact info and current grades.
+ *     tags:
+ *       - Staff Actions
+ */
 export async function getStaffModuleRoster(moduleId: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -241,6 +302,24 @@ export async function getStaffModuleRoster(moduleId: string) {
 // SCHEDULE ACTIONS
 // ----------------------------------------------------------------------
 
+/**
+ * @swagger
+ * /action/staff/getStaffSchedules:
+ *   post:
+ *     summary: "[Server Action] List Staff Timetable (Full)"
+ *     description: Returns all lecture and session schedules for the authenticated staff member across all assigned modules.
+ *     tags:
+ *       - Staff Actions
+ */
+/**
+ * @swagger
+ * /action/staff/getStaffSchedules:
+ *   post:
+ *     summary: "[Server Action] List Staff Timetable (Full)"
+ *     description: Returns all lecture and session schedules for the authenticated staff member across all assigned modules.
+ *     tags:
+ *       - Staff Actions
+ */
 export async function getStaffSchedules() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -311,6 +390,24 @@ export async function getStaffSchedules() {
     };
 }
 
+/**
+ * @swagger
+ * /action/staff/createStaffSchedule:
+ *   post:
+ *     summary: "[Server Action] Create Class Session"
+ *     description: Adds a new lecture or lab session to a module's schedule.
+ *     tags:
+ *       - Staff Actions
+ */
+/**
+ * @swagger
+ * /action/staff/createStaffSchedule:
+ *   post:
+ *     summary: "[Server Action] Create Class Session"
+ *     description: Adds a new lecture or lab session to a module's schedule.
+ *     tags:
+ *       - Staff Actions
+ */
 export async function createStaffSchedule(data: {
     moduleId: string;
     day: string;
@@ -365,6 +462,24 @@ export async function createStaffSchedule(data: {
 // ----------------------------------------------------------------------
 // GRADES ACTIONS
 // ----------------------------------------------------------------------
+/**
+ * @swagger
+ * /action/staff/getStaffGradesData:
+ *   post:
+ *     summary: "[Server Action] Get Staff Grading Overview"
+ *     description: Returns a centralized view of all student grades across all modules taught by the authenticated staff member.
+ *     tags:
+ *       - Staff Actions
+ */
+/**
+ * @swagger
+ * /action/staff/getStaffGradesData:
+ *   post:
+ *     summary: "[Server Action] Get Staff Grading Overview"
+ *     description: Returns a centralized view of all student grades across all modules taught by the authenticated staff member.
+ *     tags:
+ *       - Staff Actions
+ */
 export async function getStaffGradesData() {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -507,6 +622,15 @@ export async function getStaffGradesData() {
     };
 }
 
+/**
+ * @swagger
+ * /action/staff/uploadStaffGrades:
+ *   post:
+ *     summary: "[Server Action] Bulk Grade Upload"
+ *     description: Processes a batch of student grades from a CSV-style array of objects.
+ *     tags:
+ *       - Staff Actions
+ */
 export async function uploadStaffGrades(gradesData: any[]) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -590,6 +714,15 @@ export async function uploadStaffGrades(gradesData: any[]) {
     return { success: true, count };
 }
 
+/**
+ * @swagger
+ * /action/staff/releaseStaffGrades:
+ *   post:
+ *     summary: "[Server Action] Release Multiple Grades"
+ *     description: Publishes a set of selected grades, triggering notifications and GPA recalculations.
+ *     tags:
+ *       - Staff Actions
+ */
 export async function releaseStaffGrades(gradeIds: string[]) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");

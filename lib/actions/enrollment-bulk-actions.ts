@@ -11,6 +11,28 @@ import { writeAuditLog } from '@/lib/audit/write-audit-log';
 /**
  * Upload and Initial Parse of Bulk Enrollment CSV
  */
+/**
+ * @swagger
+ * /action/enrollment/uploadBulkEnrollment:
+ *   post:
+ *     summary: "[Server Action] Upload Bulk Enrollment CSV"
+ *     description: Parses a CSV file containing student or staff records and initializes a bulk enrollment batch for processing.
+ *     tags:
+ *       - Admin Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Successfully uploaded and initialized batch
+ */
 export async function uploadBulkEnrollment(formData: FormData) {
     const session = await auth();
     if (!session?.user?.id || (session.user as any).role !== 'admin') {
@@ -73,6 +95,27 @@ export async function uploadBulkEnrollment(formData: FormData) {
 
 /**
  * Process a Batch: Create Users, Students, and Dispatch Invites
+ */
+/**
+ * @swagger
+ * /action/enrollment/processEnrollmentBatch:
+ *   post:
+ *     summary: "[Server Action] Process Enrollment Batch"
+ *     description: Executes the creation of user accounts and student profiles for a previously uploaded enrollment batch.
+ *     tags:
+ *       - Admin Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               batchId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully processed batch
  */
 export async function processEnrollmentBatch(batchId: string) {
     const session = await auth();
@@ -194,6 +237,15 @@ export async function processEnrollmentBatch(batchId: string) {
 /**
  * Dispatch Emails for a Batch
  */
+/**
+ * @swagger
+ * /action/enrollment/dispatchEnrollmentInvites:
+ *   post:
+ *     summary: "[Server Action] Dispatch Batch Invites"
+ *     description: Triggers the background email worker to send invitation and password-setup links to all successful records in an enrollment batch.
+ *     tags:
+ *       - Admin Actions
+ */
 export async function dispatchEnrollmentInvites(batchId: string) {
     const session = await auth();
     if (!session?.user?.id || (session.user as { role?: string }).role !== 'admin') {
@@ -244,6 +296,15 @@ export async function dispatchEnrollmentInvites(batchId: string) {
 /**
  * Complete Account Setup: Set Password and Activate
  */
+/**
+ * @swagger
+ * /action/enrollment/completeStudentSetup:
+ *   post:
+ *     summary: "[Server Action] Complete Password Setup"
+ *     description: Activates a user account and sets their initial password using a valid registration token.
+ *     tags:
+ *       - Auth Actions
+ */
 export async function completeStudentSetup(token: string, password: string) {
     const tokenData = await prisma.registrationToken.findUnique({
         where: { token },
@@ -282,6 +343,15 @@ export async function completeStudentSetup(token: string, password: string) {
 
 /**
  * Fetch Batches for the dashboard
+ */
+/**
+ * @swagger
+ * /action/enrollment/getBulkEnrollmentBatches:
+ *   post:
+ *     summary: "[Server Action] List Enrollment Batches"
+ *     description: Returns a history of all bulk enrollment uploads, including their processing status and success/failure counts.
+ *     tags:
+ *       - Admin Actions
  */
 export async function getBulkEnrollmentBatches() {
     return await prisma.bulkEnrollmentBatch.findMany({

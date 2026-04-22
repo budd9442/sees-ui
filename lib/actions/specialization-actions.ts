@@ -116,6 +116,35 @@ function getPreferencePayload(metadata: unknown) {
     return raw as Record<string, unknown>;
 }
 
+/**
+ * @swagger
+ * /action/specialization/submitSpecializationPreferences:
+ *   post:
+ *     summary: "[Server Action] Submit Specialization Interests"
+ *     description: Saves a student's academic and career preferences to provide personalized specialization guidance.
+ *     tags:
+ *       - Specialization Actions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               academicInterests:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               careerAspirations:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               reasoning:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully saved preferences
+ */
 export async function submitSpecializationPreferences(input: unknown) {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
@@ -157,6 +186,15 @@ export async function submitSpecializationPreferences(input: unknown) {
     return { success: true };
 }
 
+/**
+ * @swagger
+ * /action/specialization/getSpecializationPreferences:
+ *   post:
+ *     summary: "[Server Action] Get Saved Preferences"
+ *     description: Fetches the student's previously submitted academic and career interests for specialization guidance.
+ *     tags:
+ *       - Specialization Actions
+ */
 export async function getSpecializationPreferences() {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Unauthorized');
@@ -181,6 +219,18 @@ export async function getSpecializationPreferences() {
 
 /**
  * Get deterministic + Grok-enhanced specialization guidance.
+ */
+/**
+ * @swagger
+ * /action/specialization/getSpecializationGuidance:
+ *   post:
+ *     summary: "[Server Action] Get AI Specialization Recommendations"
+ *     description: Combines deterministic scoring with AI analysis of student transcript and preferences to recommend an MIT specialization (BSE, OSCM, or IS).
+ *     tags:
+ *       - Specialization Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched guidance
  */
 export async function getSpecializationGuidance() {
     const session = await auth();
@@ -330,6 +380,15 @@ export async function getSpecializationGuidance() {
 /**
  * Submit Specialization Selection
  */
+/**
+ * @swagger
+ * /action/specialization/submitSpecializationSelection:
+ *   post:
+ *     summary: "[Server Action] Confirm Specialization Selection"
+ *     description: Permanently saves the student's final choice of specialization (branch) for their degree program.
+ *     tags:
+ *       - Specialization Actions
+ */
 export async function submitSpecializationSelection(specializationCode: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
@@ -358,6 +417,15 @@ export async function submitSpecializationSelection(specializationCode: string) 
 
 /**
  * Fetch Specialization Status & Meta-data
+ */
+/**
+ * @swagger
+ * /action/specialization/getSpecializationInitialData:
+ *   post:
+ *     summary: "[Server Action] Get Specialization Meta"
+ *     description: Returns the student's current specialization and the list of available branches for their degree program.
+ *     tags:
+ *       - Specialization Actions
  */
 export async function getSpecializationInitialData() {
     const session = await auth();

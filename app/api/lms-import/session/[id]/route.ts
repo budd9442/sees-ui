@@ -4,6 +4,32 @@ import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * @swagger
+ * /api/lms-import/session/{id}:
+ *   get:
+ *     summary: Get LMS import session status
+ *     description: Returns the status and preview data of an LMS import session.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched session status
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Session not found
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
     const session = await auth();
     if (!session?.user || session.user.role !== 'student') {

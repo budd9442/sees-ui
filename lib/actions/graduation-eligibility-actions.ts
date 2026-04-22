@@ -24,6 +24,18 @@ async function resolveStaffId(userId: string): Promise<string | null> {
     return staff?.staff_id ?? null;
 }
 
+/**
+ * @swagger
+ * /action/graduation/listGraduationProgramsForEditor:
+ *   post:
+ *     summary: "[Server Action] List Programs with Graduation Rules"
+ *     description: Returns a list of active degree programs and their associated graduation eligibility profiles for administrative editing.
+ *     tags:
+ *       - Graduation Actions
+ *     responses:
+ *       200:
+ *         description: Successfully fetched programs
+ */
 export async function listGraduationProgramsForEditor() {
     await requireHodOrAdmin();
     const programs = await prisma.degreeProgram.findMany({
@@ -44,6 +56,15 @@ export async function listGraduationProgramsForEditor() {
     }));
 }
 
+/**
+ * @swagger
+ * /action/graduation/getGraduationEligibilityProfile:
+ *   post:
+ *     summary: "[Server Action] Get Program Graduation Rules"
+ *     description: Fetches the specific graduation eligibility criteria for a degree program, including credit requirements and GPA thresholds.
+ *     tags:
+ *       - Graduation Actions
+ */
 export async function getGraduationEligibilityProfile(programId: string) {
     await requireHodOrAdmin();
     const profile = await prisma.graduationEligibilityProfile.findUnique({
@@ -59,6 +80,15 @@ export async function getGraduationEligibilityProfile(programId: string) {
     };
 }
 
+/**
+ * @swagger
+ * /action/graduation/upsertGraduationEligibilityProfile:
+ *   post:
+ *     summary: "[Server Action] Update Graduation Rules"
+ *     description: Updates or creates the graduation eligibility profile for a program. Validates the rule document structure before saving.
+ *     tags:
+ *       - Graduation Actions
+ */
 export async function upsertGraduationEligibilityProfile(programId: string, rules: unknown) {
     const { session } = await requireHodOrAdmin();
     const doc = parseGraduationRulesDocument(rules);
@@ -166,17 +196,44 @@ async function syncThresholdSettingsFromMinGpaRules(doc: GraduationRulesDocument
     });
 }
 
+/**
+ * @swagger
+ * /action/graduation/applyGraduationPreset:
+ *   post:
+ *     summary: "[Server Action] Apply Rule Preset"
+ *     description: Overwrites a program's graduation rules with a predefined template (e.g., standard 4-year degree requirements).
+ *     tags:
+ *       - Graduation Actions
+ */
 export async function applyGraduationPreset(programId: string, presetId: PresetId) {
     if (!PRESET_IDS.includes(presetId)) throw new Error('Invalid preset');
     const rules = getPresetRules(presetId);
     return upsertGraduationEligibilityProfile(programId, rules);
 }
 
+/**
+ * @swagger
+ * /action/graduation/previewGraduationEligibility:
+ *   post:
+ *     summary: "[Server Action] Preview Student Eligibility"
+ *     description: Runs the graduation evaluation engine for a specific student and returns their current standing against program rules.
+ *     tags:
+ *       - Graduation Actions
+ */
 export async function previewGraduationEligibility(studentId: string) {
     await requireHodOrAdmin();
     return evaluateStudentEligibility(studentId);
 }
 
+/**
+ * @swagger
+ * /action/graduation/searchStudentsForGraduationPreview:
+ *   post:
+ *     summary: "[Server Action] Search Students for Evaluation"
+ *     description: Finds students by name or email to perform a manual graduation eligibility check.
+ *     tags:
+ *       - Graduation Actions
+ */
 export async function searchStudentsForGraduationPreview(query: string) {
     await requireHodOrAdmin();
     const q = query.trim();

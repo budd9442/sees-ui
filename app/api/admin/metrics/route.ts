@@ -10,6 +10,56 @@ const SAMPLE_INTERVAL_MS = 60_000;
  * Returns historical system metrics from database with downsampling.
  * Query params: ?window=1h|6h|24h|7d (default: 1h)
  */
+/**
+ * @swagger
+ * /api/admin/metrics:
+ *   get:
+ *     summary: Get system metrics
+ *     description: Returns historical system metrics from database with downsampling.
+ *     parameters:
+ *       - in: query
+ *         name: window
+ *         schema:
+ *           type: string
+ *           enum: [1h, 6h, 24h, 7d]
+ *           default: 1h
+ *         description: Time window for metrics
+ *     responses:
+ *       200:
+ *         description: Successfully fetched metrics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   timestamp:
+ *                     type: string
+ *                     format: date-time
+ *                   cpu:
+ *                     type: number
+ *                   cores:
+ *                     type: number
+ *                   memory:
+ *                     type: number
+ *                   storageUsed:
+ *                     type: string
+ *                   storageTotal:
+ *                     type: string
+ *                   storagePercentage:
+ *                     type: number
+ *                   uptime:
+ *                     type: number
+ *                   health:
+ *                     type: string
+ *                   activeUsers:
+ *                     type: number
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
