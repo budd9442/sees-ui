@@ -217,10 +217,10 @@ function monthKey(d: Date) {
 function normalizeLevelFilter(level?: string | null) {
     const raw = String(level ?? '').trim().toUpperCase();
     if (!raw || raw === 'ALL') return undefined;
-    if (raw === 'L1' || raw === 'LEVEL 1') return 'Level 1';
-    if (raw === 'L2' || raw === 'LEVEL 2') return 'Level 2';
-    if (raw === 'L3' || raw === 'LEVEL 3') return 'Level 3';
-    if (raw === 'L4' || raw === 'LEVEL 4') return 'Level 4';
+    if (raw === 'L1' || raw === 'LEVEL 1') return 'L1';
+    if (raw === 'L2' || raw === 'LEVEL 2') return 'L2';
+    if (raw === 'L3' || raw === 'LEVEL 3') return 'L3';
+    if (raw === 'L4' || raw === 'LEVEL 4') return 'L4';
     return level ?? undefined;
 }
 

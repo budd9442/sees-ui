@@ -121,7 +121,7 @@ export async function startLmsImportWorker() {
             });
 
             const currentLevel = inferred.currentLevel;
-            const levelNum = currentLevel === 'Level 4' ? 4 : currentLevel === 'Level 3' ? 3 : currentLevel === 'Level 2' ? 2 : 1;
+            const levelNum = currentLevel === 'L4' ? 4 : currentLevel === 'L3' ? 3 : currentLevel === 'L2' ? 2 : 1;
 
             const degreePathId =
                 levelNum >= 2 && inferred.pathway?.programId ? inferred.pathway.programId : student.degree_path_id;

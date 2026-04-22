@@ -2,7 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { LmsYearResult } from './kln-science-faculty-client';
 
 export type InferredAcademicContext = {
-    currentLevel: 'Level 1' | 'Level 2' | 'Level 3' | 'Level 4';
+    currentLevel: 'L1' | 'L2' | 'L3' | 'L4';
     pathway?: {
         programId: string;
         pathwayCode: string;
@@ -30,18 +30,11 @@ export function inferCurrentLevel(lmsYears: Record<1 | 2 | 3 | 4, LmsYearResult>
     const y3 = yearRowCount(lmsYears[3]);
     const y2 = yearRowCount(lmsYears[2]);
 
-    if (y4 > 0) return 'Level 4';
+    if (y4 > 0) return 'L4';
     // Rule: Year4 rows=0 => user is in 3rd year (as long as Year3 has modules).
-    if (y3 > 0) return 'Level 3';
-    if (y2 > 0) return 'Level 2';
-    return 'Level 1';
-}
-
-function lmsLevelToAcademicLevel(level: InferredAcademicContext['currentLevel']) {
-    if (level === 'Level 1') return 'L1';
-    if (level === 'Level 2') return 'L2';
-    if (level === 'Level 3') return 'L3';
-    return 'L4';
+    if (y3 > 0) return 'L3';
+    if (y2 > 0) return 'L2';
+    return 'L1';
 }
 
 export async function inferStudentAcademicContext(params: {
@@ -54,11 +47,10 @@ export async function inferStudentAcademicContext(params: {
     const { prisma, lmsYears } = params;
 
     const currentLevel = inferCurrentLevel(lmsYears);
-    const lmsLevel = lmsLevelToAcademicLevel(currentLevel);
 
     // Pathway inference only for Level 2+
     let pathway: InferredAcademicContext['pathway'] | undefined = undefined;
-    if (currentLevel === 'Level 2' || currentLevel === 'Level 3' || currentLevel === 'Level 4') {
+    if (currentLevel === 'L2' || currentLevel === 'L3' || currentLevel === 'L4') {
         const activeYear = await prisma.academicYear.findFirst({ where: { active: true } });
         const activeAcademicYearId = activeYear?.academic_year_id ?? null;
 
@@ -118,7 +110,7 @@ export async function inferStudentAcademicContext(params: {
 
     // Specialization inference only for Level 3+
     let specialization: InferredAcademicContext['specialization'] | undefined = undefined;
-    if (currentLevel === 'Level 3' || currentLevel === 'Level 4') {
+    if (currentLevel === 'L3' || currentLevel === 'L4') {
         if (pathway) {
             const activeYear = await prisma.academicYear.findFirst({ where: { active: true } });
             const activeAcademicYearId = activeYear?.academic_year_id ?? null;

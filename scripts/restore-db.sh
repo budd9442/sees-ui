@@ -6,9 +6,16 @@
 
 set -e
 
-# Load environment variables from .env if it exists
-if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
+# Find the project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Load environment variables from .env if it exists in project root
+if [ -f "$PROJECT_ROOT/.env" ]; then
+  # Use set -a to export all variables from the sourced file
+  set -a
+  source "$PROJECT_ROOT/.env"
+  set +a
 fi
 
 DUMP_FILE=$1
@@ -16,6 +23,12 @@ DUMP_FILE=$1
 if [ -z "$DUMP_FILE" ]; then
   echo "Usage: $0 <path_to_dump_file>"
   exit 1
+fi
+
+# Make path absolute if it's relative
+if [[ "$DUMP_FILE" != /* ]]; then
+  # If it's a relative path, assume it's relative to the current working directory
+  DUMP_FILE="$(pwd)/$DUMP_FILE"
 fi
 
 if [ ! -f "$DUMP_FILE" ]; then
@@ -26,12 +39,20 @@ fi
 echo "🚀 Starting database restore process..."
 echo "📂 Dump file: $DUMP_FILE"
 
+# Ensure we are in the project root for docker compose commands
+cd "$PROJECT_ROOT"
+
 # 1. Stop application services to release DB connections
 echo "🛑 Stopping application services..."
 docker compose stop app email-worker lms-worker gpa-worker
 
 # 2. Wipe and recreate the database
 echo "🗑️  Wiping and recreating database: $POSTGRES_DB..."
+if [ -z "$POSTGRES_DB" ]; then
+  echo "Error: POSTGRES_DB environment variable not set. Check your .env file."
+  exit 1
+fi
+
 export PGPASSWORD=$POSTGRES_PASSWORD
 docker exec -e PGPASSWORD -i sees-postgres dropdb -U $POSTGRES_USER --if-exists $POSTGRES_DB
 docker exec -e PGPASSWORD -i sees-postgres createdb -U $POSTGRES_USER $POSTGRES_DB

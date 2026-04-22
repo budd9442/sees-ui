@@ -29,7 +29,7 @@ export function StaffPathwayClient({ initialStats }: StaffPathwayClientProps) {
     const [result, setResult] = useState<{ totalProcessed: number; distribution: Record<string, number> } | null>(null);
 
     const handleRunAllocation = async () => {
-        if (!confirm("Are you sure? This will permanently assign pathways for ALL Level 1 students and lock their selections.")) return;
+        if (!confirm("Are you sure? This will permanently assign pathways for ALL L1 students and lock their selections.")) return;
         
         try {
             const res = await runPathwayAllocation();

@@ -323,7 +323,7 @@ export async function runPathwayAllocation() {
     return await prisma.$transaction(async (tx) => {
         // 1. Get all L1 students with their preferences and current GPA
         const students = await tx.student.findMany({
-            where: { current_level: 'Level 1' },
+            where: { current_level: 'L1' },
             orderBy: { current_gpa: 'desc' },
             include: {
                 preference_1: true,

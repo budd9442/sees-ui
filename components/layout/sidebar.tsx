@@ -344,11 +344,12 @@ const navigationItems: NavItem[] = [
     roles: ['admin'],
   },
   {
-    title: 'API Documentation',
+    title: 'API Docs',
     href: '/dashboard/admin/docs',
     icon: FileText,
     roles: ['admin'],
   },
+
 ];
 
 export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolean> }) {
@@ -373,14 +374,17 @@ export function Sidebar({ featureFlags }: { featureFlags?: Record<string, boolea
     // 2. Strict Perspective Isolation (URL-Prefix Based)
     // Ensure we only show items belonging to the current perspective's path
     const perspectivePath = `/dashboard/${currentPerspective}`;
-    
+
+    // Allow certain shared paths or items that explicitly include the role
+    const isSharedPath = item.roles?.includes(currentPerspective);
+
     // Most items should start with their role path
     // Special case: 'staff' also includes 'advisor' items in their view
     if (currentPerspective === 'staff' || currentPerspective === 'advisor') {
-        if (!item.href.startsWith('/dashboard/staff')) return false;
+      if (!item.href.startsWith('/dashboard/staff')) return false;
     } else {
-        // For HOD/Student/Admin, be strict
-        if (!item.href.startsWith(perspectivePath)) return false;
+      // For HOD/Student/Admin, be strict but allow explicitly tagged shared items
+      if (!item.href.startsWith(perspectivePath) && !isSharedPath) return false;
     }
 
     // 2. Feature Flag Check

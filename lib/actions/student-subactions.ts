@@ -394,9 +394,9 @@ export async function getPathwayData() {
     const mitProgram = await prisma.degreeProgram.findFirst({ where: { code: 'MIT' } });
     const itProgram = await prisma.degreeProgram.findFirst({ where: { code: 'IT' } });
 
-    const totalL1 = await prisma.student.count({ where: { current_level: 'Level 1' } });
-    const mitDemandCount = mitProgram ? await prisma.student.count({ where: { current_level: 'Level 1', degree_path_id: mitProgram.program_id } }) : 0;
-    const itDemandCount = itProgram ? await prisma.student.count({ where: { current_level: 'Level 1', degree_path_id: itProgram.program_id } }) : 0;
+    const totalL1 = await prisma.student.count({ where: { current_level: 'L1' } });
+    const mitDemandCount = mitProgram ? await prisma.student.count({ where: { current_level: 'L1', degree_path_id: mitProgram.program_id } }) : 0;
+    const itDemandCount = itProgram ? await prisma.student.count({ where: { current_level: 'L1', degree_path_id: itProgram.program_id } }) : 0;
 
     const mitDemand = totalL1 > 0 ? Math.round((mitDemandCount / totalL1) * 100) : 0;
     const itDemand = totalL1 > 0 ? Math.round((itDemandCount / totalL1) * 100) : 0;
@@ -415,7 +415,7 @@ export async function getPathwayData() {
     // Provide ranking data based on current GPA among peers
     const studentRank = await prisma.student.count({
         where: {
-            current_level: 'Level 1',
+            current_level: 'L1',
             current_gpa: { gt: studentRecord.current_gpa }
         }
     }) + 1;
@@ -423,7 +423,7 @@ export async function getPathwayData() {
     return {
         currentStudent: {
             studentId: studentRecord.student_id,
-            academicYear: studentRecord.current_level || 'Level 1',
+            academicYear: studentRecord.current_level || 'L1',
             degreeProgram: studentRecord.degree_path.code, // E.g., MIT, IT
             pathwayLocked: studentRecord.pathway_locked,
             currentGPA: studentRecord.current_gpa,
@@ -629,7 +629,7 @@ export async function getStudentProfile() {
         avatar: user.avatar || '',
         academicInfo: {
             studentId: studentRecord.student_id,
-            level: studentRecord.current_level || 'Level 1',
+            level: studentRecord.current_level || 'L1',
             pathway: studentRecord.degree_path.name,
             specialization: studentRecord.specialization?.name || 'None',
             advisor: studentRecord.advisor ? `${studentRecord.advisor.staff.user.firstName} ${studentRecord.advisor.staff.user.lastName}` : 'Unassigned',
@@ -753,7 +753,7 @@ export async function getRankingsData() {
             id: student.student_id,
             studentId: student.student_id,
             studentName: `${student.user.firstName} ${student.user.lastName}`,
-            academicYear: student.current_level || 'Level 1',
+            academicYear: student.current_level || 'L1',
             pathway: student.degree_path.name,
             specialization: student.specialization?.name || null,
             gpa: gpa,

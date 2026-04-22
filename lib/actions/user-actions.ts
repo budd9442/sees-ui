@@ -284,16 +284,16 @@ export async function createUser(data: CreateUserSchema) {
             if (role === 'student') {
                 // Calculate Level
                 // Calculate Level or use provided
-                let calculatedLevel = 'Level 1';
+                let calculatedLevel = 'L1';
 
                 if (otherDetails.currentLevel) {
                     calculatedLevel = otherDetails.currentLevel;
                 } else {
                     const currentYear = new Date().getFullYear();
                     const diff = currentYear - finalAdmissionYear + 1;
-                    if (diff >= 4) calculatedLevel = 'Level 4';
-                    else if (diff === 3) calculatedLevel = 'Level 3';
-                    else if (diff === 2) calculatedLevel = 'Level 2';
+                    if (diff >= 4) calculatedLevel = 'L4';
+                    else if (diff === 3) calculatedLevel = 'L3';
+                    else if (diff === 2) calculatedLevel = 'L2';
                 }
 
                 await tx.student.create({

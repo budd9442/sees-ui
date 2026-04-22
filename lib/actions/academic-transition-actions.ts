@@ -18,20 +18,21 @@ const LEGAL_TRANSITIONS: Record<string, string> = {
 type BatchLevel = (typeof BATCH_LEVELS)[number];
 
 const BATCH_LEVEL_TO_DB: Record<BatchLevel, string> = {
-    L1: 'Level 1',
-    L2: 'Level 2',
-    L3: 'Level 3',
-    L4: 'Level 4',
+    L1: 'L1',
+    L2: 'L2',
+    L3: 'L3',
+    L4: 'L4',
     GRADUATED: 'GRADUATED',
 };
 
 function dbLevelToBatchLevel(currentLevel: string | null): BatchLevel | null {
     if (!currentLevel) return null;
-    if (currentLevel === 'Level 1') return 'L1';
-    if (currentLevel === 'Level 2') return 'L2';
-    if (currentLevel === 'Level 3') return 'L3';
-    if (currentLevel === 'Level 4') return 'L4';
-    if (currentLevel.toUpperCase() === 'GRADUATED') return 'GRADUATED';
+    const raw = currentLevel.toUpperCase();
+    if (raw === 'L1' || raw === 'LEVEL 1') return 'L1';
+    if (raw === 'L2' || raw === 'LEVEL 2') return 'L2';
+    if (raw === 'L3' || raw === 'LEVEL 3') return 'L3';
+    if (raw === 'L4' || raw === 'LEVEL 4') return 'L4';
+    if (raw === 'GRADUATED') return 'GRADUATED';
     return null;
 }
 

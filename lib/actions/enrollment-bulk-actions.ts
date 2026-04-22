@@ -176,7 +176,7 @@ export async function processEnrollmentBatch(batchId: string) {
                             admission_year: new Date().getFullYear(),
                             degree_path_id: mit?.program_id || 'DEFAULT',
                             enrollment_status: 'ENROLLED',
-                            current_level: 'Level 1'
+                            current_level: 'L1'
                         }
                     });
                 }

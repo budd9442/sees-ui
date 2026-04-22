@@ -38,15 +38,15 @@ BEGIN
     END IF;
 
     -- 3. Count eligible students
-    SELECT COUNT(*) INTO v_count_l1 FROM "Student" WHERE current_level = 'Level 1';
+    SELECT COUNT(*) INTO v_count_l1 FROM "Student" WHERE current_level = 'L1';
     
     RAISE NOTICE 'Found Round: %', v_round_id;
     RAISE NOTICE 'MIT ID: %, IT ID: %', v_mit_id, v_it_id;
-    RAISE NOTICE 'Processing % Level 1 students...', v_count_l1;
+    RAISE NOTICE 'Processing % L1 students...', v_count_l1;
 
     -- 4. Insert/Update Selection Applications
     WITH eligible_students AS (
-        SELECT student_id, current_gpa FROM "Student" WHERE current_level = 'Level 1'
+        SELECT student_id, current_gpa FROM "Student" WHERE current_level = 'L1'
     ),
     shuffled_students AS (
         SELECT student_id, current_gpa, row_number() OVER (ORDER BY random()) as rn, COUNT(*) OVER () as total_count

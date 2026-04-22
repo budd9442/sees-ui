@@ -179,12 +179,12 @@ export async function getStaffAnalytics(filters?: StaffAnalyticsFilters) {
                     points: r.grade!.grade_point,
                     letterGrade: r.grade!.letter_grade,
                     studentPathway: r.student.degree_path.name,
-                    studentYear: r.student.current_level || 'Level 1',
+                    studentYear: r.student.current_level || 'L1',
                 })),
             registrations: regsFiltered.map((r) => ({
                 studentId: r.student_id,
                 studentPathway: r.student.degree_path.name,
-                studentYear: r.student.current_level || 'Level 1',
+                studentYear: r.student.current_level || 'L1',
             })),
         });
     }
@@ -282,7 +282,7 @@ export async function getStaffModuleRoster(moduleId: string) {
                 id: reg.student.student_id,
                 name: `${reg.student.user.firstName} ${reg.student.user.lastName}`,
                 email: reg.student.user.email,
-                academicYear: reg.student.current_level || 'Level 1',
+                academicYear: reg.student.current_level || 'L1',
                 specialization: reg.student.specialization?.name || reg.student.degree_path.name,
                 grade: gradeRecord
                     ? {
