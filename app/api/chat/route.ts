@@ -233,18 +233,26 @@ If you cannot answer from the guide, say "I don't have enough information to ans
     }
 
     // ── 6. Phase 1: PLANNER — generate SQL ───────────────────────────────
+    const userContext = `USER CONTEXT:
+- Name: ${session.user.name || 'Unknown'}
+- Role: ${role}
+- User ID: ${session.user.id}
+When the user says "my" (e.g., "my modules", "my grades", "my ranking"), filter by this User ID. In the database, this ID matches the primary key of "User", "Student", or "Staff".`;
+
     const plannerSystem = `You are a SQL query planner for the SEES academic platform (PostgreSQL).
-Given a user question, decide whether it can be answered from the database, then write a single SELECT query.
+Given a user question, decide whether it can be answered from the database, then write a single SELECT or WITH query.
 
 ${DB_SCHEMA}
 
 ${roleSQLNotes(role)}
 
+${userContext}
+
 Output ONLY valid JSON (no extra text):
 {
   "canAnswer": true | false,
   "reason": null | "string — required only when canAnswer=false, shown directly to the user",
-  "sql": null | "SELECT ... — required when canAnswer=true"
+  "sql": null | "SELECT ... or WITH ... — required when canAnswer=true"
 }
 
 Rules:

@@ -399,10 +399,8 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                                                     <Button
                                                         variant="outline"
                                                         className="border-primary/20 text-primary hover:bg-primary/5 font-bold rounded-xl h-11"
-                                                        onClick={() => setActiveAcademicYear(year.id)}
                                                     >
-                                                        <Play className="h-4 w-4 mr-2" />
-                                                        Activate Cycle
+                                                        Archived
                                                     </Button>
                                                 ) : (
                                                     <div className="flex items-center gap-2 text-green-600 bg-green-50 px-5 py-2.5 rounded-xl border border-green-100 font-semibold text-sm shadow-sm ring-1 ring-green-200/50">
@@ -563,8 +561,8 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                         </div>
                         <DialogTitle className="text-2xl font-semibold">Confirm Batch Transition</DialogTitle>
                         <DialogDescription className="pt-2">
-                            You are about to promote <span className="font-bold text-foreground">{promotionDialog?.count} students</span> from 
-                            <span className="px-2 py-0.5 mx-1 rounded bg-muted font-bold text-foreground">{promotionDialog?.source}</span> to 
+                            You are about to promote <span className="font-bold text-foreground">{promotionDialog?.count} students</span> from
+                            <span className="px-2 py-0.5 mx-1 rounded bg-muted font-bold text-foreground">{promotionDialog?.source}</span> to
                             <span className="px-2 py-0.5 mx-1 rounded bg-muted font-bold text-foreground">{promotionDialog?.target}</span>.
                         </DialogDescription>
                     </DialogHeader>
@@ -576,8 +574,8 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                                 <span>Destination Conflict Detected</span>
                             </div>
                             <p className="text-xs text-orange-700 leading-relaxed">
-                                There are already <span className="font-bold">{promotionDialog.targetCount} students</span> at level {promotionDialog.target}. 
-                                Proceeding will merge these batches together. 
+                                There are already <span className="font-bold">{promotionDialog.targetCount} students</span> at level {promotionDialog.target}.
+                                Proceeding will merge these batches together.
                                 We recommend promoting the existing {promotionDialog.target} batch first.
                             </p>
                         </div>
@@ -591,10 +589,10 @@ export function AcademicGovernanceClient({ initialYears }: AcademicGovernanceCli
                         <Button variant="ghost" onClick={() => setPromotionDialog(null)} className="rounded-xl flex-1 h-12">
                             Cancel
                         </Button>
-                        <Button 
-                            onClick={executePromotion} 
-                            className={`rounded-xl flex-[2] h-12 shadow-lg transition-all ${promotionDialog?.targetCount && promotionDialog.targetCount > 0 && promotionDialog.target !== 'GRADUATED' 
-                                ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-200' 
+                        <Button
+                            onClick={executePromotion}
+                            className={`rounded-xl flex-[2] h-12 shadow-lg transition-all ${promotionDialog?.targetCount && promotionDialog.targetCount > 0 && promotionDialog.target !== 'GRADUATED'
+                                ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-200'
                                 : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20'}`}
                         >
                             Proceed with Promotion

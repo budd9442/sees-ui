@@ -61,9 +61,9 @@ export type ValidationResult =
 export function validateSQL(rawSql: string, role: string): ValidationResult {
   const sql = rawSql.trim();
 
-  // 1. Must be a SELECT statement
-  if (!/^select\b/i.test(sql)) {
-    return { safe: false, reason: 'Only SELECT queries are permitted.' };
+  // 1. Must be a SELECT or WITH statement
+  if (!/^(select|with)\b/i.test(sql)) {
+    return { safe: false, reason: 'Only SELECT or WITH queries are permitted.' };
   }
 
   // 2. Block write/DDL keywords anywhere in the query

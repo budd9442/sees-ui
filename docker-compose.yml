@@ -90,5 +90,18 @@ services:
       - postgres
       - rabbitmq
 
+  metrics-collector:
+    build: .
+    container_name: sees-metrics-collector
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - NODE_ENV=production
+    env_file:
+      - .env
+    command: sh -c "while true; do npm run metrics:collect; sleep 300; done"
+    depends_on:
+      - postgres
+
 volumes:
   postgres_data:
