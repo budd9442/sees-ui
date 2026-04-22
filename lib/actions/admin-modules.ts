@@ -461,3 +461,48 @@ export async function removeStaffAssignment(assignmentId: string) {
     });
     revalidatePath('/dashboard/admin/modules');
 }
+/**
+ * @swagger
+ * /action/admin-module/deleteModule:
+ *   post:
+ *     summary: "[Server Action] Delete Module"
+ *     description: Permanently deletes an academic module if no student registrations are associated with it.
+ *     tags:
+ *       - Admin Actions
+ */
+export async function deleteModule(moduleId: string) {
+    const session = await auth();
+    if (!session?.user?.id || (session.user as any)?.role !== 'admin') throw new Error("Unauthorized");
+
+    // 1. Check for registrations
+    const regCount = await prisma.moduleRegistration.count({
+        where: { module_id: moduleId }
+    });
+
+    if (regCount > 0) {
+        return { success: false, error: 'Cannot delete module with existing registrations.' };
+    }
+
+    // 2. Check for structure links
+    const structureCount = await prisma.programStructure.count({
+        where: { module_id: moduleId }
+    });
+    if (structureCount > 0) {
+        return { success: false, error: 'Cannot delete module linked to program structures.' };
+    }
+
+    await prisma.module.delete({
+        where: { module_id: moduleId }
+    });
+
+    await writeAuditLog({
+        adminId: session.user.id,
+        action: 'ADMIN_MODULE_DELETE',
+        entityType: 'MODULE',
+        entityId: moduleId,
+        category: 'ADMIN',
+    });
+
+    revalidatePath('/dashboard/admin/modules');
+    return { success: true };
+}

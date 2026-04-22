@@ -2,7 +2,7 @@
 
 import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
-import { userSchema, CreateUserSchema, updateUserSchema, UpdateUserSchema, changePasswordSchema, ChangePasswordSchema } from '@/lib/validations/user';
+import { userSchema, CreateUserSchema, updateUserSchema, UpdateUserSchema, changePasswordSchema, ChangePasswordSchema, setPasswordSchema } from '@/lib/validations/user';
 import bcrypt, { hash } from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 import { sendEmail } from '@/lib/email/brevo';

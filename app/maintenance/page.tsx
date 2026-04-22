@@ -18,18 +18,16 @@ export default function MaintenancePage() {
                 </CardHeader>
                 <CardContent className="space-y-6 text-center">
                     <div className="bg-slate-100/50 rounded-xl p-4 border border-slate-200">
-                      <p className="text-sm text-slate-600 leading-relaxed italic">
-                        "The SEES Governance Engine has been placed in Maintenance Mode by University Administration. Please check back later."
-                      </p>
+                        <p className="text-sm text-slate-600 leading-relaxed italic">
+                            "SEES has been placed in Maintenance Mode by Administration. Please check back later."
+                        </p>
                     </div>
-                    
+
                     <div className="flex flex-col gap-3">
                         <Button asChild variant="outline" className="w-full">
                             <Link href="/login">Return to Login</Link>
                         </Button>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
-                            Secure Administrative Sovereign System
-                        </p>
+
                     </div>
                 </CardContent>
             </Card>

@@ -101,7 +101,7 @@ const TEMPLATES: Template[] = [
     },
     {
         id: 'tpl_retention',
-        label: 'Retention & Cohort Leakage',
+        label: 'Retention Analysis',
         description: 'Student status breakdown across different admission cohorts.',
         icon: Activity,
         roles: ['admin', 'hod'],
@@ -173,7 +173,7 @@ const TEMPLATES: Template[] = [
     },
     {
         id: 'tpl_scholarship',
-        label: 'Scholarship & High Performers',
+        label: 'Deans List & High Performers',
         description: 'Identifying students eligible for honours and Dean\'s lists.',
         icon: Award,
         roles: ['admin', 'hod'],
